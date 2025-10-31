@@ -10,10 +10,7 @@ function Collapsible({ className, ...props }: React.ComponentProps<typeof Collap
 function CollapsibleTrigger({ className, ...props }: React.ComponentProps<typeof CollapsiblePrimitive.Trigger>) {
   return (
     <CollapsiblePrimitive.Trigger
-      className={cn(
-        "inline-flex items-center justify-center transition-all hover:opacity-70",
-        className,
-      )}
+      className={cn("inline-flex items-center justify-center transition-all hover:opacity-70", className)}
       {...props}
     />
   );

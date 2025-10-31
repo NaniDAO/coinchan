@@ -1,94 +1,67 @@
 import { useQuery } from "@tanstack/react-query";
 
-const INDEXER_URL = "https://coinchan-indexer-production.up.railway.app";
+const INDEXER_URL = import.meta.env.VITE_INDEXER_URL;
 
-export interface MarketParticipant {
-  user: string;
-  totalWstDeposited: string;
-  totalWstWithdrawn: string;
-  netPnL: string;
-  netPnLEth: string;
-  totalVolume: string;
-  totalVolumeEth: string;
-  totalYesBought: string;
-  totalYesSold: string;
-  totalNoBought: string;
-  totalNoSold: string;
-  currentYesShares: string;
-  currentNoShares: string;
-  hasOpenPosition: boolean;
-  side: "YES" | "NO" | "BOTH" | "CLOSED";
-  buyCount: number;
-  sellCount: number;
-  claimCount: number;
-  lastActivityAt: number;
-  createdAt: number;
+export interface MarketBet {
+  // Bet Information
+  betId: string;
+  trader: string; // Ethereum address
+  side: "YES" | "NO";
+  amountBet: string; // wstETH amount as string (to handle bigint)
+  sharesBought: string; // Shares received as string
+  betTimestamp: string; // Unix timestamp as string
+  betTxHash: string; // Transaction hash
+  betBlockNumber: string; // Block number as string
+
+  // Claim Information
+  claims: Array<{
+    shares: string;
+    payout: string; // wstETH received as string
+    timestamp: string;
+    txHash: string;
+  }>;
+  totalClaimedShares: string;
+  totalClaimedPayout: string;
+  hasClaimed: boolean;
+  lastClaimTimestamp: string | null;
+
+  // Profitability (user-level for entire market)
+  userTotalDeposited: string; // Total wstETH deposited by user
+  userTotalWithdrawn: string; // Total wstETH withdrawn (sells + claims)
+  userNetProfit: string; // Net profit/loss in wstETH
+  userIsProfitable: boolean; // Whether user is in profit
 }
 
-export interface MarketLeaderboardResponse {
+export interface MarketBetsResponse {
   market: {
     marketId: string;
     description: string;
     status: "OPEN" | "CLOSED" | "RESOLVED";
     resolved: boolean;
     outcome: boolean | null;
-    yesChance: number | null;
-    noChance: number | null;
-    pot: string;
-    potEth: string;
-    closeTs: string | null;
-    createdAt: number;
+    yesId: string;
+    noId: string;
   };
-  participants: MarketParticipant[];
-  summary: {
-    totalParticipants: number;
-    activePositions: number;
-    totalWstDeposited: string;
-    totalWstDepositedEth: string;
-    totalWstWithdrawn: string;
-    totalWstWithdrawnEth: string;
-    totalNetPnL: string;
-    totalNetPnLEth: string;
-  };
-  pagination: {
-    limit: number;
-    offset: number;
-    total: number;
-    hasMore: boolean;
-    nextOffset: number | null;
-  };
+  bets: MarketBet[];
+  totalBets: number;
 }
 
 interface UseMarketLeaderboardOptions {
   marketId: bigint;
-  sortBy?: "netPnL" | "totalVolume" | "lastActivityAt" | "buyCount";
-  order?: "desc" | "asc";
-  limit?: number;
-  offset?: number;
 }
 
-export function useMarketLeaderboard({
-  marketId,
-  sortBy = "netPnL",
-  order = "desc",
-  limit = 100,
-  offset = 0,
-}: UseMarketLeaderboardOptions) {
-  return useQuery<MarketLeaderboardResponse>({
-    queryKey: ["market-leaderboard", marketId.toString(), sortBy, order, limit, offset],
+export function useMarketLeaderboard({ marketId }: UseMarketLeaderboardOptions) {
+  return useQuery<MarketBetsResponse>({
+    queryKey: ["market-bets", marketId.toString()],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        marketId: marketId.toString(),
-        sortBy,
-        order,
-        limit: limit.toString(),
-        offset: offset.toString(),
-      });
+      if (!INDEXER_URL) {
+        throw new Error("VITE_INDEXER_URL is not set");
+      }
 
-      const response = await fetch(`${INDEXER_URL}/api/market-participants?${params}`);
+      const response = await fetch(`${INDEXER_URL}/api/market-bets/${marketId.toString()}`);
 
       if (!response.ok) {
-        throw new Error("Failed to fetch leaderboard data");
+        throw new Error("Failed to fetch market bets data");
       }
 
       return response.json();

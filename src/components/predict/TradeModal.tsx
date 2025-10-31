@@ -9,39 +9,20 @@ import {
   useBalance,
 } from "wagmi";
 import { toast } from "sonner";
-import {
-  PredictionMarketAddress,
-  PredictionMarketAbi,
-} from "@/constants/PredictionMarket";
-import {
-  PredictionAMMAbi,
-  PredictionAMMAddress,
-} from "@/constants/PredictionMarketAMM";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
+import { PredictionAMMAbi, PredictionAMMAddress } from "@/constants/PredictionMarketAMM";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { BadgeCheck, CopyIcon, Settings } from "lucide-react";
 import { isPerpetualOracleResolver } from "@/constants/TrustedResolvers";
 import { isUserRejectionError } from "@/lib/errors";
-import {
-  ChainlinkAggregatorV3Abi,
-  CHAINLINK_ETH_USD_FEED,
-} from "@/constants/ChainlinkAggregator";
+import { ChainlinkAggregatorV3Abi, CHAINLINK_ETH_USD_FEED } from "@/constants/ChainlinkAggregator";
 import { PercentageBlobs } from "@/components/ui/percentage-blobs";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { WSTETH_ABI, WSTETH_ADDRESS } from "@/constants/WSTETH";
@@ -74,9 +55,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   initialPosition = "yes",
   onTransactionSuccess,
 }) => {
-  const isPerpetualOracle = resolver
-    ? isPerpetualOracleResolver(resolver)
-    : false;
+  const isPerpetualOracle = resolver ? isPerpetualOracleResolver(resolver) : false;
   const { address } = useAccount();
   const [action, setAction] = useState<"buy" | "sell">("buy");
   const [position, setPosition] = useState<"yes" | "no">(initialPosition);
@@ -101,8 +80,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   });
 
   // 🔹 Determine current token id for the Sell tab
-  const tokenIdForPosition: bigint | undefined =
-    position === "yes" ? marketId : (noId ?? 0n);
+  const tokenIdForPosition: bigint | undefined = position === "yes" ? marketId : noId ?? 0n;
 
   // 🔹 Get user's share balance for the current token id (only when selling)
   const { data: userTokenBalance } = useTokenBalance({
@@ -121,16 +99,15 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   };
 
   // Fetch user's wstETH balance
-  const { data: wstethBalance, refetch: refetchWstethBalance } =
-    useReadContract({
-      address: WSTETH_ADDRESS,
-      abi: WSTETH_ABI,
-      functionName: "balanceOf",
-      args: address ? [address] : undefined,
-      query: {
-        enabled: !!address,
-      },
-    });
+  const { data: wstethBalance, refetch: refetchWstethBalance } = useReadContract({
+    address: WSTETH_ADDRESS,
+    abi: WSTETH_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address,
+    },
+  });
 
   // Check wstETH allowance for the market contract
   const { data: wstethAllowance, refetch: refetchAllowance } = useReadContract({
@@ -143,13 +120,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     },
   });
 
-  const {
-    writeContractAsync,
-    data: hash,
-    isPending,
-    error: writeError,
-    reset,
-  } = useWriteContract();
+  const { writeContractAsync, data: hash, isPending, error: writeError, reset } = useWriteContract();
 
   // Filter out user rejection errors from writeError
   const displayError = React.useMemo(() => {
@@ -158,8 +129,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     return writeError;
   }, [writeError]);
 
-  const { isSuccess: txSuccess, isLoading: txLoading } =
-    useWaitForTransactionReceipt({ hash });
+  const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({ hash });
 
   // Auto-select wstETH payment if user has sufficient balance
   React.useEffect(() => {
@@ -199,17 +169,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
         onTransactionSuccess();
       }
     }
-  }, [
-    txSuccess,
-    refetchWstethBalance,
-    refetchAllowance,
-    isApprovingWstETH,
-    onTransactionSuccess,
-  ]);
+  }, [txSuccess, refetchWstethBalance, refetchAllowance, isApprovingWstETH, onTransactionSuccess]);
 
   // Quote for AMM buy trades
-  const sharesAmount =
-    amount && parseFloat(amount) > 0 ? parseEther(amount) : 0n;
+  const sharesAmount = amount && parseFloat(amount) > 0 ? parseEther(amount) : 0n;
 
   const { data: quoteData } = useReadContract({
     address: contractAddress as `0x${string}`,
@@ -233,16 +196,9 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
   // For AMM markets, update useWstETH based on whether user has enough wstETH for the quoted cost
   React.useEffect(() => {
-    if (
-      action === "buy" &&
-      marketType === "amm" &&
-      estimatedCost > 0n &&
-      wstethBalance
-    ) {
+    if (action === "buy" && marketType === "amm" && estimatedCost > 0n && wstethBalance) {
       // Add slippage buffer to estimated cost for comparison
-      const slippageMultiplier = BigInt(
-        Math.floor((1 + slippageTolerance / 100) * 10000),
-      );
+      const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
       const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
       setUseWstETH(wstethBalance >= wstInMax);
     }
@@ -338,9 +294,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
   // Apply resolver fee to pot (matching PAMM.sol line 779: fee = pot * feeBps / 10_000, then pot -= fee)
   const feeBps = resolverFeeBps ?? 0;
-  const potAfterFee = currentPot > 0n && feeBps > 0
-    ? (currentPot * BigInt(10000 - feeBps)) / 10000n
-    : currentPot;
+  const potAfterFee = currentPot > 0n && feeBps > 0 ? (currentPot * BigInt(10000 - feeBps)) / 10000n : currentPot;
 
   // Fetch PMTuning to calculate intelligent buffer based on market conditions
   const { data: pmTuningData } = useReadContract({
@@ -371,8 +325,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   const wstethUsdPrice = React.useMemo(() => {
     if (!stEthPerToken || !ethPriceData) return null;
     const ethPrice = ethPriceData[1]; // answer from Chainlink (int256, 8 decimals)
-    const wstethPrice =
-      (stEthPerToken * BigInt(ethPrice.toString())) / parseEther("1");
+    const wstethPrice = (stEthPerToken * BigInt(ethPrice.toString())) / parseEther("1");
     return Number(wstethPrice) / 1e8;
   }, [stEthPerToken, ethPriceData]);
 
@@ -416,10 +369,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     if (!ethBalance) return;
 
     const balance = ethBalance.value;
-    const adjustedBalance =
-      percentage === 100
-        ? (balance * 99n) / 100n
-        : (balance * BigInt(percentage)) / 100n;
+    const adjustedBalance = percentage === 100 ? (balance * 99n) / 100n : (balance * BigInt(percentage)) / 100n;
 
     const calculatedAmount = formatEther(adjustedBalance);
     setAmount(calculatedAmount);
@@ -455,9 +405,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
       setLocalError(null);
       setIsApprovingWstETH(true);
 
-      const maxUint256 = BigInt(
-        "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-      );
+      const maxUint256 = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
       await writeContractAsync({
         address: WSTETH_ADDRESS,
@@ -475,8 +423,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
       }
 
       console.error("Approval error:", err);
-      const errorMessage =
-        err?.shortMessage ?? err?.message ?? err?.reason ?? String(err);
+      const errorMessage = err?.shortMessage ?? err?.message ?? err?.reason ?? String(err);
       setLocalError(errorMessage || "Approval failed");
       toast.error(errorMessage || "Approval failed");
     }
@@ -491,24 +438,13 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     const amountWei = parseEther(amount);
 
     if (marketType === "amm" && estimatedCost > 0n) {
-      const slippageMultiplier = BigInt(
-        Math.floor((1 + slippageTolerance / 100) * 10000),
-      );
+      const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
       const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
       return !wstethAllowance || wstethAllowance < wstInMax;
     }
 
     return !wstethAllowance || wstethAllowance < amountWei;
-  }, [
-    useWstETH,
-    address,
-    action,
-    amount,
-    marketType,
-    estimatedCost,
-    wstethAllowance,
-    slippageTolerance,
-  ]);
+  }, [useWstETH, address, action, amount, marketType, estimatedCost, wstethAllowance, slippageTolerance]);
 
   const handleTrade = async () => {
     if (!address) {
@@ -528,14 +464,11 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
       if (marketType === "amm") {
         if (action === "buy") {
-          const slippageMultiplier = BigInt(
-            Math.floor((1 + slippageTolerance / 100) * 10000),
-          );
+          const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
           const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
           const oppInMax = (oppIn * slippageMultiplier) / 10000n;
 
-          const functionName =
-            position === "yes" ? "buyYesViaPool" : "buyNoViaPool";
+          const functionName = position === "yes" ? "buyYesViaPool" : "buyNoViaPool";
 
           if (useWstETH) {
             await writeContractAsync({
@@ -550,9 +483,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
             let ethValue: bigint;
             if (stEthPerToken) {
-              ethValue =
-                (wstInMax * parseEther("1") * bufferMultiplier) /
-                (stEthPerToken * 10000n);
+              ethValue = (wstInMax * parseEther("1") * bufferMultiplier) / (stEthPerToken * 10000n);
             } else {
               ethValue = (wstInMax * 12n * bufferMultiplier) / 100000n;
             }
@@ -566,14 +497,11 @@ export const TradeModal: React.FC<TradeModalProps> = ({
             });
           }
         } else {
-          const slippageMultiplier = BigInt(
-            Math.floor((1 - slippageTolerance / 100) * 10000),
-          );
+          const slippageMultiplier = BigInt(Math.floor((1 - slippageTolerance / 100) * 10000));
           const wstOutMin = (estimatedCost * slippageMultiplier) / 10000n;
           const oppOutMin = (oppIn * slippageMultiplier) / 10000n;
 
-          const functionName =
-            position === "yes" ? "sellYesViaPool" : "sellNoViaPool";
+          const functionName = position === "yes" ? "sellYesViaPool" : "sellNoViaPool";
           await writeContractAsync({
             address: contractAddress as `0x${string}`,
             abi: PredictionAMMAbi,
@@ -611,8 +539,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
       console.error("Trade error:", err);
 
-      const errorMessage =
-        err?.shortMessage ?? err?.message ?? err?.reason ?? String(err);
+      const errorMessage = err?.shortMessage ?? err?.message ?? err?.reason ?? String(err);
       let displayMessage = errorMessage;
       if (errorMessage && errorMessage.length > 200) {
         displayMessage = errorMessage.substring(0, 200) + "...";
@@ -637,8 +564,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     displayNo = rNo;
   } else {
     const totalSupply = yesSupply + noSupply;
-    yesPercent =
-      totalSupply > 0n ? (Number(yesSupply) / Number(totalSupply)) * 100 : 50;
+    yesPercent = totalSupply > 0n ? (Number(yesSupply) / Number(totalSupply)) * 100 : 50;
     noPercent = 100 - yesPercent;
     displayYes = yesSupply;
     displayNo = noSupply;
@@ -699,20 +625,14 @@ export const TradeModal: React.FC<TradeModalProps> = ({
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold text-base">
-                  YES
-                </span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold text-base">YES</span>
                 <span className="text-emerald-600 dark:text-emerald-400 font-bold text-2xl">
                   {yesPercent.toFixed(2)}%
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-rose-600 dark:text-rose-400 font-bold text-2xl">
-                  {noPercent.toFixed(2)}%
-                </span>
-                <span className="text-rose-600 dark:text-rose-400 font-bold text-base">
-                  NO
-                </span>
+                <span className="text-rose-600 dark:text-rose-400 font-bold text-2xl">{noPercent.toFixed(2)}%</span>
+                <span className="text-rose-600 dark:text-rose-400 font-bold text-base">NO</span>
                 <div className="w-3 h-3 rounded-full bg-rose-500"></div>
               </div>
             </div>
@@ -727,20 +647,13 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground pt-1 border-t border-border/30">
-              <span className="font-mono">
-                {Number(formatEther(displayYes)).toFixed(2)} wstETH
-              </span>
-              <span className="font-mono">
-                {Number(formatEther(displayNo)).toFixed(2)} wstETH
-              </span>
+              <span className="font-mono">{Number(formatEther(displayYes)).toFixed(2)} wstETH</span>
+              <span className="font-mono">{Number(formatEther(displayNo)).toFixed(2)} wstETH</span>
             </div>
           </div>
 
           {/* Trade Interface */}
-          <Tabs
-            value={action}
-            onValueChange={(v) => setAction(v as "buy" | "sell")}
-          >
+          <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")}>
             <TabsList className="grid w-full grid-cols-2 h-11">
               <TabsTrigger value="buy" className="font-semibold">
                 Buy
@@ -811,8 +724,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   {ethBalance && !useWstETH && (
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs text-muted-foreground">
-                        ETH Balance:{" "}
-                        {Number(formatEther(ethBalance.value)).toFixed(4)} ETH
+                        ETH Balance: {Number(formatEther(ethBalance.value)).toFixed(4)} ETH
                       </p>
                       <PercentageBlobs
                         value={0}
@@ -828,8 +740,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   {wstethBalance !== undefined && wstethBalance > 0n && (
                     <div className="flex items-center justify-between gap-2 text-xs">
                       <p className="text-muted-foreground">
-                        wstETH Balance:{" "}
-                        {Number(formatEther(wstethBalance)).toFixed(4)} wstETH
+                        wstETH Balance: {Number(formatEther(wstethBalance)).toFixed(4)} wstETH
                       </p>
                       {useWstETH && (
                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
@@ -851,30 +762,28 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   if (marketType === "amm") {
                     const sharesBought = amountWei;
                     const costWei = estimatedCost > 0n ? estimatedCost : 0n;
-                    const profit =
-                      sharesBought > costWei ? sharesBought - costWei : 0n;
+                    const profit = sharesBought > costWei ? sharesBought - costWei : 0n;
 
-                    const payoutUsd = wstethUsdPrice
-                      ? Number(formatEther(sharesBought)) * wstethUsdPrice
-                      : null;
+                    const payoutUsd = wstethUsdPrice ? Number(formatEther(sharesBought)) * wstethUsdPrice : null;
                     const profitUsd =
-                      wstethUsdPrice && profit > 0n
-                        ? Number(formatEther(profit)) * wstethUsdPrice
-                        : null;
+                      wstethUsdPrice && profit > 0n ? Number(formatEther(profit)) * wstethUsdPrice : null;
 
                     // Calculate cost per share and projected payout per share
                     // Formula matches PAMM.sol: payoutPerShare = mulDiv(pot, Q, winningCirc) where Q = 1e18
                     const Q = parseEther("1"); // 1e18, same as contract
-                    const userAvgCostPerShare = costWei > 0n && sharesBought > 0n
-                      ? (costWei * Q) / sharesBought  // Cost in wei per share
-                      : 0n;
+                    const userAvgCostPerShare =
+                      costWei > 0n && sharesBought > 0n
+                        ? (costWei * Q) / sharesBought // Cost in wei per share
+                        : 0n;
 
                     const positionCirculating = position === "yes" ? yesCirculating : noCirculating;
-                    const projectedPayoutPerShare = positionCirculating > 0n && potAfterFee > 0n
-                      ? (potAfterFee * Q) / positionCirculating  // Payout in wei per share (after resolver fee)
-                      : 0n;
+                    const projectedPayoutPerShare =
+                      positionCirculating > 0n && potAfterFee > 0n
+                        ? (potAfterFee * Q) / positionCirculating // Payout in wei per share (after resolver fee)
+                        : 0n;
 
-                    const isAboveBreakeven = userAvgCostPerShare > projectedPayoutPerShare && projectedPayoutPerShare > 0n;
+                    const isAboveBreakeven =
+                      userAvgCostPerShare > projectedPayoutPerShare && projectedPayoutPerShare > 0n;
 
                     return (
                       <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
@@ -884,8 +793,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                           </span>
                           <div className="text-right">
                             <div className="font-mono font-bold text-base text-purple-900 dark:text-purple-100">
-                              {Number(formatEther(sharesBought)).toFixed(4)}{" "}
-                              wstETH
+                              {Number(formatEther(sharesBought)).toFixed(4)} wstETH
                             </div>
                             {payoutUsd && (
                               <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
@@ -900,9 +808,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                         </div>
                         {profit > 0n && (
                           <div className="flex items-center justify-between text-sm border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
-                            <span className="text-purple-700 dark:text-purple-300">
-                              Potential Profit
-                            </span>
+                            <span className="text-purple-700 dark:text-purple-300">Potential Profit</span>
                             <div className="text-right">
                               <div className="font-mono font-semibold text-green-600 dark:text-green-400">
                                 +{Number(formatEther(profit)).toFixed(4)} wstETH
@@ -949,11 +855,11 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                           )}
 
                           {/* Position Status - Only show if significantly above breakeven */}
-                          {isAboveBreakeven && userAvgCostPerShare > projectedPayoutPerShare * 11n / 10n && (
+                          {isAboveBreakeven && userAvgCostPerShare > (projectedPayoutPerShare * 11n) / 10n && (
                             <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded p-2 mt-2">
                               <p className="text-blue-700 dark:text-blue-300 text-[11px] leading-relaxed">
-                                💡 <span className="font-medium">Heads up:</span> For this position to be profitable at current odds,
-                                more traders would need to bet on the opposite side to grow the pot.
+                                💡 <span className="font-medium">Heads up:</span> For this position to be profitable at
+                                current odds, more traders would need to bet on the opposite side to grow the pot.
                                 Alternatively, you can sell now at market odds or wait for the odds to improve.
                               </p>
                             </div>
@@ -966,29 +872,18 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                       </div>
                     );
                   } else {
-                    const currentPositionPool =
-                      position === "yes" ? displayYes : displayNo;
+                    const currentPositionPool = position === "yes" ? displayYes : displayNo;
                     const totalPool = displayYes + displayNo;
 
                     const newPositionPool = currentPositionPool + amountWei;
                     const newTotalPool = totalPool + amountWei;
 
-                    const potentialPayout =
-                      newTotalPool > 0n
-                        ? (amountWei * newTotalPool) / newPositionPool
-                        : 0n;
-                    const profit =
-                      potentialPayout > amountWei
-                        ? potentialPayout - amountWei
-                        : 0n;
+                    const potentialPayout = newTotalPool > 0n ? (amountWei * newTotalPool) / newPositionPool : 0n;
+                    const profit = potentialPayout > amountWei ? potentialPayout - amountWei : 0n;
 
-                    const payoutUsd = wstethUsdPrice
-                      ? Number(formatEther(potentialPayout)) * wstethUsdPrice
-                      : null;
+                    const payoutUsd = wstethUsdPrice ? Number(formatEther(potentialPayout)) * wstethUsdPrice : null;
                     const profitUsd =
-                      wstethUsdPrice && profit > 0n
-                        ? Number(formatEther(profit)) * wstethUsdPrice
-                        : null;
+                      wstethUsdPrice && profit > 0n ? Number(formatEther(profit)) * wstethUsdPrice : null;
 
                     return (
                       <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
@@ -998,8 +893,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                           </span>
                           <div className="text-right">
                             <div className="font-mono font-bold text-base text-purple-900 dark:text-purple-100">
-                              {Number(formatEther(potentialPayout)).toFixed(4)}{" "}
-                              wstETH
+                              {Number(formatEther(potentialPayout)).toFixed(4)} wstETH
                             </div>
                             {payoutUsd && (
                               <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
@@ -1014,9 +908,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                         </div>
                         {profit > 0n && (
                           <div className="flex items-center justify-between text-sm border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
-                            <span className="text-purple-700 dark:text-purple-300">
-                              Potential Profit
-                            </span>
+                            <span className="text-purple-700 dark:text-purple-300">Potential Profit</span>
                             <div className="text-right">
                               <div className="font-mono font-semibold text-green-600 dark:text-green-400">
                                 +{Number(formatEther(profit)).toFixed(4)} wstETH
@@ -1034,8 +926,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                           </div>
                         )}
                         <p className="text-xs text-purple-600 dark:text-purple-400 italic border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
-                          Estimated based on current pool ratio. Final payout
-                          depends on total pool when market resolves.
+                          Estimated based on current pool ratio. Final payout depends on total pool when market
+                          resolves.
                         </p>
                       </div>
                     );
@@ -1048,29 +940,21 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 parseFloat(amount) > 0 &&
                 (() => {
                   const amountWei = parseEther(amount);
-                  const slippageMultiplier = BigInt(
-                    Math.floor((1 + slippageTolerance / 100) * 10000),
-                  );
-                  const wstInMax =
-                    (estimatedCost * slippageMultiplier) / 10000n;
+                  const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
+                  const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
 
                   if (useWstETH) {
                     return (
                       <div className="bg-card border border-border rounded-lg p-4 space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Estimated Cost
-                          </span>
+                          <span className="text-sm font-medium text-muted-foreground">Estimated Cost</span>
                           <span className="font-mono font-bold text-base">
-                            {Number(formatEther(estimatedCost)).toFixed(6)}{" "}
-                            wstETH
+                            {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
                           </span>
                         </div>
                         <div className="border-t border-border pt-2 space-y-1.5 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">
-                              Max Cost (with slippage)
-                            </span>
+                            <span className="text-muted-foreground">Max Cost (with slippage)</span>
                             <span className="font-mono font-semibold">
                               {Number(formatEther(wstInMax)).toFixed(6)} wstETH
                             </span>
@@ -1088,9 +972,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
                     let ethToSend: bigint;
                     if (stEthPerToken) {
-                      ethToSend =
-                        (wstInMax * parseEther("1") * bufferMultiplier) /
-                        (stEthPerToken * 10000n);
+                      ethToSend = (wstInMax * parseEther("1") * bufferMultiplier) / (stEthPerToken * 10000n);
                     } else {
                       ethToSend = (wstInMax * 12n * bufferMultiplier) / 100000n;
                     }
@@ -1098,35 +980,25 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                     return (
                       <div className="bg-card border border-border rounded-lg p-4 space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Estimated Cost
-                          </span>
+                          <span className="text-sm font-medium text-muted-foreground">Estimated Cost</span>
                           <span className="font-mono font-bold text-base">
-                            {Number(formatEther(estimatedCost)).toFixed(6)}{" "}
-                            wstETH
+                            {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
                           </span>
                         </div>
                         <div className="border-t border-border pt-2 space-y-1.5 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">
-                              Max Cost (with slippage)
-                            </span>
-                            <span className="font-mono text-xs">
-                              {Number(formatEther(wstInMax)).toFixed(6)} wstETH
-                            </span>
+                            <span className="text-muted-foreground">Max Cost (with slippage)</span>
+                            <span className="font-mono text-xs">{Number(formatEther(wstInMax)).toFixed(6)} wstETH</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">
-                              ETH to send
-                            </span>
+                            <span className="text-muted-foreground">ETH to send</span>
                             <span className="font-mono font-semibold">
                               {Number(formatEther(ethToSend)).toFixed(6)} ETH
                             </span>
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground italic pt-1 border-t border-border/50">
-                          Extra ETH is refunded as wstETH. Includes{" "}
-                          {bufferPercent}% intelligent buffer based on market
+                          Extra ETH is refunded as wstETH. Includes {bufferPercent}% intelligent buffer based on market
                           conditions.
                         </p>
                       </div>
@@ -1139,20 +1011,14 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 <div className="pt-2 border-t border-border/30">
                   <button
                     type="button"
-                    onClick={() =>
-                      setShowSlippageSettings(!showSlippageSettings)
-                    }
+                    onClick={() => setShowSlippageSettings(!showSlippageSettings)}
                     className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-sm"
                   >
                     <div className="flex items-center gap-2">
                       <Settings className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-muted-foreground">
-                        Slippage Settings
-                      </span>
+                      <span className="font-medium text-muted-foreground">Slippage Settings</span>
                     </div>
-                    <span className="font-mono font-semibold text-xs">
-                      {slippageTolerance}%
-                    </span>
+                    <span className="font-mono font-semibold text-xs">{slippageTolerance}%</span>
                   </button>
 
                   {showSlippageSettings && (
@@ -1163,9 +1029,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                         max={100}
                         step={0.1}
                         value={[slippageTolerance]}
-                        onValueChange={(value) =>
-                          setSlippageTolerance(value[0])
-                        }
+                        onValueChange={(value) => setSlippageTolerance(value[0])}
                         className="w-full"
                       />
                       <div className="flex justify-between text-xs text-muted-foreground">
@@ -1214,28 +1078,17 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               {/* Amount Input + MAX + Balance */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="sell-amount"
-                    className="text-sm font-semibold"
-                  >
-                    {marketType === "amm"
-                      ? "Shares to Sell"
-                      : "Amount (shares)"}
+                  <Label htmlFor="sell-amount" className="text-sm font-semibold">
+                    {marketType === "amm" ? "Shares to Sell" : "Amount (shares)"}
                   </Label>
 
                   {/* Balance display (only when we have it) */}
-                  {action === "sell" &&
-                    tokenIdForPosition !== undefined &&
-                    userTokenBalance !== undefined && (
-                      <span className="text-xs text-muted-foreground">
-                        Balance:{" "}
-                        <span className="font-mono">
-                          {Number(formatEther(userTokenBalance ?? 0n)).toFixed(
-                            6,
-                          )}
-                        </span>
-                      </span>
-                    )}
+                  {action === "sell" && tokenIdForPosition !== undefined && userTokenBalance !== undefined && (
+                    <span className="text-xs text-muted-foreground">
+                      Balance:{" "}
+                      <span className="font-mono">{Number(formatEther(userTokenBalance ?? 0n)).toFixed(6)}</span>
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
@@ -1253,9 +1106,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                     type="button"
                     variant="outline"
                     onClick={handleMaxSell}
-                    disabled={
-                      !userTokenBalance || userTokenBalance === 0n || !address
-                    }
+                    disabled={!userTokenBalance || userTokenBalance === 0n || !address}
                     className="h-14 px-4 border-2 font-bold"
                     title="Sell your full balance"
                   >
@@ -1263,17 +1114,13 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   </Button>
                 </div>
 
-                <p className="text-xs text-muted-foreground">
-                  Sell your {position.toUpperCase()} shares for wstETH
-                </p>
+                <p className="text-xs text-muted-foreground">Sell your {position.toUpperCase()} shares for wstETH</p>
               </div>
 
               {marketType === "amm" && estimatedCost > 0n && (
                 <div className="bg-card border border-border rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Estimated Payout
-                    </span>
+                    <span className="text-sm font-medium text-muted-foreground">Estimated Payout</span>
                     <span className="font-mono font-bold text-base">
                       {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
                     </span>
@@ -1289,20 +1136,14 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 <div className="pt-2 border-t border-border/30">
                   <button
                     type="button"
-                    onClick={() =>
-                      setShowSlippageSettings(!showSlippageSettings)
-                    }
+                    onClick={() => setShowSlippageSettings(!showSlippageSettings)}
                     className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-sm"
                   >
                     <div className="flex items-center gap-2">
                       <Settings className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-muted-foreground">
-                        Slippage Settings
-                      </span>
+                      <span className="font-medium text-muted-foreground">Slippage Settings</span>
                     </div>
-                    <span className="font-mono font-semibold text-xs">
-                      {slippageTolerance}%
-                    </span>
+                    <span className="font-mono font-semibold text-xs">{slippageTolerance}%</span>
                   </button>
 
                   {showSlippageSettings && (
@@ -1313,9 +1154,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                         max={20}
                         step={0.1}
                         value={[slippageTolerance]}
-                        onValueChange={(value) =>
-                          setSlippageTolerance(value[0])
-                        }
+                        onValueChange={(value) => setSlippageTolerance(value[0])}
                         className="w-full"
                       />
                       <div className="flex justify-between text-xs text-muted-foreground">

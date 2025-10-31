@@ -39,18 +39,13 @@ interface UseMegaMarketsVolumeOptions {
   enabled?: boolean;
 }
 
-export function useMegaMarketsVolume({
-  marketIds,
-  enabled = true,
-}: UseMegaMarketsVolumeOptions) {
+export function useMegaMarketsVolume({ marketIds, enabled = true }: UseMegaMarketsVolumeOptions) {
   return useQuery<MegaMarketsVolumeData>({
     queryKey: ["mega-markets-volume", marketIds.map((id) => id.toString()).join(",")],
     queryFn: async () => {
       // Fetch volume for each market ID
       const volumePromises = marketIds.map(async (marketId) => {
-        const response = await fetch(
-          `${INDEXER_URL}/api/pamm-volume?marketId=${marketId.toString()}`
-        );
+        const response = await fetch(`${INDEXER_URL}/api/pamm-volume?marketId=${marketId.toString()}`);
 
         if (!response.ok) {
           console.error(`Failed to fetch volume for market ${marketId}`);
@@ -63,7 +58,7 @@ export function useMegaMarketsVolume({
       const volumes = await Promise.all(volumePromises);
       console.log("Fetched volumes for mega markets:", {
         marketIds,
-        volumes
+        volumes,
       });
       const validVolumes = volumes.filter((v): v is MarketVolume => v !== null);
 
