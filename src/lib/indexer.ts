@@ -183,9 +183,7 @@ export async function fetchPoolPricePoints(
  * @param marketId - the market identifier (as a string representing BigInt)
  * @returns PredictionChartData with market info and time-series probability data
  */
-export async function fetchPredictionChart(
-  marketId: string,
-): Promise<PredictionChartData> {
+export async function fetchPredictionChart(marketId: string): Promise<PredictionChartData> {
   const baseUrl = import.meta.env.VITE_INDEXER_URL + "/api/prediction-chart";
 
   const params = new URLSearchParams();

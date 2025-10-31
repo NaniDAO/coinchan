@@ -1,5 +1,4 @@
-export const PredictionMarketAddress =
-  "0x0000000000F8d9F51f0765a9dAd6a9487ba85f1e";
+export const PredictionMarketAddress = "0x0000000000F8d9F51f0765a9dAd6a9487ba85f1e";
 
 export const PredictionMarketAbi = [
   { inputs: [], stateMutability: "payable", type: "constructor" },

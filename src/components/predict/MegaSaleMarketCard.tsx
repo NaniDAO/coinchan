@@ -1,42 +1,24 @@
 import React, { useMemo, useState, useEffect } from "react";
-import {
-  useAccount,
-  useReadContract,
-  useReadContracts,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-} from "wagmi";
-import {
-  MegaSalePMResolverAddress,
-  MegaSalePMResolverAbi,
-} from "@/constants/MegaSalePMResolver";
-import {
-  PredictionAMMAbi,
-  PredictionAMMAddress,
-} from "@/constants/PredictionMarketAMM";
+import { useAccount, useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { MegaSalePMResolverAddress, MegaSalePMResolverAbi } from "@/constants/MegaSalePMResolver";
+import { PredictionAMMAbi, PredictionAMMAddress } from "@/constants/PredictionMarketAMM";
 import { formatUSDT } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { formatEther } from "viem";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TradeModal } from "./TradeModal";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { toast } from "sonner";
 import { isUserRejectionError } from "@/lib/errors";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { PredictionProbabilityChart } from "./PredictionProbabilityChart";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MarketLeaderboard } from "./MarketLeaderboard";
+import { useMegaMarketsVolume } from "@/hooks/use-mega-markets-volume";
 
 // MegaETH logo URL
-const MEGAETH_LOGO =
-  "https://content.wrappr.wtf/ipfs/bafkreiefdha6ms7w3pdbrgdmsdwny373psbdq5t7oaaoryt3hh7pi7ndmy";
+const MEGAETH_LOGO = "https://content.wrappr.wtf/ipfs/bafkreiefdha6ms7w3pdbrgdmsdwny373psbdq5t7oaaoryt3hh7pi7ndmy";
 
 // Betting options for the official deadline
 // Note: USDT has 6 decimals, so amounts are multiplied by 1e6
@@ -128,9 +110,7 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
             <div className="flex items-start justify-between gap-2">
               <div className="flex flex-col gap-1.5 flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    {label}
-                  </div>
+                  <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{label}</div>
                   {resolved && (
                     <span
                       className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
@@ -150,12 +130,8 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="text-right">
-                  <div className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-                    {yesPercent.toFixed(0)}%
-                  </div>
-                  <div className="text-[9px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">
-                    chance
-                  </div>
+                  <div className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{yesPercent.toFixed(0)}%</div>
+                  <div className="text-[9px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">chance</div>
                 </div>
                 {isExpanded ? (
                   <ChevronUp className="h-4 w-4 text-zinc-400" />
@@ -206,16 +182,10 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
                   disabled={isClaiming}
                   className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50 font-semibold px-4 py-2 h-auto rounded-md transition-all text-xs flex-1"
                 >
-                  {isClaiming
-                    ? "Claiming..."
-                    : `Claim ${Number(formatEther(userClaimable)).toFixed(4)} wstETH`}
+                  {isClaiming ? "Claiming..." : `Claim ${Number(formatEther(userClaimable)).toFixed(4)} wstETH`}
                 </Button>
               ) : resolved ? (
-                <Button
-                  disabled
-                  variant="outline"
-                  className="px-4 py-2 h-auto text-zinc-500 text-xs flex-1"
-                >
+                <Button disabled variant="outline" className="px-4 py-2 h-auto text-zinc-500 text-xs flex-1">
                   Resolved
                 </Button>
               ) : canResolve ? (
@@ -227,11 +197,7 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
                   disabled={isResolving}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all text-xs flex-1"
                 >
-                  {isResolving
-                    ? "Resolving..."
-                    : resolveReason === "deadline"
-                      ? "Resolve (Closed)"
-                      : "Resolve"}
+                  {isResolving ? "Resolving..." : resolveReason === "deadline" ? "Resolve (Closed)" : "Resolve"}
                 </Button>
               ) : (
                 <>
@@ -243,9 +209,7 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
                     className="bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-semibold px-3 py-2 h-auto rounded-md shadow-sm transition-all flex-1"
                   >
                     <div className="flex flex-col items-center gap-0.5">
-                      <span className="text-[9px] uppercase tracking-wide opacity-90">
-                        buy Yes
-                      </span>
+                      <span className="text-[9px] uppercase tracking-wide opacity-90">buy Yes</span>
                       <span className="text-xs">{yesCost}</span>
                     </div>
                   </Button>
@@ -258,9 +222,7 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
                     className="bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 font-semibold px-3 py-2 h-auto rounded-md shadow-sm transition-all flex-1"
                   >
                     <div className="flex flex-col items-center gap-0.5">
-                      <span className="text-[9px] uppercase tracking-wide opacity-70">
-                        buy No
-                      </span>
+                      <span className="text-[9px] uppercase tracking-wide opacity-70">buy No</span>
                       <span className="text-xs">{noCost}</span>
                     </div>
                   </Button>
@@ -273,9 +235,7 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
           <div className="w-full hidden sm:grid sm:grid-cols-[1fr_auto_auto_auto_auto] sm:gap-3">
             <div className="w-full flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                  {label}
-                </div>
+                <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{label}</div>
                 {resolved && (
                   <span
                     className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
@@ -324,12 +284,8 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
             </div>
 
             <div className="text-right">
-              <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                {yesPercent.toFixed(2)}%
-              </div>
-              <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">
-                chance
-              </div>
+              <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{yesPercent.toFixed(2)}%</div>
+              <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">chance</div>
             </div>
 
             {/* Action buttons based on market state */}
@@ -348,23 +304,14 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
                   "Claiming..."
                 ) : (
                   <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-[10px] uppercase tracking-wider opacity-80">
-                      Claim Winnings
-                    </span>
-                    <span className="text-sm font-bold">
-                      {Number(formatEther(userClaimable)).toFixed(4)} wstETH
-                    </span>
+                    <span className="text-[10px] uppercase tracking-wider opacity-80">Claim Winnings</span>
+                    <span className="text-sm font-bold">{Number(formatEther(userClaimable)).toFixed(4)} wstETH</span>
                   </div>
                 )}
               </Button>
             ) : resolved ? (
               // Show resolved state for markets without claimable winnings
-              <Button
-                disabled
-                variant="outline"
-                className="px-4 py-2 h-auto text-zinc-500"
-                size="sm"
-              >
+              <Button disabled variant="outline" className="px-4 py-2 h-auto text-zinc-500" size="sm">
                 Resolved
               </Button>
             ) : canResolve ? (
@@ -383,14 +330,10 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
                 ) : (
                   <div className="flex flex-col items-center gap-0.5">
                     <span className="text-[10px] uppercase tracking-wider opacity-90">
-                      {resolveReason === "deadline"
-                        ? "Market Closed"
-                        : "Ready to Resolve"}
+                      {resolveReason === "deadline" ? "Market Closed" : "Ready to Resolve"}
                     </span>
                     <span className="text-sm font-bold">
-                      {resolveReason === "deadline"
-                        ? "Resolve Now"
-                        : "Resolve Market"}
+                      {resolveReason === "deadline" ? "Resolve Now" : "Resolve Market"}
                     </span>
                   </div>
                 )}
@@ -407,9 +350,7 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
                   size="sm"
                 >
                   <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-[10px] uppercase tracking-wide opacity-90">
-                      buy Yes
-                    </span>
+                    <span className="text-[10px] uppercase tracking-wide opacity-90">buy Yes</span>
                     <span className="text-sm">{yesCost}</span>
                   </div>
                 </Button>
@@ -423,9 +364,7 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
                   size="sm"
                 >
                   <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-[10px] uppercase tracking-wide opacity-70">
-                      buy No
-                    </span>
+                    <span className="text-[10px] uppercase tracking-wide opacity-70">buy No</span>
                     <span className="text-sm">{noCost}</span>
                   </div>
                 </Button>
@@ -444,10 +383,21 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
         </div>
       </CollapsibleTrigger>
 
-      {/* Collapsible Chart Content */}
+      {/* Collapsible Chart and Leaderboard Content */}
       <CollapsibleContent>
         <div className="px-4 pb-4 pt-2 bg-zinc-50/50 dark:bg-zinc-900/30">
-          <PredictionProbabilityChart marketId={marketId} />
+          <Tabs defaultValue="chart" className="w-full">
+            <TabsList className="w-full grid grid-cols-2 mb-4">
+              <TabsTrigger value="chart">Chart</TabsTrigger>
+              <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+            </TabsList>
+            <TabsContent value="chart">
+              <PredictionProbabilityChart marketId={marketId} />
+            </TabsContent>
+            <TabsContent value="leaderboard">
+              <MarketLeaderboard marketId={marketId} />
+            </TabsContent>
+          </Tabs>
         </div>
       </CollapsibleContent>
     </Collapsible>
@@ -471,10 +421,7 @@ interface MegaSaleMarketCardProps {
   onTradeSuccess?: () => void;
 }
 
-export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
-  markets,
-  onTradeSuccess,
-}) => {
+export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets, onTradeSuccess }) => {
   const { address } = useAccount();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isResolvingId, setIsResolvingId] = useState<bigint | null>(null);
@@ -488,6 +435,10 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
     contractAddress: `0x${string}`;
     position: "yes" | "no";
   } | null>(null);
+
+  // Fetch total volume for all mega markets
+  const marketIds = useMemo(() => markets.map((m) => m.marketId), [markets]);
+  const { data: volumeData } = useMegaMarketsVolume({ marketIds });
 
   // Update current time every minute for countdown
   useEffect(() => {
@@ -561,11 +512,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
   const { writeContractAsync } = useWriteContract();
 
   // Claim transaction handling
-  const {
-    writeContract: writeClaim,
-    data: claimHash,
-    error: claimError,
-  } = useWriteContract();
+  const { writeContract: writeClaim, data: claimHash, error: claimError } = useWriteContract();
 
   const { isSuccess: isClaimSuccess } = useWaitForTransactionReceipt({
     hash: claimHash,
@@ -623,8 +570,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
       }
 
       // Show actual errors
-      const errorMessage =
-        (claimError as any)?.shortMessage ?? claimError?.message ?? "";
+      const errorMessage = (claimError as any)?.shortMessage ?? claimError?.message ?? "";
       toast.error(errorMessage || "Claim failed");
     }
   }, [claimError]);
@@ -649,25 +595,15 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
     let yesCost = "0.500";
     let noCost = "0.500";
 
-    if (
-      market.marketType === "amm" &&
-      market.rYes !== undefined &&
-      market.rNo !== undefined
-    ) {
+    if (market.marketType === "amm" && market.rYes !== undefined && market.rNo !== undefined) {
       const totalReserves = market.rYes + market.rNo;
       if (totalReserves > 0n) {
         yesPercent = (Number(market.rNo) / Number(totalReserves)) * 100;
 
         const hasYesQuote =
-          yesQuotes &&
-          yesQuotes[quoteIdx] &&
-          yesQuotes[quoteIdx].status === "success" &&
-          yesQuotes[quoteIdx].result;
+          yesQuotes && yesQuotes[quoteIdx] && yesQuotes[quoteIdx].status === "success" && yesQuotes[quoteIdx].result;
         const hasNoQuote =
-          noQuotes &&
-          noQuotes[quoteIdx] &&
-          noQuotes[quoteIdx].status === "success" &&
-          noQuotes[quoteIdx].result;
+          noQuotes && noQuotes[quoteIdx] && noQuotes[quoteIdx].status === "success" && noQuotes[quoteIdx].result;
 
         if (hasYesQuote) {
           // Quote returns tuple: (oppIn, wstInFair, p0_num, p0_den, p1_num, p1_den)
@@ -683,8 +619,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
           // wstInFair (index 1) = path-fair EV charge in wstETH for buying `quoteAmount` YES shares
           // This includes fees (10 bps pool fee) + optional PMTuning adjustments (lines 429-457)
           const wstInFair = yesQuote[1];
-          if (wstInFair > 0n)
-            yesCost = (Number(wstInFair) / Number(quoteAmount)).toFixed(3);
+          if (wstInFair > 0n) yesCost = (Number(wstInFair) / Number(quoteAmount)).toFixed(3);
         } else yesCost = (yesPercent / 100).toFixed(3);
 
         if (hasNoQuote) {
@@ -699,8 +634,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
             bigint,
           ];
           const wstInFair = noQuote[1];
-          if (wstInFair > 0n)
-            noCost = (Number(wstInFair) / Number(quoteAmount)).toFixed(3);
+          if (wstInFair > 0n) noCost = (Number(wstInFair) / Number(quoteAmount)).toFixed(3);
         } else noCost = ((100 - yesPercent) / 100).toFixed(3);
       }
     } else {
@@ -729,9 +663,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
     if (remaining <= 0) return { expired: true };
 
     const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-    const hours = Math.floor(
-      (remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-    );
+    const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
 
     return { expired: false, days, hours, minutes };
@@ -746,10 +678,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
       markets.forEach((m, i) => {
         const entry = betsData[i];
         if (entry?.status === "success" && entry.result) {
-          const [amount, deadline] = entry.result as unknown as [
-            bigint,
-            bigint,
-          ];
+          const [amount, deadline] = entry.result as unknown as [bigint, bigint];
           map.set(m.marketId, { amount, deadline });
         } else {
           map.set(m.marketId, {});
@@ -787,31 +716,20 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                       <Info className="h-4 w-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent
-                    side="right"
-                    className="max-w-sm bg-zinc-900 dark:bg-zinc-800 text-zinc-100 p-4"
-                  >
+                  <TooltipContent side="right" className="max-w-sm bg-zinc-900 dark:bg-zinc-800 text-zinc-100 p-4">
                     <div className="space-y-3 text-sm">
                       <div>
-                        <p className="font-semibold mb-1">
-                          How PAMM trading works:
-                        </p>
+                        <p className="font-semibold mb-1">How PAMM trading works:</p>
                         <p className="text-zinc-300">
-                          This is a prediction market where YES/NO shares split
-                          a prize pot, not fixed $1 payouts.
+                          This is a prediction market where YES/NO shares split a prize pot, not fixed $1 payouts.
                         </p>
                       </div>
 
                       <div>
-                        <p className="font-semibold mb-1">
-                          Your payout if you win:
-                        </p>
-                        <p className="text-zinc-300">
-                          Total pot ÷ Winning shares held by all users
-                        </p>
+                        <p className="font-semibold mb-1">Your payout if you win:</p>
+                        <p className="text-zinc-300">Total pot ÷ Winning shares held by all users</p>
                         <p className="text-xs text-zinc-400 mt-1">
-                          You profit if your average entry cost per share is
-                          below the final payout per share.
+                          You profit if your average entry cost per share is below the final payout per share.
                         </p>
                       </div>
 
@@ -826,8 +744,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
 
                       <div className="pt-2 border-t border-zinc-700">
                         <p className="text-xs text-zinc-400">
-                          💡 Tip: Check the quote before trading to see your
-                          exact cost and price impact
+                          💡 Tip: Check the quote before trading to see your exact cost and price impact
                         </p>
                       </div>
                     </div>
@@ -871,13 +788,20 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                     {Number(formatEther(totalPot)).toFixed(3)} wstETH
                   </span>{" "}
-                  Total Volume
+                  Total Volume Locked
                 </div>
 
+                {volumeData && (
+                  <div className="text-zinc-600 dark:text-zinc-400">
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      {volumeData.totalTradeVolumeEth} wstETH
+                    </span>{" "}
+                    Total Volume Traded
+                  </div>
+                )}
+
                 <div className="text-zinc-600 dark:text-zinc-400">
-                  <span className="text-zinc-600 dark:text-zinc-400">
-                    Current raised:{" "}
-                  </span>
+                  <span className="text-zinc-600 dark:text-zinc-400">Current raised: </span>
                   <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                     {formatUSDT(currentAmount, true)}
                   </span>
@@ -911,14 +835,9 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
 
             // AMM quote index
             const ammMarkets = markets.filter((m) => m.marketType === "amm");
-            const quoteIdx = ammMarkets.findIndex(
-              (m) => m.marketId === market.marketId,
-            );
+            const quoteIdx = ammMarkets.findIndex((m) => m.marketId === market.marketId);
 
-            const { yesPercent, yesCost, noCost } = getMarketData(
-              market,
-              quoteIdx,
-            );
+            const { yesPercent, yesCost, noCost } = getMarketData(market, quoteIdx);
             const liquidity = market.pot;
 
             // ---- NEW: compute canResolve from bets() + totalActiveBidAmount + deadline ----
@@ -929,23 +848,16 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
               officialDeadline > 0n &&
               currentTime >= Number(officialDeadline) * 1000
             );
-            const canResolve =
-              !market.resolved &&
-              (currentAmount >= (threshold ?? 0n) || isPastDeadline);
-            const resolveReason =
-              currentAmount >= (threshold ?? 0n) ? "threshold" : "deadline";
+            const canResolve = !market.resolved && (currentAmount >= (threshold ?? 0n) || isPastDeadline);
+            const resolveReason = currentAmount >= (threshold ?? 0n) ? "threshold" : "deadline";
 
             // Get user claimable amount for this market
             let userClaimable = 0n;
             if (userMarketsData) {
               const [yesIds, noIds, , , claimables] = userMarketsData;
               // Check if this market exists in user's markets (either YES or NO position)
-              const yesIdx = yesIds.findIndex(
-                (id: bigint) => id === market.marketId,
-              );
-              const noIdx = noIds.findIndex(
-                (id: bigint) => id === market.marketId,
-              );
+              const yesIdx = yesIds.findIndex((id: bigint) => id === market.marketId);
+              const noIdx = noIds.findIndex((id: bigint) => id === market.marketId);
 
               if (yesIdx !== -1) {
                 userClaimable = claimables[yesIdx];
@@ -965,9 +877,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                 noCost={`${noCost}Ξ`}
                 marketType={market.marketType}
                 contractAddress={market.contractAddress}
-                onTradeClick={(position) =>
-                  handleTradeClick(market.marketId, position)
-                }
+                onTradeClick={(position) => handleTradeClick(market.marketId, position)}
                 canResolve={canResolve}
                 resolveReason={canResolve ? resolveReason : undefined}
                 onResolve={() => handleResolve(market.marketId)}
@@ -975,9 +885,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                 resolved={market.resolved}
                 outcome={(market as any).outcome ?? false}
                 userClaimable={userClaimable}
-                onClaim={() =>
-                  handleClaim(market.marketId, market.contractAddress)
-                }
+                onClaim={() => handleClaim(market.marketId, market.contractAddress)}
                 isClaiming={claimingMarketId === market.marketId}
               />
             );
@@ -986,13 +894,11 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
 
         <div className="px-4 py-3 sm:px-6 sm:py-4 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
           <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 text-center">
-            Volume = total wstETH deposited in market (pot). Includes all YES
-            and NO purchases. Prices in wstETH per share include 0.1% AMM fee +
-            slippage.
+            Volume = total wstETH deposited in market (pot). Includes all YES and NO purchases. Prices in wstETH per
+            share include 0.1% AMM fee + slippage.
           </p>
           <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 text-center font-medium">
-            ⚡ Markets resolve early if threshold is reached before deadline, or
-            at deadline based on final amount.
+            ⚡ Markets resolve early if threshold is reached before deadline, or at deadline based on final amount.
           </p>
         </div>
       </div>

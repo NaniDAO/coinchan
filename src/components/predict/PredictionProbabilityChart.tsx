@@ -104,13 +104,16 @@ export function PredictionProbabilityChart({ marketId }: PredictionProbabilityCh
         time: point.timestamp as UTCTimestamp,
         value: point.yesChance * 100, // Convert to percentage
       }))
-      .reduce((acc, point) => {
-        // Only add if timestamp is strictly greater than the last one
-        if (acc.length === 0 || point.time > acc[acc.length - 1].time) {
-          acc.push(point);
-        }
-        return acc;
-      }, [] as Array<{ time: UTCTimestamp; value: number }>);
+      .reduce(
+        (acc, point) => {
+          // Only add if timestamp is strictly greater than the last one
+          if (acc.length === 0 || point.time > acc[acc.length - 1].time) {
+            acc.push(point);
+          }
+          return acc;
+        },
+        [] as Array<{ time: UTCTimestamp; value: number }>,
+      );
 
     yesSeries.setData(yesData);
 
@@ -148,9 +151,7 @@ export function PredictionProbabilityChart({ marketId }: PredictionProbabilityCh
   if (error) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Failed to load chart data
-        </p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">Failed to load chart data</p>
       </div>
     );
   }
@@ -158,9 +159,7 @@ export function PredictionProbabilityChart({ marketId }: PredictionProbabilityCh
   if (!data || data.data.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          No trading history yet
-        </p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">No trading history yet</p>
       </div>
     );
   }
@@ -170,9 +169,7 @@ export function PredictionProbabilityChart({ marketId }: PredictionProbabilityCh
       <div className="flex items-center justify-between mb-4 px-4">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-emerald-500" />
-          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            YES Probability
-          </span>
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">YES Probability</span>
         </div>
         <div className="text-xs text-zinc-500 dark:text-zinc-400">
           {data.count} event{data.count !== 1 ? "s" : ""}

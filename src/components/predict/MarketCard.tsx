@@ -215,9 +215,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
   // Apply resolver fee to pot (matching PAMM.sol line 779)
   const feeBps = resolverFeeBps ?? 0;
-  const potAfterFee = pot > 0n && feeBps > 0
-    ? (pot * BigInt(10000 - feeBps)) / 10000n
-    : pot;
+  const potAfterFee = pot > 0n && feeBps > 0 ? (pot * BigInt(10000 - feeBps)) / 10000n : pot;
 
   // Track which transactions we've already shown toasts for to prevent duplicates
   const toastedClaim = React.useRef<string | null>(null);
@@ -1860,40 +1858,44 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                   {/* PAMM Position Info - Only for AMM markets with active positions */}
                   {marketType === "amm" && !resolved && pot > 0n && (
                     <>
-                      {userYesBalance > 0n && yesCirculating > 0n && (() => {
-                        // Formula matches PAMM.sol: payoutPerShare = mulDiv(pot, Q, winningCirc) where Q = 1e18
-                        // CRITICAL: Use yesCirculating (excludes PAMM + ZAMM), not yesSupply
-                        // CRITICAL: Use potAfterFee (after resolver fee), not pot
-                        const Q = parseEther("1");
-                        const payoutPerShare = (potAfterFee * Q) / yesCirculating;
-                        return (
-                          <div className="pt-1.5 border-t border-blue-200/50 dark:border-blue-800/50 space-y-1">
-                            <div className="flex justify-between items-center text-[10px]">
-                              <span className="text-muted-foreground">Current payout/share (YES)</span>
-                              <span className="font-mono text-blue-700 dark:text-blue-300">
-                                {Number(formatEther(payoutPerShare)).toFixed(4)} wstETH
-                              </span>
+                      {userYesBalance > 0n &&
+                        yesCirculating > 0n &&
+                        (() => {
+                          // Formula matches PAMM.sol: payoutPerShare = mulDiv(pot, Q, winningCirc) where Q = 1e18
+                          // CRITICAL: Use yesCirculating (excludes PAMM + ZAMM), not yesSupply
+                          // CRITICAL: Use potAfterFee (after resolver fee), not pot
+                          const Q = parseEther("1");
+                          const payoutPerShare = (potAfterFee * Q) / yesCirculating;
+                          return (
+                            <div className="pt-1.5 border-t border-blue-200/50 dark:border-blue-800/50 space-y-1">
+                              <div className="flex justify-between items-center text-[10px]">
+                                <span className="text-muted-foreground">Current payout/share (YES)</span>
+                                <span className="font-mono text-blue-700 dark:text-blue-300">
+                                  {Number(formatEther(payoutPerShare)).toFixed(4)} wstETH
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })()}
-                      {userNoBalance > 0n && noCirculating > 0n && (() => {
-                        // Formula matches PAMM.sol: payoutPerShare = mulDiv(pot, Q, winningCirc) where Q = 1e18
-                        // CRITICAL: Use noCirculating (excludes PAMM + ZAMM), not noSupply
-                        // CRITICAL: Use potAfterFee (after resolver fee), not pot
-                        const Q = parseEther("1");
-                        const payoutPerShare = (potAfterFee * Q) / noCirculating;
-                        return (
-                          <div className="pt-1.5 border-t border-blue-200/50 dark:border-blue-800/50 space-y-1">
-                            <div className="flex justify-between items-center text-[10px]">
-                              <span className="text-muted-foreground">Current payout/share (NO)</span>
-                              <span className="font-mono text-blue-700 dark:text-blue-300">
-                                {Number(formatEther(payoutPerShare)).toFixed(4)} wstETH
-                              </span>
+                          );
+                        })()}
+                      {userNoBalance > 0n &&
+                        noCirculating > 0n &&
+                        (() => {
+                          // Formula matches PAMM.sol: payoutPerShare = mulDiv(pot, Q, winningCirc) where Q = 1e18
+                          // CRITICAL: Use noCirculating (excludes PAMM + ZAMM), not noSupply
+                          // CRITICAL: Use potAfterFee (after resolver fee), not pot
+                          const Q = parseEther("1");
+                          const payoutPerShare = (potAfterFee * Q) / noCirculating;
+                          return (
+                            <div className="pt-1.5 border-t border-blue-200/50 dark:border-blue-800/50 space-y-1">
+                              <div className="flex justify-between items-center text-[10px]">
+                                <span className="text-muted-foreground">Current payout/share (NO)</span>
+                                <span className="font-mono text-blue-700 dark:text-blue-300">
+                                  {Number(formatEther(payoutPerShare)).toFixed(4)} wstETH
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })()}
+                          );
+                        })()}
                     </>
                   )}
 
