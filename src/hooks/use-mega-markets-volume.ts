@@ -61,6 +61,10 @@ export function useMegaMarketsVolume({
       });
 
       const volumes = await Promise.all(volumePromises);
+      console.log("Fetched volumes for mega markets:", {
+        marketIds,
+        volumes
+      });
       const validVolumes = volumes.filter((v): v is MarketVolume => v !== null);
 
       // Sum up all volumes
