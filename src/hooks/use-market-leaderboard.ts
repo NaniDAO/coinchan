@@ -17,6 +17,7 @@ export interface MarketParticipant {
   currentYesShares: string;
   currentNoShares: string;
   hasOpenPosition: boolean;
+  side: "YES" | "NO" | "BOTH" | "CLOSED";
   buyCount: number;
   sellCount: number;
   claimCount: number;
