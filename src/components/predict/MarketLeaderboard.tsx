@@ -183,18 +183,28 @@ export function MarketLeaderboard({ marketId }: MarketLeaderboardProps) {
                   <td className="px-4 py-3 text-right text-zinc-700 dark:text-zinc-300 tabular-nums">
                     {Number.parseFloat(participant.totalVolumeEth).toFixed(4)}
                   </td>
-                  <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
+                  <td className="px-4 py-3">
                     {participant.hasOpenPosition ? (
-                      <div className="flex flex-col gap-0.5 text-xs">
+                      <div className="flex flex-col gap-1 text-xs">
                         {yesShares > 0n && (
-                          <span className="text-emerald-600 dark:text-emerald-400">
-                            YES: {formatEther(yesShares).slice(0, 8)}
-                          </span>
+                          <div className="inline-flex items-center gap-1.5">
+                            <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 font-medium text-emerald-700 dark:text-emerald-400">
+                              YES
+                            </span>
+                            <span className="text-zinc-700 dark:text-zinc-300 tabular-nums">
+                              {formatEther(yesShares).slice(0, 8)}
+                            </span>
+                          </div>
                         )}
                         {noShares > 0n && (
-                          <span className="text-zinc-600 dark:text-zinc-400">
-                            NO: {formatEther(noShares).slice(0, 8)}
-                          </span>
+                          <div className="inline-flex items-center gap-1.5">
+                            <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-950/50 px-2 py-0.5 font-medium text-red-700 dark:text-red-400">
+                              NO
+                            </span>
+                            <span className="text-zinc-700 dark:text-zinc-300 tabular-nums">
+                              {formatEther(noShares).slice(0, 8)}
+                            </span>
+                          </div>
                         )}
                       </div>
                     ) : (
