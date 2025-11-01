@@ -86,30 +86,36 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
   // Check if reward is veZAMM (token 87)
   const isVeZAMM = stream.rewardId === 87n || String(stream.rewardId) === "87";
 
+  // Check if reward is ZAMM
+  const isZAMM = stream.rewardCoin?.symbol === "ZAMM";
+
   // For ERC20 rewards, ALWAYS prioritize the ERC20 metadata over indexer data
   // For veZAMM (token 87), use the veZAMM metadata
+  // For ZAMM, use ZAMM symbol
   const rewardSymbol = useMemo(() => {
     if (isVeZAMM) return "veZAMM";
+    if (isZAMM) return "ZAMM";
     if (isErc20Reward) {
       return erc20Symbol || (isDaiToken ? "DAI" : isMetadataLoading ? "..." : "ERC20");
     }
     return stream.rewardCoin?.symbol || "???";
-  }, [isVeZAMM, isErc20Reward, erc20Symbol, isDaiToken, isMetadataLoading, stream.rewardCoin?.symbol]);
+  }, [isVeZAMM, isZAMM, isErc20Reward, erc20Symbol, isDaiToken, isMetadataLoading, stream.rewardCoin?.symbol]);
 
   const rewardDecimals = useMemo(() => {
-    if (isVeZAMM) return 18;
+    if (isVeZAMM || isZAMM) return 18;
     if (isErc20Reward) {
       return erc20Decimals || (isDaiToken ? 18 : 18);
     }
     return stream.rewardCoin?.decimals || 18;
-  }, [isVeZAMM, isErc20Reward, erc20Decimals, isDaiToken, stream.rewardCoin?.decimals]);
+  }, [isVeZAMM, isZAMM, isErc20Reward, erc20Decimals, isDaiToken, stream.rewardCoin?.decimals]);
 
   // Get reward token image URL
   const rewardImageUrl = useMemo(() => {
     if (isVeZAMM) return VEZAMM_TOKEN.imageUrl;
+    if (isZAMM) return "/zammzamm.png";
     if (isDaiToken) return null; // DAI uses component, not URL
     return stream.rewardCoin?.imageUrl;
-  }, [isVeZAMM, isDaiToken, stream.rewardCoin?.imageUrl]);
+  }, [isVeZAMM, isZAMM, isDaiToken, stream.rewardCoin?.imageUrl]);
 
   const hasStakeableTokens = lpBalance > 0n;
   const hasStakedTokens = stakedAmount && stakedAmount > 0n;
