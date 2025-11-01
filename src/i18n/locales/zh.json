@@ -1126,7 +1126,8 @@
     "farming_coming_soon": "JPYC农场即将推出",
     "check_back_later": "请稍后查看农场机会",
     "insufficient_liquidity": "此金额的池流动性过低",
-    "high_slippage_note": "由于当前市场流动性不足，默认滑点为30%。可根据需要调整。"
+    "high_slippage_note": "由于流动性较低，默认滑点为30%。建议使用小额测试。",
+    "dust_refund_note": "过程中可能会退还少量代币 - 这是正常现象"
   },
   "errors": {
     "wallet_connection": "连接钱包错误",

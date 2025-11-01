@@ -140,7 +140,7 @@
     "emission_preview": "Emission Preview",
     "farm_created_successfully": "Farm created successfully! Check the Browse tab to see your new farm.",
     "error_loading_farm": "Error loading farm",
-    "high_slippage_note": "Default 30% slippage due to current illiquid market conditions. Adjust as needed.",
+    "high_slippage_note": "Default 30% slippage due to low liquidity. Testing with small amounts is recommended.",
     "very_high_slippage_warning": "Extremely high slippage - you may receive significantly less than expected",
     "please_select_token_with_lp_pool": "Please select a token with an LP pool",
     "selected_token_no_valid_pool": "Selected token has no valid liquidity pool",
@@ -458,7 +458,8 @@
     "enter_lp_amount": "Enter amount of LP tokens to burn",
     "preview_expected_return": "Preview shows expected return of ETH and tokens",
     "lp_burn_help": "Enter the amount of LP tokens you want to burn to receive ETH and tokens back.",
-    "manage_liquidity": "manage liquidity"
+    "manage_liquidity": "manage liquidity",
+    "dust_refund_note": "Small amounts of tokens may be refunded during the process - this is normal"
   },
   "liquidity": {
     "estimated_lp_tokens": "Estimated LP Tokens",
@@ -970,9 +971,9 @@
     "zap_note": "Note: The smart zapper automatically finds the best source of JPYC across all DEXs (Uniswap, Curve, Sushiswap, etc.) and adds liquidity in one transaction.",
     "zap_and_add_liq": "Zap & Add Liquidity",
     "how_it_works": "How it works:",
-    "zap_step_1": "Part of your ETH is swapped for JPYC using the best available route",
-    "zap_step_2": "The contract automatically finds the optimal DEX for JPYC (Uniswap V2/V3, Curve, Sushiswap, or ZAMM)",
-    "zap_step_3": "Remaining ETH and acquired JPYC are added to the ZAMM pool",
+    "zap_step_1": "Automatically splits your ETH into optimal ratio",
+    "zap_step_2": "Half is swapped to JPYC via Cookbook pool",
+    "zap_step_3": "Both ETH and JPYC are added as liquidity in one transaction",
     "zap_step_4": "Any leftover tokens are automatically refunded to you",
     "check_back_later": "Check back later for farming opportunities",
     "insufficient_liquidity": "Pool liquidity too low for this amount",
@@ -989,7 +990,8 @@
     "zapping": "Zapping...",
     "execute_zap": "Execute Zap",
     "zap_successful": "Zap successful! LP tokens added to your wallet.",
-    "high_slippage_note": "Default 30% slippage due to current illiquid market conditions. Adjust as needed."
+    "high_slippage_note": "Default 30% slippage due to low liquidity. Testing with small amounts is recommended.",
+    "dust_refund_note": "Small amounts of tokens may be refunded during the process - this is normal"
   },
   "errors": {
     "unexpected": "Unexpected error occurred",

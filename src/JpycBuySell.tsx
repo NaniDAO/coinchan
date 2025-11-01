@@ -23,7 +23,7 @@ import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { AddLiquidity } from "./AddLiquidity";
 import { RemoveLiquidity } from "./RemoveLiquidity";
-import { JPYCZap } from "./JPYCZap";
+import { SingleEthLiquidity } from "./SingleEthLiquidity";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { getAmountOut, withSlippage, DEADLINE_SEC } from "./lib/swap";
 import { nowSec, formatNumber, debounce } from "./lib/utils";
@@ -578,11 +578,11 @@ export const JpycBuySell = () => {
 
       // Zap explainer
       how_it_works: "仕組み",
-      zap_step_1: "ETHの一部をJPYCにスワップします（最適なルートを自動選択）",
-      zap_step_2: "コントラクトがJPYCの最適なDEXを自動検索します（Uniswap V2/V3、Curve、Sushiswap、ZAMM）",
-      zap_step_3: "残りのETHと取得したJPYCをZAMMプールに追加します",
+      zap_step_1: "ETHを自動的に最適な比率で分割します",
+      zap_step_2: "半分をJPYCにスワップ（Cookbook経由）",
+      zap_step_3: "1回のトランザクションでETHとJPYCを流動性として追加します",
       zap_step_4: "余剰トークンは自動的に払い戻されます",
-      high_slippage_note: "現在の流動性が低いため、デフォルトのスリッページは30%です。必要に応じて調整してください。",
+      high_slippage_note: "流動性が低いため、デフォルトのスリッページは30%です。少額でのテストをお勧めします。",
 
       // Remove Liquidity
       remove_liquidity_info: "流動性の削除",
@@ -1065,7 +1065,7 @@ export const JpycBuySell = () => {
                 </div>
               }
             >
-              <JPYCZap isJapanese={isJapanese} japaneseTranslate={ja} />
+              <SingleEthLiquidity />
             </ErrorBoundary>
           </TabsContent>
           <TabsContent value="farm" className="mt-2 sm:mt-4">

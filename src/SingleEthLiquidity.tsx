@@ -102,7 +102,7 @@ export const SingleEthLiquidity = () => {
   const [txError, setTxError] = useState<string | null>(null);
 
   const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(
-    buyToken?.symbol === "CULT" || buyToken?.symbol === "ENS" ? 1000n : SINGLE_ETH_SLIPPAGE_BPS,
+    buyToken?.symbol === "JPYC" ? 3000n : buyToken?.symbol === "CULT" || buyToken?.symbol === "ENS" ? 1000n : SINGLE_ETH_SLIPPAGE_BPS,
   );
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
@@ -154,8 +154,10 @@ export const SingleEthLiquidity = () => {
     setSellAmt("");
     setBuyAmt("");
 
-    // Update slippage for CULT, ENS, and WLFI tokens to 10%
-    if (buyToken?.symbol === "CULT" || buyToken?.symbol === "ENS" || buyToken?.symbol === "WLFI") {
+    // Update slippage for JPYC (30%), CULT/ENS/WLFI (10%)
+    if (buyToken?.symbol === "JPYC") {
+      setSingleEthSlippageBps(3000n); // 30% for JPYC due to low liquidity
+    } else if (buyToken?.symbol === "CULT" || buyToken?.symbol === "ENS" || buyToken?.symbol === "WLFI") {
       setSingleEthSlippageBps(1000n); // 10% for CULT, ENS, and WLFI
     } else {
       setSingleEthSlippageBps(SINGLE_ETH_SLIPPAGE_BPS); // Default 5% for other tokens
@@ -642,6 +644,7 @@ export const SingleEthLiquidity = () => {
               const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
               syncFromSell(formatEther(ethAmount));
             }}
+            showPercentageSlider={!!(sellToken.balance && sellToken.balance > 0n)}
             className="mb-2"
           />
         ) : (
@@ -671,6 +674,7 @@ export const SingleEthLiquidity = () => {
               const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
               syncFromSell(formatEther(ethAmount));
             }}
+            showPercentageSlider={!!(sellToken.balance && sellToken.balance > 0n)}
             className="rounded-t-2xl pb-4"
           />
         )}
@@ -733,6 +737,11 @@ export const SingleEthLiquidity = () => {
           <li>{t("pool.half_eth_swapped")}</li>
           <li>{t("pool.remaining_eth_added")}</li>
           <li>{t("pool.earn_fees_from_trades", { fee: Number(buyToken?.swapFee ?? SWAP_FEE) / 100 })}</li>
+          <li className="text-yellow-600 dark:text-yellow-500">
+            {buyToken?.symbol === "JPYC"
+              ? t("jpyc.dust_refund_note", "Small amounts of tokens may be refunded during the process - this is normal")
+              : t("pool.dust_refund_note", "Small amounts of tokens may be refunded during the process - this is normal")}
+          </li>
           {buyToken && buyToken.symbol === "CULT" && (
             <>
               <li className="text-primary">Using CULT-optimized LP-ZAP contract</li>
