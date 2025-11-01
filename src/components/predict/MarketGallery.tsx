@@ -19,7 +19,7 @@ interface MarketGalleryProps {
   refreshKey?: number;
 }
 
-type MarketFilter = "all" | "contract" | "curated" | "community" | "closed" | "resolved" | "positions" | "favorites";
+type MarketFilter = "all" | "contract" | "multi" | "curated" | "community" | "closed" | "resolved" | "positions" | "favorites";
 type SortOption = "newest" | "pot" | "activity" | "closing";
 
 export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
@@ -350,7 +350,13 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
 
   // Calculate accurate counts based on non-dust markets
   const activeMarkets = nonDustMarkets.filter((m) => m.tradingOpen && !m.resolved);
-  const contractCount = activeMarkets.filter((m) => isPerpetualOracleResolver(m.resolver)).length;
+  const multiCount = activeMarkets.filter(
+    (m) => m.resolver.toLowerCase() === MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase(),
+  ).length;
+  const contractCount = activeMarkets.filter(
+    (m) =>
+      isPerpetualOracleResolver(m.resolver) && m.resolver.toLowerCase() !== MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase(),
+  ).length;
   const curatedCount = activeMarkets.filter(
     (m) => isTrustedResolver(m.resolver) && !isPerpetualOracleResolver(m.resolver),
   ).length;
@@ -376,7 +382,19 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
         return true;
       }
       if (filter === "contract") {
-        return market.tradingOpen && !market.resolved && isPerpetualOracleResolver(market.resolver);
+        return (
+          market.tradingOpen &&
+          !market.resolved &&
+          isPerpetualOracleResolver(market.resolver) &&
+          market.resolver.toLowerCase() !== MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase()
+        );
+      }
+      if (filter === "multi") {
+        return (
+          market.tradingOpen &&
+          !market.resolved &&
+          market.resolver.toLowerCase() === MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase()
+        );
       }
       if (filter === "curated") {
         return (
@@ -581,6 +599,12 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
                 <span className="sm:hidden">Favorites</span>
               </TabsTrigger>
             )}
+            {multiCount > 0 && (
+              <TabsTrigger value="multi" className="whitespace-nowrap">
+                <span className="hidden sm:inline">Multi ({multiCount})</span>
+                <span className="sm:hidden">Multi</span>
+              </TabsTrigger>
+            )}
             {contractCount > 0 && (
               <TabsTrigger value="contract" className="whitespace-nowrap">
                 <span className="hidden sm:inline">Contract ({contractCount})</span>
@@ -641,31 +665,32 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
             </div>
           ) : (
             <div className="space-y-5">
-              {/* MegaSale Markets - Special Card */}
-              {(() => {
-                const megaSaleMarkets = filteredMarkets.filter(
-                  (m) => m.resolver.toLowerCase() === MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase(),
-                );
-
-                if (megaSaleMarkets.length > 0) {
-                  return (
-                    <div className="mb-5">
-                      <MegaSaleMarketCard
-                        markets={megaSaleMarkets}
-                        onTradeSuccess={() => {
-                          refetchPM();
-                          refetchAMM();
-                          if (address) {
-                            refetchUserDataPM();
-                            refetchUserDataAMM();
-                          }
-                        }}
-                      />
-                    </div>
+              {/* MegaSale Markets - Special Card (only in multi and all tabs) */}
+              {(filter === "multi" || filter === "all") &&
+                (() => {
+                  const megaSaleMarkets = filteredMarkets.filter(
+                    (m) => m.resolver.toLowerCase() === MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase(),
                   );
-                }
-                return null;
-              })()}
+
+                  if (megaSaleMarkets.length > 0) {
+                    return (
+                      <div className="mb-5">
+                        <MegaSaleMarketCard
+                          markets={megaSaleMarkets}
+                          onTradeSuccess={() => {
+                            refetchPM();
+                            refetchAMM();
+                            if (address) {
+                              refetchUserDataPM();
+                              refetchUserDataAMM();
+                            }
+                          }}
+                        />
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
               {/* Regular Markets Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in duration-300">

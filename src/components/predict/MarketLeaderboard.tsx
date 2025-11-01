@@ -48,17 +48,19 @@ export function MarketLeaderboard({ marketId }: MarketLeaderboardProps) {
         existing.betCount++;
         existing.claimCount += bet.claims.length;
         // Use the latest bet's user-level stats (they should be consistent across all bets for a trader)
-        existing.netProfit = Number.parseFloat(bet.userNetProfit);
+        // Convert from wei to wstETH (divide by 10^18)
+        existing.netProfit = Number.parseFloat(bet.userNetProfit) / 1e18;
         existing.isProfitable = bet.userIsProfitable;
-        existing.totalDeposited = Number.parseFloat(bet.userTotalDeposited);
-        existing.totalWithdrawn = Number.parseFloat(bet.userTotalWithdrawn);
+        existing.totalDeposited = Number.parseFloat(bet.userTotalDeposited) / 1e18;
+        existing.totalWithdrawn = Number.parseFloat(bet.userTotalWithdrawn) / 1e18;
       } else {
         statsMap.set(bet.trader, {
           trader: bet.trader,
-          netProfit: Number.parseFloat(bet.userNetProfit),
+          // Convert from wei to wstETH (divide by 10^18)
+          netProfit: Number.parseFloat(bet.userNetProfit) / 1e18,
           isProfitable: bet.userIsProfitable,
-          totalDeposited: Number.parseFloat(bet.userTotalDeposited),
-          totalWithdrawn: Number.parseFloat(bet.userTotalWithdrawn),
+          totalDeposited: Number.parseFloat(bet.userTotalDeposited) / 1e18,
+          totalWithdrawn: Number.parseFloat(bet.userTotalWithdrawn) / 1e18,
           betCount: 1,
           claimCount: bet.claims.length,
           sides: new Set([bet.side]),
