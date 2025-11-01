@@ -1,6 +1,6 @@
 import type { IncentiveStream, IncentiveUserPosition } from "@/hooks/use-incentive-streams";
 import { useZChefPendingReward, useZChefUserBalance } from "@/hooks/use-zchef-contract";
-import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
+import { ETH_TOKEN, JPYC_FARM_CHEF_ID, type TokenMeta } from "@/lib/coins";
 import { formatBalance, formatNumber } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits } from "viem";
@@ -44,7 +44,9 @@ export const FarmPositionCard = memo(function FarmPositionCard({
   const actualUserShares = onchainUserBalance ?? position.shares;
 
   // Check if reward is ERC20 (rewardId === 0n)
-  const isErc20Reward = stream.rewardId === 0n || String(stream.rewardId) === "0";
+  // Also handle JPYC farm specifically since it uses DAI rewards but may have non-zero rewardId
+  const isErc20Reward =
+    stream.rewardId === 0n || String(stream.rewardId) === "0" || BigInt(stream.chefId) === JPYC_FARM_CHEF_ID;
 
   // Get ERC20 metadata (symbol, decimals) for ERC20 rewards
   const {

@@ -3,7 +3,7 @@ import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useLpBalance } from "@/hooks/use-lp-balance";
 import { useZChefPool, useZChefUserBalance, useZChefUtilities } from "@/hooks/use-zchef-contract";
-import { ENS_POOL_ID, WLFI_POOL_ID, type TokenMeta } from "@/lib/coins";
+import { ENS_POOL_ID, WLFI_POOL_ID, JPYC_FARM_CHEF_ID, VEZAMM_TOKEN, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -12,8 +12,10 @@ import { useEnsName } from "wagmi";
 import { FarmStakeDialog } from "./FarmStakeDialog";
 import { Button } from "./ui/button";
 import { ENSLogo } from "./icons/ENSLogo";
+import { DaiLogo } from "./icons/DaiLogo";
 import { toast } from "sonner";
 import { CopyIcon } from "lucide-react";
+import { useErc20Metadata } from "@/hooks/use-erc20-metadata";
 
 interface IncentiveStreamCardProps {
   stream: IncentiveStream;
@@ -64,6 +66,51 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
   // Get user's staked amount from zChef
   const { data: stakedAmount } = useZChefUserBalance(stream.chefId);
 
+  // Check if reward is ERC20 (rewardId === 0n) or JPYC farm specifically
+  const isErc20Reward =
+    stream.rewardId === 0n || String(stream.rewardId) === "0" || BigInt(stream.chefId) === JPYC_FARM_CHEF_ID;
+
+  // Get ERC20 metadata (symbol, decimals) for ERC20 rewards
+  const {
+    symbol: erc20Symbol,
+    decimals: erc20Decimals,
+    isLoading: isMetadataLoading,
+  } = useErc20Metadata({
+    tokenAddress: isErc20Reward ? (stream.rewardToken as `0x${string}`) : undefined,
+  });
+
+  // Hardcoded DAI metadata as fallback (DAI mainnet address)
+  const DAI_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
+  const isDaiToken = stream.rewardToken?.toLowerCase() === DAI_ADDRESS.toLowerCase();
+
+  // Check if reward is veZAMM (token 87)
+  const isVeZAMM = stream.rewardId === 87n || String(stream.rewardId) === "87";
+
+  // For ERC20 rewards, ALWAYS prioritize the ERC20 metadata over indexer data
+  // For veZAMM (token 87), use the veZAMM metadata
+  const rewardSymbol = useMemo(() => {
+    if (isVeZAMM) return "veZAMM";
+    if (isErc20Reward) {
+      return erc20Symbol || (isDaiToken ? "DAI" : isMetadataLoading ? "..." : "ERC20");
+    }
+    return stream.rewardCoin?.symbol || "???";
+  }, [isVeZAMM, isErc20Reward, erc20Symbol, isDaiToken, isMetadataLoading, stream.rewardCoin?.symbol]);
+
+  const rewardDecimals = useMemo(() => {
+    if (isVeZAMM) return 18;
+    if (isErc20Reward) {
+      return erc20Decimals || (isDaiToken ? 18 : 18);
+    }
+    return stream.rewardCoin?.decimals || 18;
+  }, [isVeZAMM, isErc20Reward, erc20Decimals, isDaiToken, stream.rewardCoin?.decimals]);
+
+  // Get reward token image URL
+  const rewardImageUrl = useMemo(() => {
+    if (isVeZAMM) return VEZAMM_TOKEN.imageUrl;
+    if (isDaiToken) return null; // DAI uses component, not URL
+    return stream.rewardCoin?.imageUrl;
+  }, [isVeZAMM, isDaiToken, stream.rewardCoin?.imageUrl]);
+
   const hasStakeableTokens = lpBalance > 0n;
   const hasStakedTokens = stakedAmount && stakedAmount > 0n;
 
@@ -81,8 +128,6 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
 
   const timeRemaining = calculateTimeRemaining(stream.endTime);
   const isActive = stream.status === "ACTIVE" && timeRemaining.seconds > 0;
-
-  const rewardTokenDecimals = stream.rewardCoin?.decimals || 18;
 
   const progress = useMemo(() => {
     const now = BigInt(Math.floor(Date.now() / 1000));
@@ -173,23 +218,17 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
           <span className="font-mono text-foreground">&gt;</span>
           <span className="font-mono">{t("common.reward_token")}:</span>
           <div className="flex items-center gap-2 border border-muted px-2 py-1">
-            {stream.rewardCoin?.imageUrl && (
+            {isDaiToken ? (
+              <DaiLogo className="w-4 h-4" />
+            ) : rewardImageUrl ? (
               <img
-                src={formatImageURL(stream.rewardCoin.imageUrl)}
-                alt={stream.rewardCoin.symbol}
+                src={formatImageURL(rewardImageUrl)}
+                alt={rewardSymbol}
                 className="w-4 h-4 border border-muted"
               />
-            )}
+            ) : null}
             <span className="font-mono font-bold text-foreground break-all">
-              {stream.rewardCoin?.symbol ||
-                (() => {
-                  const rewardId = stream.rewardId?.toString();
-                  // Reward IDs may be variable, handle gracefully
-                  if (!rewardId) return t("common.unknown_token");
-                  return rewardId.length > 16
-                    ? `Token ${rewardId.slice(0, 8)}...${rewardId.slice(-8)}`
-                    : `Token ${rewardId}`;
-                })()}
+              {rewardSymbol}
             </span>
           </div>
         </div>
@@ -219,8 +258,8 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
             <span className="text-muted-foreground font-mono text-sm">[{t("common.total_rewards")}]</span>
             <span className="font-mono font-bold text-sm text-foreground">
               {formatBalance(
-                formatUnits(stream.rewardAmount || BigInt(0), rewardTokenDecimals),
-                stream.rewardCoin?.symbol,
+                formatUnits(stream.rewardAmount || BigInt(0), rewardDecimals),
+                rewardSymbol,
               )}
             </span>
           </div>
