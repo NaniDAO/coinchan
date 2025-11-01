@@ -595,6 +595,14 @@ export const JpycBuySell = () => {
       lp_tokens_proof: "ポジションの証明としてのLPトークン",
       earn_fees: "取引から手数料を獲得",
       withdraw_anytime: "いつでも流動性を引き出し可能",
+
+      // Single-Sided ETH Liquidity
+      single_sided_eth_liquidity: "片側ETH流動性：",
+      provide_only_eth: "プールに参加するにはETHのみを提供",
+      half_eth_swapped: "ETHの半分が自動的にトークンにスワップされます",
+      remaining_eth_added: "残りのETHとトークンが流動性として追加されます",
+      earn_fees_from_trades: "取引から0.3%の手数料を獲得",
+      dust_refund_note: "処理中に少量のトークンが返金される場合があります - これは正常です",
     };
     return translations[key] || key;
   };
@@ -1065,7 +1073,7 @@ export const JpycBuySell = () => {
                 </div>
               }
             >
-              <SingleEthLiquidity />
+              <SingleEthLiquidity isJapanese={isJapanese} japaneseTranslate={ja} />
             </ErrorBoundary>
           </TabsContent>
           <TabsContent value="farm" className="mt-2 sm:mt-4">

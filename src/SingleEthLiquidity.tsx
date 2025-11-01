@@ -61,8 +61,21 @@ const sqrt = (value: bigint): bigint => {
   return z;
 };
 
-export const SingleEthLiquidity = () => {
+interface SingleEthLiquidityProps {
+  isJapanese?: boolean;
+  japaneseTranslate?: (key: string) => string;
+}
+
+export const SingleEthLiquidity = ({ isJapanese = false, japaneseTranslate }: SingleEthLiquidityProps = {}) => {
   const { t } = useTranslation();
+
+  // Use Japanese translation if available, otherwise fallback to i18n
+  const translate = (key: string): string => {
+    if (isJapanese && japaneseTranslate) {
+      return japaneseTranslate(key);
+    }
+    return t(key);
+  };
   /* State */
   /* user inputs */
   const [sellAmt, setSellAmt] = useState("");
@@ -731,16 +744,14 @@ export const SingleEthLiquidity = () => {
 
       {/* Info box */}
       <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground">
-        <p className="font-medium mb-1">{t("pool.single_sided_eth_liquidity")}</p>
+        <p className="font-medium mb-1">{translate("single_sided_eth_liquidity")}</p>
         <ul className="list-disc pl-4 space-y-0.5">
-          <li>{t("pool.provide_only_eth")}</li>
-          <li>{t("pool.half_eth_swapped")}</li>
-          <li>{t("pool.remaining_eth_added")}</li>
-          <li>{t("pool.earn_fees_from_trades", { fee: Number(buyToken?.swapFee ?? SWAP_FEE) / 100 })}</li>
+          <li>{translate("provide_only_eth")}</li>
+          <li>{translate("half_eth_swapped")}</li>
+          <li>{translate("remaining_eth_added")}</li>
+          <li>{translate("earn_fees_from_trades")}</li>
           <li className="text-yellow-600 dark:text-yellow-500">
-            {buyToken?.symbol === "JPYC"
-              ? t("jpyc.dust_refund_note", "Small amounts of tokens may be refunded during the process - this is normal")
-              : t("pool.dust_refund_note", "Small amounts of tokens may be refunded during the process - this is normal")}
+            {translate("dust_refund_note")}
           </li>
           {buyToken && buyToken.symbol === "CULT" && (
             <>
