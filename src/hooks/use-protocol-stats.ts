@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatEther } from "viem";
 import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 import { config } from "@/wagmi";
-import { readContract } from "@wagmi/core";
+import { readContract } from "wagmi/actions";
 
 export interface ProtocolStats {
   totalEthSwapped: string;
