@@ -788,7 +788,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets,
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                     {Number(formatEther(totalPot)).toFixed(3)} wstETH
                   </span>{" "}
-                  Total Volume Locked
+                  Total Value Locked
                 </div>
 
                 {volumeData && (
