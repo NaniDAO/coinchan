@@ -72,9 +72,11 @@ export const SingleEthLiquidity = ({ isJapanese = false, japaneseTranslate }: Si
   // Use Japanese translation if available, otherwise fallback to i18n
   const translate = (key: string): string => {
     if (isJapanese && japaneseTranslate) {
+      // For Japanese mode, use the key directly (already stripped of namespace)
       return japaneseTranslate(key);
     }
-    return t(key);
+    // For i18n, use pool namespace
+    return t(`pool.${key}`);
   };
   /* State */
   /* user inputs */
