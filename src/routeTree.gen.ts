@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WlfiRouteImport } from './routes/wlfi'
 import { Route as UserRouteImport } from './routes/user'
+import { Route as TradeRouteImport } from './routes/trade'
 import { Route as SwapRouteImport } from './routes/swap'
 import { Route as StakeRouteImport } from './routes/stake'
 import { Route as SendRouteImport } from './routes/send'
@@ -48,6 +49,11 @@ const WlfiRoute = WlfiRouteImport.update({
 const UserRoute = UserRouteImport.update({
   id: '/user',
   path: '/user',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TradeRoute = TradeRouteImport.update({
+  id: '/trade',
+  path: '/trade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SwapRoute = SwapRouteImport.update({
@@ -211,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/send': typeof SendRoute
   '/stake': typeof StakeRoute
   '/swap': typeof SwapRoute
+  '/trade': typeof TradeRoute
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
@@ -241,6 +248,7 @@ export interface FileRoutesByTo {
   '/send': typeof SendRoute
   '/stake': typeof StakeRoute
   '/swap': typeof SwapRoute
+  '/trade': typeof TradeRoute
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
@@ -274,6 +282,7 @@ export interface FileRoutesById {
   '/send': typeof SendRoute
   '/stake': typeof StakeRoute
   '/swap': typeof SwapRoute
+  '/trade': typeof TradeRoute
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
@@ -308,6 +317,7 @@ export interface FileRouteTypes {
     | '/send'
     | '/stake'
     | '/swap'
+    | '/trade'
     | '/user'
     | '/wlfi'
     | '/c/$coinId'
@@ -338,6 +348,7 @@ export interface FileRouteTypes {
     | '/send'
     | '/stake'
     | '/swap'
+    | '/trade'
     | '/user'
     | '/wlfi'
     | '/c/$coinId'
@@ -370,6 +381,7 @@ export interface FileRouteTypes {
     | '/send'
     | '/stake'
     | '/swap'
+    | '/trade'
     | '/user'
     | '/wlfi'
     | '/c/$coinId'
@@ -403,6 +415,7 @@ export interface RootRouteChildren {
   SendRoute: typeof SendRoute
   StakeRoute: typeof StakeRoute
   SwapRoute: typeof SwapRoute
+  TradeRoute: typeof TradeRoute
   UserRoute: typeof UserRoute
   WlfiRoute: typeof WlfiRoute
   CCoinIdRoute: typeof CCoinIdRoute
@@ -422,6 +435,13 @@ declare module '@tanstack/react-router' {
       path: '/user'
       fullPath: '/user'
       preLoaderRoute: typeof UserRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trade': {
+      id: '/trade'
+      path: '/trade'
+      fullPath: '/trade'
+      preLoaderRoute: typeof TradeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/swap': {
@@ -696,6 +716,7 @@ const rootRouteChildren: RootRouteChildren = {
   SendRoute: SendRoute,
   StakeRoute: StakeRoute,
   SwapRoute: SwapRoute,
+  TradeRoute: TradeRoute,
   UserRoute: UserRoute,
   WlfiRoute: WlfiRoute,
   CCoinIdRoute: CCoinIdRoute,
