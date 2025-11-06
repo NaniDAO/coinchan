@@ -34,9 +34,9 @@ export const useProtocolStats = () => {
       const totalUsdValue = totalEthSwappedNum * ethPriceUSD;
 
       // Format with commas for readability
-      const formattedUsdValue = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
+      const formattedUsdValue = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       }).format(totalUsdValue);

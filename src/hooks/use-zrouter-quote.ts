@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits, parseUnits, zeroAddress } from "viem";
 import type { PublicClient } from "viem";
-import { quote } from "zrouter-sdk";
+import { findAllRoutes, type RouteOption } from "zrouter-sdk";
 import type { TokenMeta } from "@/lib/coins";
 import { toZRouterToken } from "@/lib/zrouter";
 import { TokenMetadata } from "@/lib/pools";
@@ -19,12 +19,25 @@ export interface UseZRouterQuoteArgs {
   side: Side;
   /** toggle the query; defaults to auto-enabled when inputs are valid */
   enabled?: boolean;
+  /** Optional Matcha API key for enhanced routing */
+  matchaApiKey?: string;
+}
+
+export interface RouteOptionUI {
+  route: RouteOption;
+  amountIn: string;
+  amountOut: string;
+  venue: string;
+  sources?: string[];
+  isMultiHop: boolean;
 }
 
 export interface ZRouterQuoteResult {
   ok: boolean;
   amountIn?: string;
   amountOut?: string;
+  /** All available routes sorted by best first */
+  routes?: RouteOptionUI[];
 }
 
 function isValidNumberLike(v?: string) {
@@ -34,14 +47,22 @@ function isValidNumberLike(v?: string) {
 }
 
 /**
- * A single-source-of-truth quote hook.
- * - Runs exactly once per (tokenIn, tokenOut, side, rawAmount, decimals) tuple.
- * - No refetch on window focus/reconnect.
- * - Stays "fresh" forever for the same key (staleTime: Infinity).
- *
- * TODO: Add matcha support once zrouter-sdk quote() function supports matchaConfig parameter
+ * A single-source-of-truth quote hook that fetches ALL available routes.
+ * - Returns multiple route options for user selection
+ * - Includes Matcha adapter support when API key is provided
+ * - Routes are sorted by best first (highest output for EXACT_IN, lowest input for EXACT_OUT)
+ * - No refetch on window focus/reconnect
+ * - Cached for reuse when user selects a route
  */
-export function useZRouterQuote({ publicClient, sellToken, buyToken, rawAmount, side, enabled }: UseZRouterQuoteArgs) {
+export function useZRouterQuote({
+  publicClient,
+  sellToken,
+  buyToken,
+  rawAmount,
+  side,
+  enabled,
+  matchaApiKey,
+}: UseZRouterQuoteArgs) {
   // Resolve tokens & decimals once
   const tokenIn = useMemo(() => toZRouterToken(sellToken || undefined), [sellToken]);
   const tokenOut = useMemo(() => toZRouterToken(buyToken || undefined), [buyToken]);
@@ -63,7 +84,7 @@ export function useZRouterQuote({ publicClient, sellToken, buyToken, rawAmount, 
   const queryKey = useMemo(
     () =>
       [
-        "zrouter-quote",
+        "zrouter-all-routes",
         side,
         // key parts must be serializable/stable; we use address+id to represent tokens
         tokenIn?.address ?? null,
@@ -74,8 +95,9 @@ export function useZRouterQuote({ publicClient, sellToken, buyToken, rawAmount, 
         parsedAmount?.toString() ?? null,
         sellDecimals?.toString(),
         buyDecimals?.toString(),
+        matchaApiKey ? "matcha-enabled" : "matcha-disabled",
       ] as const,
-    [side, tokenIn, tokenOut, parsedAmount, sellDecimals, buyDecimals],
+    [side, tokenIn, tokenOut, parsedAmount, sellDecimals, buyDecimals, matchaApiKey],
   );
 
   const autoEnabled = !!publicClient && !!tokenIn && !!tokenOut && !!parsedAmount;
@@ -87,21 +109,57 @@ export function useZRouterQuote({ publicClient, sellToken, buyToken, rawAmount, 
       // Safety guards (also protect against TS narrowing)
       if (!publicClient || !tokenIn || !tokenOut || !parsedAmount) return { ok: false };
 
-      // Ask zrouter for a quote
-      const res = await quote(publicClient, {
+      // Get matcha config if API key is provided
+      const matchaConfig = matchaApiKey ? { apiKey: matchaApiKey } : undefined;
+
+      // Fetch ALL available routes
+      const allRoutes = await findAllRoutes(publicClient, {
         tokenIn,
         tokenOut,
-        amount: parsedAmount,
         side,
+        amount: parsedAmount,
+        deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 10), // 10 min deadline
+        owner: zeroAddress, // Placeholder for quoting
+        slippageBps: 50, // 0.5% default slippage for quoting
+        matchaConfig,
       });
 
-      if (side === "EXACT_IN") {
-        const out = formatUnits(res.amountOut, buyDecimals);
-        return { ok: true, amountIn: rawAmount, amountOut: out };
-      } else {
-        const inp = formatUnits(res.amountIn, sellDecimals);
-        return { ok: true, amountIn: inp, amountOut: rawAmount };
+      if (allRoutes.length === 0) {
+        return { ok: false };
       }
+
+      // Convert routes to UI format
+      const routes: RouteOptionUI[] = allRoutes.map((route) => {
+        let amountIn: string;
+        let amountOut: string;
+
+        if (side === "EXACT_IN") {
+          amountIn = rawAmount!;
+          amountOut = formatUnits(route.expectedAmount, buyDecimals);
+        } else {
+          amountIn = formatUnits(route.expectedAmount, sellDecimals);
+          amountOut = rawAmount!;
+        }
+
+        return {
+          route,
+          amountIn,
+          amountOut,
+          venue: route.venue,
+          sources: route.metadata.sources,
+          isMultiHop: route.metadata.isMultiHop,
+        };
+      });
+
+      // Best route is first (already sorted by findAllRoutes)
+      const bestRoute = routes[0];
+
+      return {
+        ok: true,
+        amountIn: bestRoute.amountIn,
+        amountOut: bestRoute.amountOut,
+        routes,
+      };
     },
   });
 }

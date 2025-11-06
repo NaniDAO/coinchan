@@ -1,8 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  useMarketLeaderboard,
-  type MarketBet,
-} from "@/hooks/use-market-leaderboard";
+import { useMarketLeaderboard, type MarketBet } from "@/hooks/use-market-leaderboard";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { cn } from "@/lib/utils";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
@@ -108,11 +105,7 @@ export function MarketLeaderboard({ marketId }: MarketLeaderboardProps) {
     if (sortBy !== field) {
       return <ArrowUpDown className="h-3 w-3 opacity-50" />;
     }
-    return order === "desc" ? (
-      <ArrowDown className="h-3 w-3" />
-    ) : (
-      <ArrowUp className="h-3 w-3" />
-    );
+    return order === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />;
   };
 
   if (isLoading) {
@@ -126,9 +119,7 @@ export function MarketLeaderboard({ marketId }: MarketLeaderboardProps) {
   if (error) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Failed to load leaderboard data
-        </p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">Failed to load leaderboard data</p>
       </div>
     );
   }
@@ -136,9 +127,7 @@ export function MarketLeaderboard({ marketId }: MarketLeaderboardProps) {
   if (!data || data.bets.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          No bets yet. Be the first to trade!
-        </p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">No bets yet. Be the first to trade!</p>
       </div>
     );
   }
@@ -151,24 +140,16 @@ export function MarketLeaderboard({ marketId }: MarketLeaderboardProps) {
       {/* Summary Stats */}
       <div className="grid grid-cols-3 gap-4 px-4">
         <div className="space-y-1">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Total Traders
-          </p>
-          <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            {uniqueTraders}
-          </p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">Total Traders</p>
+          <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{uniqueTraders}</p>
         </div>
         <div className="space-y-1">
           <p className="text-xs text-zinc-500 dark:text-zinc-400">Profitable</p>
-          <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            {profitableTraders}
-          </p>
+          <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{profitableTraders}</p>
         </div>
         <div className="space-y-1">
           <p className="text-xs text-zinc-500 dark:text-zinc-400">Total Bets</p>
-          <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            {data.totalBets}
-          </p>
+          <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{data.totalBets}</p>
         </div>
       </div>
 
@@ -177,15 +158,9 @@ export function MarketLeaderboard({ marketId }: MarketLeaderboardProps) {
         <table className="w-full text-sm">
           <thead className="border-b border-zinc-200 dark:border-zinc-800">
             <tr>
-              <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
-                Rank
-              </th>
-              <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
-                Address
-              </th>
-              <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
-                Side
-              </th>
+              <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">Rank</th>
+              <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">Address</th>
+              <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">Side</th>
               <th className="px-4 py-3 text-right font-medium text-zinc-600 dark:text-zinc-400">
                 <Button
                   variant="ghost"
@@ -208,9 +183,7 @@ export function MarketLeaderboard({ marketId }: MarketLeaderboardProps) {
                   <SortIcon field="totalDeposited" />
                 </Button>
               </th>
-              <th className="px-4 py-3 text-right font-medium text-zinc-600 dark:text-zinc-400">
-                Withdrawn (wstETH)
-              </th>
+              <th className="px-4 py-3 text-right font-medium text-zinc-600 dark:text-zinc-400">Withdrawn (wstETH)</th>
               <th className="px-4 py-3 text-right font-medium text-zinc-600 dark:text-zinc-400">
                 <Button
                   variant="ghost"
@@ -238,9 +211,7 @@ export function MarketLeaderboard({ marketId }: MarketLeaderboardProps) {
                   key={trader.trader}
                   className="border-b border-zinc-100 dark:border-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors"
                 >
-                  <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
-                    #{index + 1}
-                  </td>
+                  <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">#{index + 1}</td>
                   <td className="px-4 py-3 font-mono text-xs text-zinc-600 dark:text-zinc-400">
                     {trader.trader.slice(0, 6)}...{trader.trader.slice(-4)}
                   </td>
@@ -264,9 +235,7 @@ export function MarketLeaderboard({ marketId }: MarketLeaderboardProps) {
                   <td
                     className={cn(
                       "px-4 py-3 text-right font-medium tabular-nums",
-                      trader.isProfitable
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-red-600 dark:text-red-400",
+                      trader.isProfitable ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400",
                     )}
                   >
                     {trader.isProfitable ? "+" : ""}

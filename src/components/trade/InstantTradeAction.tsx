@@ -8,13 +8,12 @@ import { useGetTokens } from "@/hooks/use-get-tokens";
 import { cn } from "@/lib/utils";
 import { FlipActionButton } from "../FlipActionButton";
 import { ETH_TOKEN, sameToken, TokenMetadata, ZAMM_TOKEN } from "@/lib/pools";
-import { encodeFunctionData, formatUnits, maxUint256, parseUnits, type Address } from "viem";
+import { encodeFunctionData, formatUnits, maxUint256, type Address } from "viem";
 import { mainnet } from "viem/chains";
 import { useAccount, useChainId, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 import { useZRouterQuote } from "@/hooks/use-zrouter-quote";
-import { buildRoutePlan, mainnetConfig, findRoute, simulateRoute, erc20Abi, zRouterAbi } from "zrouter-sdk";
+import { buildRoutePlan, mainnetConfig, simulateRoute, erc20Abi, zRouterAbi } from "zrouter-sdk";
 import { CoinsAbi } from "@/constants/Coins";
-import { toZRouterToken } from "@/lib/zrouter";
 import { SLIPPAGE_BPS } from "@/lib/swap";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "../ui/hover-card";
@@ -304,6 +303,9 @@ export const InstantTradeAction = forwardRef<
     Number(rawAmount) > 0 &&
     !loadingFromRecommendationRef.current;
 
+  // Get Matcha API key from environment
+  const matchaApiKey = import.meta.env.VITE_MATCHA_API_KEY;
+
   const { data: quote, isFetching: isQuoteFetching } = useZRouterQuote({
     publicClient: publicClient ?? undefined,
     sellToken,
@@ -311,18 +313,31 @@ export const InstantTradeAction = forwardRef<
     rawAmount,
     side,
     enabled: quotingEnabled,
+    matchaApiKey,
   });
 
-  // Reflect quote into the opposite field
+  // Track selected route index (defaults to 0 = best route)
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
+
+  // Reset selected route when new quotes arrive
   useEffect(() => {
-    if (!quotingEnabled || !quote?.ok) return;
+    setSelectedRouteIndex(0);
+  }, [quote?.routes]);
+
+  // Reflect quote into the opposite field (use selected route's amounts)
+  useEffect(() => {
+    if (!quotingEnabled || !quote?.ok || !quote.routes) return;
+
+    const selectedRoute = quote.routes[selectedRouteIndex] || quote.routes[0];
+    if (!selectedRoute) return;
+
     if (lastEditedField === "sell") {
-      if (buyAmount !== quote.amountOut) setBuyAmount(quote.amountOut ?? "");
+      if (buyAmount !== selectedRoute.amountOut) setBuyAmount(selectedRoute.amountOut);
     } else {
-      if (sellAmount !== quote.amountIn) setSellAmount(quote.amountIn ?? "");
+      if (sellAmount !== selectedRoute.amountIn) setSellAmount(selectedRoute.amountIn);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quote, quotingEnabled, lastEditedField]);
+  }, [quote, quotingEnabled, lastEditedField, selectedRouteIndex]);
 
   // ------------------------------
   // Input + selection handlers
@@ -444,30 +459,20 @@ export const InstantTradeAction = forwardRef<
 
       setTxError(null);
 
-      const tokenIn = toZRouterToken(sellToken);
-      const tokenOut = toZRouterToken(buyToken);
-      const decimals = lastEditedField === "sell" ? sellToken.decimals ?? 18 : buyToken.decimals ?? 18;
-      const amount = parseUnits(rawAmount, decimals);
-      const routeSide = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
+      // Use the selected route from cached quotes (no refetching!)
+      const selectedRoute = quote?.routes?.[selectedRouteIndex];
 
-      // Prepare Matcha config if API key is available
-      const matchaApiKey = import.meta.env.VITE_MATCHA_API_KEY;
-      const matchaConfig = matchaApiKey ? { apiKey: matchaApiKey } : undefined;
+      if (!selectedRoute) {
+        setTxError("No route selected. Please wait for quotes to load.");
+        setIsExecuting(false);
+        return;
+      }
 
-      // Find a route (deadline 10 minutes)
-      const steps = await findRoute(publicClient, {
-        tokenIn,
-        tokenOut,
-        side: routeSide,
-        amount,
-        deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 10),
-        owner,
-        slippageBps: Number(slippageBps),
-        matchaConfig,
-      }).catch(() => []);
+      // Get the steps from the selected route
+      const steps = selectedRoute.route.steps;
 
       if (!steps.length) {
-        setTxError("No route found for this pair/amount");
+        setTxError("Invalid route selected");
         setIsExecuting(false);
         return;
       }
@@ -743,6 +748,70 @@ export const InstantTradeAction = forwardRef<
         <div className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Fetching best price...</span>
+        </div>
+      )}
+
+      {/* Route Selector */}
+      {!isQuoteFetching && quote?.ok && quote.routes && quote.routes.length > 1 && (
+        <div className="mt-2 p-3 bg-muted/30 rounded-lg space-y-2">
+          <div className="text-xs font-medium text-muted-foreground">Select Route</div>
+          <div className="space-y-1.5">
+            {quote.routes.map((routeOption, index) => {
+              const isSelected = index === selectedRouteIndex;
+              const isBest = index === 0;
+
+              // Format venue name
+              const venueName = routeOption.venue.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+
+              // Determine route type label
+              const routeType = routeOption.isMultiHop ? "Multi-hop" : "Direct";
+
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => setSelectedRouteIndex(index)}
+                  className={cn(
+                    "w-full p-2.5 rounded-md text-left transition-all",
+                    "border border-border/50 hover:border-primary/50",
+                    "flex items-center justify-between gap-2",
+                    isSelected && "bg-primary/10 border-primary",
+                  )}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium truncate">{venueName}</span>
+                      {isBest && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-600 dark:text-green-400">
+                          BEST
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground">{routeType}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {side === "EXACT_IN"
+                        ? `Get ${routeOption.amountOut} ${buyToken?.symbol || ""}`
+                        : `Pay ${routeOption.amountIn} ${sellToken?.symbol || ""}`}
+                    </div>
+                    {routeOption.sources && routeOption.sources.length > 0 && (
+                      <div className="text-[10px] text-muted-foreground mt-1">
+                        via {routeOption.sources.slice(0, 3).join(", ")}
+                        {routeOption.sources.length > 3 && ` +${routeOption.sources.length - 3} more`}
+                      </div>
+                    )}
+                  </div>
+                  <div
+                    className={cn(
+                      "w-4 h-4 rounded-full border-2 flex-shrink-0",
+                      isSelected ? "border-primary bg-primary" : "border-border",
+                    )}
+                  >
+                    {isSelected && <div className="w-full h-full rounded-full bg-background scale-50" />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 

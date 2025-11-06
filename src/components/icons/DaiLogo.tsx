@@ -1,12 +1,6 @@
 export function DaiLogo({ className }: { className?: string }) {
   return (
-    <svg
-      width="800px"
-      height="800px"
-      viewBox="0 0 32 32"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
+    <svg width="800px" height="800px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className={className}>
       <g fill="none" fillRule="evenodd">
         <circle fill="#F4B731" fillRule="nonzero" cx="16" cy="16" r="16" />
         <path
