@@ -3,7 +3,7 @@ import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useLpBalance } from "@/hooks/use-lp-balance";
 import { useZChefPool, useZChefUserBalance, useZChefUtilities } from "@/hooks/use-zchef-contract";
-import { ENS_POOL_ID, WLFI_POOL_ID, JPYC_FARM_CHEF_ID, VEZAMM_TOKEN, type TokenMeta } from "@/lib/coins";
+import { ENS_POOL_ID, WLFI_POOL_ID, JPYC_FARM_CHEF_ID, JPYC_POOL_ID, VEZAMM_TOKEN, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -159,9 +159,10 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
 
   // totalValueLocked and dailyRewards are now handled by APYDisplay component
 
-  // Check if this farm is incentivizing the ENS or WLFI pools
+  // Check if this farm is incentivizing the ENS, WLFI, or JPYC pools
   const isENSFarm = BigInt(stream.lpId) === ENS_POOL_ID;
   const isWLFIFarm = BigInt(stream.lpId) === WLFI_POOL_ID;
+  const isJPYCFarm = BigInt(stream.lpId) === JPYC_POOL_ID || BigInt(stream.chefId) === JPYC_FARM_CHEF_ID;
 
   return (
     <div
@@ -177,6 +178,12 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
               <ENSLogo className="w-6 h-6" />
             ) : isWLFIFarm ? (
               <img src="/wlfi.png" alt="WLFI" className="w-6 h-6 rounded-full" />
+            ) : isJPYCFarm ? (
+              <img
+                src="https://content.wrappr.wtf/ipfs/bafkreigzo74zz6wlriztpznhuqxbh4nrucakv7dg6dxbroxlofzedthpce"
+                alt="JPYC"
+                className="w-6 h-6 rounded-full"
+              />
             ) : lpToken?.symbol === "CULT" ? (
               <img src="/cult.jpg" alt="CULT" className="w-6 h-6 border border-muted" />
             ) : lpToken?.imageUrl ? (
@@ -187,7 +194,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
               />
             ) : null}
             <h3 className="font-mono font-bold text-sm uppercase tracking-wider text-foreground break-all">
-              [{isENSFarm ? "ENS" : lpToken?.symbol}]
+              [{isENSFarm ? "ENS" : isJPYCFarm ? "JPYC" : lpToken?.symbol}]
             </h3>
           </div>
           <div className="flex items-center gap-2">
