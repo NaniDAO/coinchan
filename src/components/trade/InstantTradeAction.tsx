@@ -450,6 +450,10 @@ export const InstantTradeAction = forwardRef<
       const amount = parseUnits(rawAmount, decimals);
       const routeSide = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
 
+      // Prepare Matcha config if API key is available
+      const matchaApiKey = import.meta.env.VITE_MATCHA_API_KEY;
+      const matchaConfig = matchaApiKey ? { apiKey: matchaApiKey } : undefined;
+
       // Find a route (deadline 10 minutes)
       const steps = await findRoute(publicClient, {
         tokenIn,
@@ -459,6 +463,7 @@ export const InstantTradeAction = forwardRef<
         deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 10),
         owner,
         slippageBps: Number(slippageBps),
+        matchaConfig,
       }).catch(() => []);
 
       if (!steps.length) {

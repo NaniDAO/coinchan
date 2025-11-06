@@ -38,6 +38,8 @@ function isValidNumberLike(v?: string) {
  * - Runs exactly once per (tokenIn, tokenOut, side, rawAmount, decimals) tuple.
  * - No refetch on window focus/reconnect.
  * - Stays "fresh" forever for the same key (staleTime: Infinity).
+ *
+ * TODO: Add matcha support once zrouter-sdk quote() function supports matchaConfig parameter
  */
 export function useZRouterQuote({ publicClient, sellToken, buyToken, rawAmount, side, enabled }: UseZRouterQuoteArgs) {
   // Resolve tokens & decimals once
