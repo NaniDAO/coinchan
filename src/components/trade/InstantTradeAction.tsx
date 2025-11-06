@@ -766,6 +766,10 @@ export const InstantTradeAction = forwardRef<
               // Determine route type label
               const routeType = routeOption.isMultiHop ? "Multi-hop" : "Direct";
 
+              // Determine route source (Matcha vs ZRouter)
+              const isMatchaRoute = routeOption.venue.toUpperCase() === "MATCHA";
+              const isZammRoute = routeOption.venue.toUpperCase() === "ZAMM";
+
               return (
                 <button
                   key={index}
@@ -779,11 +783,21 @@ export const InstantTradeAction = forwardRef<
                   )}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-medium truncate">{venueName}</span>
                       {isBest && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-600 dark:text-green-400">
                           BEST
+                        </span>
+                      )}
+                      {isMatchaRoute && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                          MATCHA
+                        </span>
+                      )}
+                      {isZammRoute && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400">
+                          ZROUTER
                         </span>
                       )}
                       <span className="text-xs text-muted-foreground">{routeType}</span>

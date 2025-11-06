@@ -151,14 +151,53 @@ export function useZRouterQuote({
         };
       });
 
-      // Best route is first (already sorted by findAllRoutes)
-      const bestRoute = routes[0];
+      // Deduplicate routes based on route signature (venue + sources + hop type)
+      const uniqueRoutes: RouteOptionUI[] = [];
+      const seenRouteSignatures = new Set<string>();
+
+      for (const routeOption of routes) {
+        // Create a unique signature for this route
+        const signature = JSON.stringify({
+          venue: routeOption.venue,
+          sources: routeOption.sources?.sort() ?? [],
+          isMultiHop: routeOption.isMultiHop,
+          // Round amounts to avoid minor precision differences
+          amountOut: side === "EXACT_IN" ? Number(routeOption.amountOut).toFixed(6) : undefined,
+          amountIn: side === "EXACT_OUT" ? Number(routeOption.amountIn).toFixed(6) : undefined,
+        });
+
+        if (!seenRouteSignatures.has(signature)) {
+          seenRouteSignatures.add(signature);
+          uniqueRoutes.push(routeOption);
+        }
+      }
+
+      // Sort routes by quality (best first)
+      // For EXACT_IN: higher amountOut is better
+      // For EXACT_OUT: lower amountIn is better
+      uniqueRoutes.sort((a, b) => {
+        if (side === "EXACT_IN") {
+          const aOut = Number(a.amountOut);
+          const bOut = Number(b.amountOut);
+          return bOut - aOut; // descending (higher output is better)
+        } else {
+          const aIn = Number(a.amountIn);
+          const bIn = Number(b.amountIn);
+          return aIn - bIn; // ascending (lower input is better)
+        }
+      });
+
+      // Limit to top 10 routes to avoid overwhelming the user
+      const limitedRoutes = uniqueRoutes.slice(0, 10);
+
+      // Best route is first
+      const bestRoute = limitedRoutes[0];
 
       return {
         ok: true,
         amountIn: bestRoute.amountIn,
         amountOut: bestRoute.amountOut,
-        routes,
+        routes: limitedRoutes,
       };
     },
   });
