@@ -60,7 +60,7 @@ const fetchRedemptionOrderFromIndexer = async (): Promise<Order | null> => {
     const orders = data.data?.orders?.items || [];
 
     // First check if our specific order exists
-    const SPECIFIC_ORDER_ID_NO_PREFIX = "2602BA56DE653CE8782AD8D8AB8994FBA221605254503D4B3472BB6F492D5597";
+    const SPECIFIC_ORDER_ID_NO_PREFIX = "3bd6477aae610956e96e02a7db238c983ccd686f5926d4166ba47d1428499e27";
     const specificOrder = orders.find(
       (order: Order) =>
         order.id.toLowerCase() === SPECIFIC_ORDER_ID_NO_PREFIX.toLowerCase() ||
@@ -216,7 +216,7 @@ export const useRedemptionOrder = () => {
   const publicClient = usePublicClient();
 
   // The specific order ID provided by the user (with 0x prefix for onchain calls)
-  const SPECIFIC_ORDER_ID = "0x2602BA56DE653CE8782AD8D8AB8994FBA221605254503D4B3472BB6F492D5597";
+  const SPECIFIC_ORDER_ID = "0x3bd6477aae610956e96e02a7db238c983ccd686f5926d4166ba47d1428499e27";
 
   return useQuery({
     queryKey: ["redemption-order", SPECIFIC_ORDER_ID],

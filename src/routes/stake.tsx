@@ -16,7 +16,7 @@ export const Route = createFileRoute("/stake")({
   component: RouteComponent,
 });
 
-const CHEF_ID = "2774204975865484998625983578957308881936129866247490838637631956688562044384";
+const CHEF_ID = "40570573519882689885104223059571011985674645223299497311787032453440665249437";
 
 function RouteComponent() {
   const { t } = useTranslation();
