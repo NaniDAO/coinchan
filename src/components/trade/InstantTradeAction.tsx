@@ -485,7 +485,7 @@ export const InstantTradeAction = forwardRef<
         return;
       }
 
-      const { calls, value, approvals } = plan;
+      const { calls, value, approvals, targets } = plan;
 
       // Best-effort approvals (ERC20 + Coins operator)
       if (approvals && approvals.length > 0) {
@@ -519,6 +519,7 @@ export const InstantTradeAction = forwardRef<
         calls,
         value,
         approvals,
+        targets,
       });
 
       if (!sim) {
