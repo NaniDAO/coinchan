@@ -11,6 +11,7 @@ import { useAccount } from "wagmi";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { FarmGridSkeleton, FarmPositionSkeleton } from "../FarmLoadingStates";
 import { FarmPositionCard } from "./FarmPositionCard";
+import { JPYC_TOKEN, JPYC_POOL_ID, JPYC_FARM_CHEF_ID } from "@/lib/coins";
 
 import { Button } from "../ui/button"; // already imported in FarmPositionCard
 
@@ -140,8 +141,9 @@ export const ManageFarms = () => {
                 if (!stream) return false;
                 if (t.poolId === BigInt(stream.lpId)) return true;
                 if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
+                if (t.symbol === "JPYC" && BigInt(stream.lpId) === t.poolId) return true;
                 return false;
-              });
+              }) || (BigInt(stream.lpId) === JPYC_POOL_ID || BigInt(stream.chefId) === JPYC_FARM_CHEF_ID ? JPYC_TOKEN : undefined);
 
               return (
                 <div key={position.chefId.toString()} className="group min-h-[400px] lg:min-h-[450px]">
