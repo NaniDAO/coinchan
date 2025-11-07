@@ -314,6 +314,7 @@ export const InstantTradeAction = forwardRef<
     side,
     enabled: quotingEnabled,
     matchaApiKey,
+    owner,
   });
 
   // Track selected route index (defaults to 0 = best route)

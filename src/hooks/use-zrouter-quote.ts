@@ -21,6 +21,8 @@ export interface UseZRouterQuoteArgs {
   enabled?: boolean;
   /** Optional Matcha API key for enhanced routing */
   matchaApiKey?: string;
+  /** Owner/recipient address for the swap (defaults to zeroAddress if not provided) */
+  owner?: `0x${string}` | null;
 }
 
 export interface RouteOptionUI {
@@ -62,6 +64,7 @@ export function useZRouterQuote({
   side,
   enabled,
   matchaApiKey,
+  owner,
 }: UseZRouterQuoteArgs) {
   // Resolve tokens & decimals once
   const tokenIn = useMemo(() => toZRouterToken(sellToken || undefined), [sellToken]);
@@ -96,8 +99,9 @@ export function useZRouterQuote({
         sellDecimals?.toString(),
         buyDecimals?.toString(),
         matchaApiKey ? "matcha-enabled" : "matcha-disabled",
+        owner ?? null,
       ] as const,
-    [side, tokenIn, tokenOut, parsedAmount, sellDecimals, buyDecimals, matchaApiKey],
+    [side, tokenIn, tokenOut, parsedAmount, sellDecimals, buyDecimals, matchaApiKey, owner],
   );
 
   const autoEnabled = !!publicClient && !!tokenIn && !!tokenOut && !!parsedAmount;
@@ -119,7 +123,7 @@ export function useZRouterQuote({
         side,
         amount: parsedAmount,
         deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 10), // 10 min deadline
-        owner: zeroAddress, // Placeholder for quoting
+        owner: owner ?? zeroAddress, // Use actual owner if provided, fallback to zeroAddress for quoting
         slippageBps: 50, // 0.5% default slippage for quoting
         matchaConfig,
       });
