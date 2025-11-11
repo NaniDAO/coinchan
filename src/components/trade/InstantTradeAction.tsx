@@ -391,8 +391,6 @@ export const InstantTradeAction = forwardRef<
             Number(rawAmount) > 0 &&
             !loadingFromRecommendationRef.current;
 
-
-
         const { data: quote, isFetching: isQuoteFetching } = useZRouterQuote({
             publicClient: publicClient ?? undefined,
             sellToken,
@@ -894,7 +892,6 @@ export const InstantTradeAction = forwardRef<
                             </div>
                             <div className="space-y-1.5">
                                 {quote.routes.map((routeOption, index) => {
-                                    console.log("Route:", routeOption);
                                     const isSelected =
                                         index === selectedRouteIndex;
                                     const isBest = index === 0;

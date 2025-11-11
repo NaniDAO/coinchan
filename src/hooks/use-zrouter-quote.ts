@@ -39,6 +39,7 @@ export interface ZRouterQuoteResult {
     amountOut?: string;
     /** All available routes sorted by best first */
     routes?: RouteOptionUI[];
+    source?: "api" | "fallback"; // Track which source was used
 }
 
 function isValidNumberLike(v?: string) {
@@ -48,9 +49,33 @@ function isValidNumberLike(v?: string) {
 }
 
 /**
+ * Deserialize routes from API (convert string BigInts back to bigint)
+ */
+function deserializeRoute(route: any): RouteOption {
+    return {
+        ...route,
+        expectedAmount: BigInt(route.expectedAmount),
+        steps: route.steps.map((step: any) => ({
+            ...step,
+            amount: BigInt(step.amount),
+            limit: BigInt(step.limit),
+            deadline: BigInt(step.deadline),
+            tokenIn: {
+                ...step.tokenIn,
+                id: step.tokenIn.id ? BigInt(step.tokenIn.id) : undefined,
+            },
+            tokenOut: {
+                ...step.tokenOut,
+                id: step.tokenOut.id ? BigInt(step.tokenOut.id) : undefined,
+            },
+        })),
+    };
+}
+
+/**
  * A single-source-of-truth quote hook that fetches ALL available routes.
- * - Returns multiple route options for user selection
- * - Includes Matcha adapter support when API key is provided
+ * - Primary: Calls zRouter API (includes Matcha + on-chain quotes)
+ * - Fallback: Uses SDK directly for on-chain quotes only (if API fails)
  * - Routes are sorted by best first (highest output for EXACT_IN, lowest input for EXACT_OUT)
  * - No refetch on window focus/reconnect
  * - Cached for reuse when user selects a route
@@ -126,39 +151,170 @@ export function useZRouterQuote({
             if (!publicClient || !tokenIn || !tokenOut || !parsedAmount)
                 return { ok: false };
 
-            // Get Matcha API key from environment
-            const matchaApiKey = import.meta.env.VITE_MATCHA_API_KEY;
+            const zrouterApiUrl = import.meta.env.VITE_ZROUTER_API_URL;
+            const chainId = await publicClient.getChainId();
 
-            // Get matcha config if API key is provided
-            const matchaConfig = matchaApiKey
-                ? { apiKey: matchaApiKey }
-                : undefined;
+            // TRY 1: Call zRouter API (gets Matcha + on-chain quotes)
+            if (zrouterApiUrl) {
+                try {
+                    console.log("🌐 Fetching quotes from zRouter API...");
 
-            console.log("Is Matcha Config ?", matchaConfig);
+                    // Serialize tokens (convert BigInt to string)
+                    const serializeToken = (token: any) => ({
+                        ...token,
+                        id: token.id ? token.id.toString() : undefined,
+                    });
 
-            // Fetch ALL available routes
+                    // Use valid placeholder address (Matcha rejects zero address)
+                    const validOwner = owner ?? "0x0000000000000000000000000000000000010000";
+
+                    const response = await fetch(`${zrouterApiUrl}/quote`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            chainId: chainId.toString(),
+                            tokenIn: serializeToken(tokenIn),
+                            tokenOut: serializeToken(tokenOut),
+                            side,
+                            amount: parsedAmount.toString(),
+                            owner: validOwner,
+                            slippageBps: 50,
+                        }),
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.routes && data.routes.length > 0) {
+                            console.log(
+                                `✅ Got ${data.routes.length} routes from API (Matcha + on-chain)`,
+                            );
+
+                            // Deserialize routes (convert string BigInts to bigint)
+                            const allRoutes = data.routes.map(deserializeRoute);
+
+                            // Convert routes to UI format
+                            const routes: RouteOptionUI[] = allRoutes.map(
+                                (route: RouteOption) => {
+                                    let amountIn: string;
+                                    let amountOut: string;
+
+                                    if (side === "EXACT_IN") {
+                                        amountIn = rawAmount!;
+                                        amountOut = formatUnits(
+                                            route.expectedAmount,
+                                            buyDecimals,
+                                        );
+                                    } else {
+                                        amountIn = formatUnits(
+                                            route.expectedAmount,
+                                            sellDecimals,
+                                        );
+                                        amountOut = rawAmount!;
+                                    }
+
+                                    return {
+                                        route,
+                                        amountIn,
+                                        amountOut,
+                                        venue: route.venue,
+                                        sources: route.metadata.sources,
+                                        isMultiHop: route.metadata.isMultiHop,
+                                    };
+                                },
+                            );
+
+                            // Deduplicate routes
+                            const uniqueRoutes: RouteOptionUI[] = [];
+                            const seenRouteSignatures = new Set<string>();
+
+                            for (const routeOption of routes) {
+                                const signature = JSON.stringify({
+                                    venue: routeOption.venue,
+                                    sources: routeOption.sources?.sort() ?? [],
+                                    isMultiHop: routeOption.isMultiHop,
+                                    amountOut:
+                                        side === "EXACT_IN"
+                                            ? Number(
+                                                  routeOption.amountOut,
+                                              ).toFixed(6)
+                                            : undefined,
+                                    amountIn:
+                                        side === "EXACT_OUT"
+                                            ? Number(
+                                                  routeOption.amountIn,
+                                              ).toFixed(6)
+                                            : undefined,
+                                });
+
+                                if (!seenRouteSignatures.has(signature)) {
+                                    seenRouteSignatures.add(signature);
+                                    uniqueRoutes.push(routeOption);
+                                }
+                            }
+
+                            // Sort routes by quality
+                            uniqueRoutes.sort((a, b) => {
+                                if (side === "EXACT_IN") {
+                                    const aOut = Number(a.amountOut);
+                                    const bOut = Number(b.amountOut);
+                                    return bOut - aOut;
+                                } else {
+                                    const aIn = Number(a.amountIn);
+                                    const bIn = Number(b.amountIn);
+                                    return aIn - bIn;
+                                }
+                            });
+
+                            const limitedRoutes = uniqueRoutes.slice(0, 10);
+                            const bestRoute = limitedRoutes[0];
+
+                            return {
+                                ok: true,
+                                amountIn: bestRoute.amountIn,
+                                amountOut: bestRoute.amountOut,
+                                routes: limitedRoutes,
+                                source: "api" as const,
+                            };
+                        }
+                    }
+
+                    console.warn(
+                        "⚠️  zRouter API returned no routes, falling back to SDK...",
+                    );
+                } catch (error) {
+                    console.warn(
+                        "⚠️  zRouter API failed, falling back to SDK:",
+                        error,
+                    );
+                }
+            }
+
+            // FALLBACK: Use SDK directly for on-chain quotes only (no Matcha)
+            console.log("🔄 Using SDK fallback for on-chain quotes only...");
+
+            // Use valid placeholder address for consistency
+            const validOwner = owner ?? "0x0000000000000000000000000000000000010000";
+
             const allRoutes = await findAllRoutes(publicClient, {
                 tokenIn,
                 tokenOut,
                 side,
                 amount: parsedAmount,
-                deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 10), // 10 min deadline
-                owner: owner ?? zeroAddress, // Use actual owner if provided, fallback to zeroAddress for quoting
-                slippageBps: 50, // 0.5% default slippage for quoting
-                matchaConfig,
+                deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 10),
+                owner: validOwner,
+                slippageBps: 50,
+                // NO matchaConfig - only on-chain quotes in fallback
             });
 
             if (allRoutes.length === 0) {
                 return { ok: false };
             }
 
-            console.log("All routes:", {
-                tokenIn,
-                tokenOut,
-                side,
-                owner: owner ?? zeroAddress,
-                allRoutes,
-            });
+            console.log(
+                `✅ Got ${allRoutes.length} routes from SDK (on-chain only)`,
+            );
 
             // Convert routes to UI format
             const routes: RouteOptionUI[] = allRoutes.map((route) => {
@@ -183,17 +339,15 @@ export function useZRouterQuote({
                 };
             });
 
-            // Deduplicate routes based on route signature (venue + sources + hop type)
+            // Deduplicate routes
             const uniqueRoutes: RouteOptionUI[] = [];
             const seenRouteSignatures = new Set<string>();
 
             for (const routeOption of routes) {
-                // Create a unique signature for this route
                 const signature = JSON.stringify({
                     venue: routeOption.venue,
                     sources: routeOption.sources?.sort() ?? [],
                     isMultiHop: routeOption.isMultiHop,
-                    // Round amounts to avoid minor precision differences
                     amountOut:
                         side === "EXACT_IN"
                             ? Number(routeOption.amountOut).toFixed(6)
@@ -210,25 +364,20 @@ export function useZRouterQuote({
                 }
             }
 
-            // Sort routes by quality (best first)
-            // For EXACT_IN: higher amountOut is better
-            // For EXACT_OUT: lower amountIn is better
+            // Sort routes by quality
             uniqueRoutes.sort((a, b) => {
                 if (side === "EXACT_IN") {
                     const aOut = Number(a.amountOut);
                     const bOut = Number(b.amountOut);
-                    return bOut - aOut; // descending (higher output is better)
+                    return bOut - aOut;
                 } else {
                     const aIn = Number(a.amountIn);
                     const bIn = Number(b.amountIn);
-                    return aIn - bIn; // ascending (lower input is better)
+                    return aIn - bIn;
                 }
             });
 
-            // Limit to top 10 routes to avoid overwhelming the user
             const limitedRoutes = uniqueRoutes.slice(0, 10);
-
-            // Best route is first
             const bestRoute = limitedRoutes[0];
 
             return {
@@ -236,6 +385,7 @@ export function useZRouterQuote({
                 amountIn: bestRoute.amountIn,
                 amountOut: bestRoute.amountOut,
                 routes: limitedRoutes,
+                source: "fallback" as const,
             };
         },
     });

@@ -152,7 +152,7 @@ export const WlfiBuySell = () => {
             reserve0: poolData[0] as bigint, // ETH
             reserve1: poolData[1] as bigint, // WLFI
           };
-          console.log(
+          /coinchan(
             "WLFI Pool Reserves - ETH:",
             formatEther(newReserves.reserve0),
             "WLFI:",
