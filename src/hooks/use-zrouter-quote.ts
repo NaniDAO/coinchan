@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { formatUnits, parseUnits, zeroAddress } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import type { PublicClient } from "viem";
 import { findAllRoutes, type RouteOption } from "zrouter-sdk";
 import type { TokenMeta } from "@/lib/coins";
@@ -166,7 +166,8 @@ export function useZRouterQuote({
                     });
 
                     // Use valid placeholder address (Matcha rejects zero address)
-                    const validOwner = owner ?? "0x0000000000000000000000000000000000010000";
+                    const validOwner =
+                        owner ?? "0x0000000000000000000000000000000000010000";
 
                     const response = await fetch(`${zrouterApiUrl}/quote`, {
                         method: "POST",
@@ -295,7 +296,8 @@ export function useZRouterQuote({
             console.log("🔄 Using SDK fallback for on-chain quotes only...");
 
             // Use valid placeholder address for consistency
-            const validOwner = owner ?? "0x0000000000000000000000000000000000010000";
+            const validOwner =
+                owner ?? "0x0000000000000000000000000000000000010000";
 
             const allRoutes = await findAllRoutes(publicClient, {
                 tokenIn,
