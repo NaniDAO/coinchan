@@ -268,14 +268,13 @@ export function useZRouterQuote({
                                 }
                             });
 
-                            const limitedRoutes = uniqueRoutes.slice(0, 10);
-                            const bestRoute = limitedRoutes[0];
+                            const bestRoute = uniqueRoutes[0];
 
                             return {
                                 ok: true,
                                 amountIn: bestRoute.amountIn,
                                 amountOut: bestRoute.amountOut,
-                                routes: limitedRoutes,
+                                routes: uniqueRoutes,
                                 source: "api" as const,
                             };
                         }
@@ -379,14 +378,13 @@ export function useZRouterQuote({
                 }
             });
 
-            const limitedRoutes = uniqueRoutes.slice(0, 10);
-            const bestRoute = limitedRoutes[0];
+            const bestRoute = uniqueRoutes[0];
 
             return {
                 ok: true,
                 amountIn: bestRoute.amountIn,
                 amountOut: bestRoute.amountOut,
-                routes: limitedRoutes,
+                routes: uniqueRoutes,
                 source: "fallback" as const,
             };
         },
