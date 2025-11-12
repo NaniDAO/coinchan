@@ -567,6 +567,13 @@ export const InstantTradeAction = forwardRef<
                     return;
                 }
 
+                console.log("Building route plan:", {
+                    owner,
+                    router: mainnetConfig.router,
+                    steps,
+                    finalTo: owner as Address,
+                });
+
                 const plan = await buildRoutePlan(publicClient, {
                     owner,
                     router: mainnetConfig.router,
@@ -579,6 +586,8 @@ export const InstantTradeAction = forwardRef<
                     setIsExecuting(false);
                     return;
                 }
+
+                console.log("Built plan sucessfully:", plan);
 
                 const { calls, value, approvals, targets } = plan;
 
