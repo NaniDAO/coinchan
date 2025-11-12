@@ -295,19 +295,30 @@ export const InstantTradeAction = forwardRef<
   const side = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
   const rawAmount = lastEditedField === "sell" ? sellAmount : buyAmount;
 
+  // Debounce rawAmount to avoid quote requests on every keystroke
+  const [debouncedRawAmount, setDebouncedRawAmount] = useState(rawAmount);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedRawAmount(rawAmount);
+    }, 500); // 500ms debounce delay
+
+    return () => clearTimeout(timer);
+  }, [rawAmount]);
+
   const quotingEnabled =
     !!publicClient &&
     !!sellToken &&
     !!buyToken &&
-    !!rawAmount &&
-    Number(rawAmount) > 0 &&
+    !!debouncedRawAmount &&
+    Number(debouncedRawAmount) > 0 &&
     !loadingFromRecommendationRef.current;
 
   const { data: quote, isFetching: isQuoteFetching } = useZRouterQuote({
     publicClient: publicClient ?? undefined,
     sellToken,
     buyToken,
-    rawAmount,
+    rawAmount: debouncedRawAmount,
     side,
     enabled: quotingEnabled,
     owner,
