@@ -57,9 +57,9 @@ function deserializeRoute(route: any): RouteOption {
         expectedAmount: BigInt(route.expectedAmount),
         steps: route.steps.map((step: any) => ({
             ...step,
-            amount: BigInt(step.amount),
-            limit: BigInt(step.limit),
-            deadline: BigInt(step.deadline),
+            amount: step.amount != null ? BigInt(step.amount) : 0n,
+            limit: step.limit != null ? BigInt(step.limit) : 0n,
+            deadline: step.deadline != null ? BigInt(step.deadline) : 0n,
             tokenIn: {
                 ...step.tokenIn,
                 id: step.tokenIn.id ? BigInt(step.tokenIn.id) : undefined,
