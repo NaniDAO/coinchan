@@ -12,7 +12,7 @@ import { encodeFunctionData, formatUnits, maxUint256, type Address } from "viem"
 import { mainnet } from "viem/chains";
 import { useAccount, useChainId, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 import { useZRouterQuote } from "@/hooks/use-zrouter-quote";
-import { buildRoutePlan, mainnetConfig, simulateRoute, erc20Abi, zRouterAbi } from "zrouter-sdk";
+import { buildRoutePlan, checkRouteApprovals, mainnetConfig, simulateRoute, erc20Abi, zRouterAbi } from "zrouter-sdk";
 import { CoinsAbi } from "@/constants/Coins";
 import { SLIPPAGE_BPS } from "@/lib/swap";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
@@ -486,33 +486,28 @@ export const InstantTradeAction = forwardRef<
         return;
       }
 
-      console.log("Building route plan:", {
+      console.log("Checking route approvals:", {
         owner,
         router: mainnetConfig.router,
         steps,
-        finalTo: owner as Address,
       });
 
-      const plan = await buildRoutePlan(publicClient, {
+      // First, check what approvals are needed BEFORE building the plan
+      // This is critical for Matcha routes which need approval before fetching calldata
+      const requiredApprovals = await checkRouteApprovals(publicClient, {
         owner,
         router: mainnetConfig.router,
         steps,
-        finalTo: owner as Address,
-      }).catch(() => undefined);
+      }).catch((error) => {
+        console.error("Failed to check approvals:", error);
+        return [];
+      });
 
-      if (!plan) {
-        setTxError("Failed to build route plan");
-        setIsExecuting(false);
-        return;
-      }
+      console.log("Required approvals:", requiredApprovals);
 
-      console.log("Built plan sucessfully:", plan);
-
-      const { calls, value, approvals, targets } = plan;
-
-      // Best-effort approvals (ERC20 + Coins operator)
-      if (approvals && approvals.length > 0) {
-        for (const approval of approvals) {
+      // Execute all required approvals and wait for confirmations
+      if (requiredApprovals && requiredApprovals.length > 0) {
+        for (const approval of requiredApprovals) {
           const hash = await sendTransactionAsync({
             to: approval.token.address,
             data:
@@ -531,9 +526,36 @@ export const InstantTradeAction = forwardRef<
             chainId: mainnet.id,
             account: owner,
           });
+          // Wait for each approval to be confirmed onchain before proceeding
           await publicClient.waitForTransactionReceipt({ hash });
         }
       }
+
+      console.log("Building route plan:", {
+        owner,
+        router: mainnetConfig.router,
+        steps,
+        finalTo: owner as Address,
+      });
+
+      // Now build the route plan with approvals confirmed onchain
+      // For Matcha routes, this ensures fresh calldata is generated with correct approval state
+      const plan = await buildRoutePlan(publicClient, {
+        owner,
+        router: mainnetConfig.router,
+        steps,
+        finalTo: owner as Address,
+      }).catch(() => undefined);
+
+      if (!plan) {
+        setTxError("Failed to build route plan");
+        setIsExecuting(false);
+        return;
+      }
+
+      console.log("Built plan sucessfully:", plan);
+
+      const { calls, value, targets } = plan;
 
       // Simulate route execution
       const sim = await simulateRoute(publicClient, {
@@ -541,7 +563,7 @@ export const InstantTradeAction = forwardRef<
         account: owner,
         calls,
         value,
-        approvals,
+        approvals: [], // No longer checking approvals from buildRoutePlan
         targets,
       });
 
