@@ -8,18 +8,18 @@ import { useGetTokens } from "@/hooks/use-get-tokens";
 import { cn } from "@/lib/utils";
 import { FlipActionButton } from "../FlipActionButton";
 import { ETH_TOKEN, sameToken, TokenMetadata, ZAMM_TOKEN } from "@/lib/pools";
-import { encodeFunctionData, formatUnits, maxUint256, parseUnits, type Address } from "viem";
+import { encodeFunctionData, formatUnits, maxUint256, type Address } from "viem";
 import { mainnet } from "viem/chains";
 import { useAccount, useChainId, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 import { useZRouterQuote } from "@/hooks/use-zrouter-quote";
-import { buildRoutePlan, mainnetConfig, findRoute, simulateRoute, erc20Abi, zRouterAbi } from "zrouter-sdk";
+import { buildRoutePlan, checkRouteApprovals, mainnetConfig, simulateRoute, erc20Abi, zRouterAbi } from "zrouter-sdk";
 import { CoinsAbi } from "@/constants/Coins";
-import { toZRouterToken } from "@/lib/zrouter";
 import { SLIPPAGE_BPS } from "@/lib/swap";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "../ui/hover-card";
 import { InfoIcon, Loader2 } from "lucide-react";
 import { SlippageSettings } from "../SlippageSettings";
+import { RouteOptions } from "./RouteOptions";
 
 import { useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 import { encodeTokenQ, parseTokenQ, findTokenFlexible, isCanonicalTokenQ } from "@/lib/token-query";
@@ -296,33 +296,57 @@ export const InstantTradeAction = forwardRef<
   const side = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
   const rawAmount = lastEditedField === "sell" ? sellAmount : buyAmount;
 
+  // Debounce rawAmount to avoid quote requests on every keystroke
+  const [debouncedRawAmount, setDebouncedRawAmount] = useState(rawAmount);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedRawAmount(rawAmount);
+    }, 500); // 500ms debounce delay
+
+    return () => clearTimeout(timer);
+  }, [rawAmount]);
+
   const quotingEnabled =
     !!publicClient &&
     !!sellToken &&
     !!buyToken &&
-    !!rawAmount &&
-    Number(rawAmount) > 0 &&
+    !!debouncedRawAmount &&
+    Number(debouncedRawAmount) > 0 &&
     !loadingFromRecommendationRef.current;
 
   const { data: quote, isFetching: isQuoteFetching } = useZRouterQuote({
     publicClient: publicClient ?? undefined,
     sellToken,
     buyToken,
-    rawAmount,
+    rawAmount: debouncedRawAmount,
     side,
     enabled: quotingEnabled,
+    owner,
   });
 
-  // Reflect quote into the opposite field
+  // Track selected route index (defaults to 0 = best route)
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
+
+  // Reset selected route when new quotes arrive
   useEffect(() => {
-    if (!quotingEnabled || !quote?.ok) return;
+    setSelectedRouteIndex(0);
+  }, [quote?.routes]);
+
+  // Reflect quote into the opposite field (use selected route's amounts)
+  useEffect(() => {
+    if (!quotingEnabled || !quote?.ok || !quote.routes) return;
+
+    const selectedRoute = quote.routes[selectedRouteIndex] || quote.routes[0];
+    if (!selectedRoute) return;
+
     if (lastEditedField === "sell") {
-      if (buyAmount !== quote.amountOut) setBuyAmount(quote.amountOut ?? "");
+      if (buyAmount !== selectedRoute.amountOut) setBuyAmount(selectedRoute.amountOut);
     } else {
-      if (sellAmount !== quote.amountIn) setSellAmount(quote.amountIn ?? "");
+      if (sellAmount !== selectedRoute.amountIn) setSellAmount(selectedRoute.amountIn);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quote, quotingEnabled, lastEditedField]);
+  }, [quote, quotingEnabled, lastEditedField, selectedRouteIndex]);
 
   // ------------------------------
   // Input + selection handlers
@@ -444,47 +468,46 @@ export const InstantTradeAction = forwardRef<
 
       setTxError(null);
 
-      const tokenIn = toZRouterToken(sellToken);
-      const tokenOut = toZRouterToken(buyToken);
-      const decimals = lastEditedField === "sell" ? sellToken.decimals ?? 18 : buyToken.decimals ?? 18;
-      const amount = parseUnits(rawAmount, decimals);
-      const routeSide = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
+      // Use the selected route from cached quotes (no refetching!)
+      const selectedRoute = quote?.routes?.[selectedRouteIndex];
 
-      // Find a route (deadline 10 minutes)
-      const steps = await findRoute(publicClient, {
-        tokenIn,
-        tokenOut,
-        side: routeSide,
-        amount,
-        deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 10),
-        owner,
-        slippageBps: Number(slippageBps),
-      }).catch(() => []);
-
-      if (!steps.length) {
-        setTxError("No route found for this pair/amount");
+      if (!selectedRoute) {
+        setTxError("No route selected. Please wait for quotes to load.");
         setIsExecuting(false);
         return;
       }
 
-      const plan = await buildRoutePlan(publicClient, {
+      // Get the steps from the selected route
+      const steps = selectedRoute.route.steps;
+
+      if (!steps.length) {
+        setTxError("Invalid route selected");
+        setIsExecuting(false);
+        return;
+      }
+
+      console.log("Checking route approvals:", {
         owner,
         router: mainnetConfig.router,
         steps,
-        finalTo: owner as Address,
-      }).catch(() => undefined);
+      });
 
-      if (!plan) {
-        setTxError("Failed to build route plan");
-        setIsExecuting(false);
-        return;
-      }
+      // First, check what approvals are needed BEFORE building the plan
+      // This is critical for Matcha routes which need approval before fetching calldata
+      const requiredApprovals = await checkRouteApprovals(publicClient, {
+        owner,
+        router: mainnetConfig.router,
+        steps,
+      }).catch((error) => {
+        console.error("Failed to check approvals:", error);
+        return [];
+      });
 
-      const { calls, value, approvals } = plan;
+      console.log("Required approvals:", requiredApprovals);
 
-      // Best-effort approvals (ERC20 + Coins operator)
-      if (approvals && approvals.length > 0) {
-        for (const approval of approvals) {
+      // Execute all required approvals and wait for confirmations
+      if (requiredApprovals && requiredApprovals.length > 0) {
+        for (const approval of requiredApprovals) {
           const hash = await sendTransactionAsync({
             to: approval.token.address,
             data:
@@ -503,9 +526,36 @@ export const InstantTradeAction = forwardRef<
             chainId: mainnet.id,
             account: owner,
           });
+          // Wait for each approval to be confirmed onchain before proceeding
           await publicClient.waitForTransactionReceipt({ hash });
         }
       }
+
+      console.log("Building route plan:", {
+        owner,
+        router: mainnetConfig.router,
+        steps,
+        finalTo: owner as Address,
+      });
+
+      // Now build the route plan with approvals confirmed onchain
+      // For Matcha routes, this ensures fresh calldata is generated with correct approval state
+      const plan = await buildRoutePlan(publicClient, {
+        owner,
+        router: mainnetConfig.router,
+        steps,
+        finalTo: owner as Address,
+      }).catch(() => undefined);
+
+      if (!plan) {
+        setTxError("Failed to build route plan");
+        setIsExecuting(false);
+        return;
+      }
+
+      console.log("Built plan sucessfully:", plan);
+
+      const { calls, value, targets } = plan;
 
       // Simulate route execution
       const sim = await simulateRoute(publicClient, {
@@ -513,7 +563,8 @@ export const InstantTradeAction = forwardRef<
         account: owner,
         calls,
         value,
-        approvals,
+        approvals: [], // No longer checking approvals from buildRoutePlan
+        targets,
       });
 
       if (!sim) {
@@ -522,30 +573,72 @@ export const InstantTradeAction = forwardRef<
         return;
       }
 
-      // Execute (single call vs multicall)
-      const hash = await sendTransactionAsync(
-        calls.length === 1
-          ? {
-              to: mainnetConfig.router,
-              data: calls[0],
-              value,
-              chainId: mainnet.id,
-              account: owner,
-            }
-          : {
-              to: mainnetConfig.router,
-              data: encodeFunctionData({
-                abi: zRouterAbi,
-                functionName: "multicall",
-                args: [calls],
-              }),
-              value,
-              chainId: mainnet.id,
-              account: owner,
-            },
-      );
+      // Execute using the targets from the plan
+      let hash: `0x${string}`;
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      if (calls.length === 1) {
+        // Single call: send to the specific target from the plan
+        hash = await sendTransactionAsync({
+          to: targets[0] ?? mainnetConfig.router,
+          data: calls[0],
+          value,
+          chainId: mainnet.id,
+          account: owner,
+        });
+      } else {
+        // Multiple calls: check if all targets are the router
+        const allTargetsAreRouter = targets.every((t) => t.toLowerCase() === mainnetConfig.router.toLowerCase());
+
+        if (allTargetsAreRouter) {
+          // All calls go to router: use multicall
+          hash = await sendTransactionAsync({
+            to: mainnetConfig.router,
+            data: encodeFunctionData({
+              abi: zRouterAbi,
+              functionName: "multicall",
+              args: [calls],
+            }),
+            value,
+            chainId: mainnet.id,
+            account: owner,
+          });
+        } else {
+          // Mixed targets: execute calls sequentially to their respective targets
+          console.log(
+            "Executing multi-target plan:",
+            targets.map((t, i) => ({ target: t, call: i })),
+          );
+
+          let lastHash: `0x${string}` | undefined;
+
+          for (let i = 0; i < calls.length; i++) {
+            const targetHash = await sendTransactionAsync({
+              to: targets[i],
+              data: calls[i],
+              value: i === 0 ? value : 0n, // Only send value with first call
+              chainId: mainnet.id,
+              account: owner,
+            });
+
+            // Wait for each transaction to complete
+            await publicClient.waitForTransactionReceipt({
+              hash: targetHash,
+            });
+
+            lastHash = targetHash;
+          }
+
+          // Set hash to the last transaction for receipt tracking
+          if (!lastHash) {
+            throw new Error("Failed to execute multi-target plan: no transactions were sent");
+          }
+          hash = lastHash;
+        }
+      }
+
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+      });
       if (receipt.status !== "success") throw new Error("Transaction failed");
       setTxHash(hash);
       setIsExecuting(false);
@@ -740,6 +833,30 @@ export const InstantTradeAction = forwardRef<
         </div>
       )}
 
+      {/* Action button */}
+      <button
+        onClick={executeSwap}
+        disabled={!isConnected || !sellAmount || isExecuting || isPending}
+        className={cn(
+          `w-full mt-3 button text-base px-8 py-4 bg-primary! text-primary-foreground! dark:bg-primary! dark:text-primary-foreground! font-bold rounded-lg transition hover:scale-105`,
+          (!isConnected || !sellAmount || isExecuting || isPending) && "opacity-50 cursor-not-allowed",
+        )}
+      >
+        {isExecuting || isPending ? "Processing…" : !sellAmount ? "Get Started" : "Swap"}
+      </button>
+
+      {/* Route Options */}
+      {!isQuoteFetching && quote?.ok && quote.routes && (
+        <RouteOptions
+          routes={quote.routes}
+          selectedRouteIndex={selectedRouteIndex}
+          onRouteSelect={setSelectedRouteIndex}
+          side={side}
+          sellToken={sellToken}
+          buyToken={buyToken}
+        />
+      )}
+
       {/* Settings */}
       <div className="flex items-center p-1 justify-end flex-row">
         <HoverCard>
@@ -752,18 +869,6 @@ export const InstantTradeAction = forwardRef<
           </HoverCardContent>
         </HoverCard>
       </div>
-
-      {/* Action button */}
-      <button
-        onClick={executeSwap}
-        disabled={!isConnected || !sellAmount || isExecuting || isPending}
-        className={cn(
-          `w-full mt-3 button text-base px-8 py-4 bg-primary! text-primary-foreground! dark:bg-primary! dark:text-primary-foreground! font-bold rounded-lg transition hover:scale-105`,
-          (!isConnected || !sellAmount || isExecuting || isPending) && "opacity-50 cursor-not-allowed",
-        )}
-      >
-        {isExecuting || isPending ? "Processing…" : !sellAmount ? "Get Started" : "Swap"}
-      </button>
 
       {/* Errors / Success */}
       {writeError && !suppressErrors && !isUserRejectionError(writeError) && (

@@ -234,15 +234,9 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
             {isDaiToken ? (
               <DaiLogo className="w-4 h-4" />
             ) : rewardImageUrl ? (
-              <img
-                src={formatImageURL(rewardImageUrl)}
-                alt={rewardSymbol}
-                className="w-4 h-4 border border-muted"
-              />
+              <img src={formatImageURL(rewardImageUrl)} alt={rewardSymbol} className="w-4 h-4 border border-muted" />
             ) : null}
-            <span className="font-mono font-bold text-foreground break-all">
-              {rewardSymbol}
-            </span>
+            <span className="font-mono font-bold text-foreground break-all">{rewardSymbol}</span>
           </div>
         </div>
       </div>
@@ -270,10 +264,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground font-mono text-sm">[{t("common.total_rewards")}]</span>
             <span className="font-mono font-bold text-sm text-foreground">
-              {formatBalance(
-                formatUnits(stream.rewardAmount || BigInt(0), rewardDecimals),
-                rewardSymbol,
-              )}
+              {formatBalance(formatUnits(stream.rewardAmount || BigInt(0), rewardDecimals), rewardSymbol)}
             </span>
           </div>
         </div>

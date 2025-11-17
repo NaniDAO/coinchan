@@ -76,8 +76,8 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
                   </p>
                   <p className="text-[11px] sm:text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
                     Pari-mutuel AMM with dynamic pricing. Prices update based on supply and demand. Buy and sell shares
-                    anytime with instant liquidity. 0.1% swap fee applies. <strong>Winners split the pot at
-                    resolution</strong> (not fixed $1 payout).
+                    anytime with instant liquidity. 0.1% swap fee applies.{" "}
+                    <strong>Winners split the pot at resolution</strong> (not fixed $1 payout).
                   </p>
                 </div>
               </div>
@@ -95,13 +95,12 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
             <div className="bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-500 dark:border-blue-600 p-3 sm:p-4 rounded-lg">
               <div className="flex items-start gap-2 mb-2">
                 <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                <p className="font-bold text-blue-900 dark:text-blue-100 text-sm sm:text-base">
-                  PAMM: Pari-Mutuel AMM
-                </p>
+                <p className="font-bold text-blue-900 dark:text-blue-100 text-sm sm:text-base">PAMM: Pari-Mutuel AMM</p>
               </div>
               <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
-                PAMM is a <strong>pari-mutuel</strong> market. When the event resolves, <strong>winners split a shared
-                wstETH pot</strong>. It's <strong>not</strong> a fixed "$1 if YES" system.
+                PAMM is a <strong>pari-mutuel</strong> market. When the event resolves,{" "}
+                <strong>winners split a shared wstETH pot</strong>. It's <strong>not</strong> a fixed "$1 if YES"
+                system.
               </p>
             </div>
 
@@ -111,7 +110,9 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
                 What You're Buying
               </h4>
               <ul className="space-y-1.5 list-disc list-inside text-muted-foreground text-xs sm:text-sm">
-                <li>A YES or NO share is a <strong>claim on a shared pot</strong> of wstETH</li>
+                <li>
+                  A YES or NO share is a <strong>claim on a shared pot</strong> of wstETH
+                </li>
                 <li>The displayed odds come from the on-chain YES/NO pool (like a price)</li>
                 <li>Odds move as people trade, similar to an AMM</li>
               </ul>
@@ -121,7 +122,8 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
               <h4 className="font-bold mb-2 text-sm sm:text-base">How Payouts Work</h4>
               <div className="bg-muted p-3 rounded-lg text-xs sm:text-sm space-y-2">
                 <p className="text-muted-foreground">
-                  <strong>Payout per winning share</strong> = <span className="font-mono">pot (after fees) ÷ circulating winning shares</span>
+                  <strong>Payout per winning share</strong> ={" "}
+                  <span className="font-mono">pot (after fees) ÷ circulating winning shares</span>
                 </p>
                 <p className="text-muted-foreground text-[11px]">
                   <em>Note: Shares held by the protocol/AMM don't count in the denominator.</em>
@@ -131,8 +133,8 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
                 </p>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                ⚠️ <strong>Not fixed payout:</strong> There's no guaranteed $1 per winning share. Payout depends on
-                total pot size and number of winning shares.
+                ⚠️ <strong>Not fixed payout:</strong> There's no guaranteed $1 per winning share. Payout depends on total
+                pot size and number of winning shares.
               </p>
             </div>
 
@@ -144,9 +146,9 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
                 </h4>
               </div>
               <p className="text-[11px] sm:text-xs text-yellow-800 dark:text-yellow-200 leading-relaxed">
-                If you <strong>bought late</strong> on the already-favored side, your <strong>average cost per
-                share</strong> might be <strong>higher</strong> than the final payout per share (because many other
-                buyers minted more winning shares, diluting the split).
+                If you <strong>bought late</strong> on the already-favored side, your{" "}
+                <strong>average cost per share</strong> might be <strong>higher</strong> than the final payout per share
+                (because many other buyers minted more winning shares, diluting the split).
               </p>
               <p className="text-[11px] sm:text-xs text-yellow-800 dark:text-yellow-200 leading-relaxed mt-2">
                 <strong>Result:</strong> You're right on the outcome, but your <strong>cost &gt; payout</strong>, so you
@@ -157,9 +159,15 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
             <div>
               <h4 className="font-bold mb-2 text-sm sm:text-base">Simple Example</h4>
               <div className="bg-muted p-3 rounded-lg text-xs sm:text-sm space-y-1">
-                <p>• Pot ends at <strong>10 wstETH</strong></p>
-                <p>• Circulating winning shares = <strong>12.5</strong></p>
-                <p>• <strong>Payout per share = 10 / 12.5 = 0.8 wstETH</strong></p>
+                <p>
+                  • Pot ends at <strong>10 wstETH</strong>
+                </p>
+                <p>
+                  • Circulating winning shares = <strong>12.5</strong>
+                </p>
+                <p>
+                  • <strong>Payout per share = 10 / 12.5 = 0.8 wstETH</strong>
+                </p>
                 <p className="text-green-600 dark:text-green-400 mt-2">
                   ✅ If your avg cost per share was <strong>0.65</strong>, you profit (0.8 &gt; 0.65)
                 </p>
@@ -194,8 +202,8 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
                   </p>
                   <p className="text-[11px] sm:text-xs text-green-800 dark:text-green-200 leading-relaxed">
                     Buy when you believe the true chance is higher than current odds. If later trading and/or the losing
-                    side's spending grows the pot relative to your entry cost, your <strong>payout per share &gt; your
-                    cost</strong>.
+                    side's spending grows the pot relative to your entry cost, your{" "}
+                    <strong>payout per share &gt; your cost</strong>.
                   </p>
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">

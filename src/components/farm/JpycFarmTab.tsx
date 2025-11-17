@@ -244,15 +244,6 @@ function JpycFarmCard({ farm, lpToken, onHarvest, isHarvesting, ethPrice, userLp
   const isErc20Reward =
     farm.rewardId === 0n || String(farm.rewardId) === "0" || BigInt(farm.chefId) === JPYC_FARM_CHEF_ID;
 
-  // Debug logging
-  if (process.env.NODE_ENV === "development") {
-    console.log("[JpycFarmCard] Farm data:", farm);
-    console.log("[JpycFarmCard] rewardId raw:", farm.rewardId, "type:", typeof farm.rewardId);
-    console.log("[JpycFarmCard] Is ERC20 reward:", isErc20Reward);
-    console.log("[JpycFarmCard] Reward token address:", farm.rewardToken);
-    console.log("[JpycFarmCard] RewardCoin:", farm.rewardCoin);
-  }
-
   // Get ERC20 metadata (symbol, decimals) for ERC20 rewards
   const {
     symbol: erc20Symbol,
@@ -345,7 +336,10 @@ function JpycFarmCard({ farm, lpToken, onHarvest, isHarvesting, ethPrice, userLp
               </h4>
               <p className="text-xs text-muted-foreground">
                 {hasTimeRemaining
-                  ? t("common.days_hours_remaining", { days: timeRemaining.days, hours: timeRemaining.hours })
+                  ? t("common.days_hours_remaining", {
+                      days: timeRemaining.days,
+                      hours: timeRemaining.hours,
+                    })
                   : isActive
                     ? "Active"
                     : "Ended"}
