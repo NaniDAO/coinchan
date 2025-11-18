@@ -19,7 +19,16 @@ interface MarketGalleryProps {
   refreshKey?: number;
 }
 
-type MarketFilter = "all" | "contract" | "multi" | "curated" | "community" | "closed" | "resolved" | "positions" | "favorites";
+type MarketFilter =
+  | "all"
+  | "contract"
+  | "multi"
+  | "curated"
+  | "community"
+  | "closed"
+  | "resolved"
+  | "positions"
+  | "favorites";
 type SortOption = "newest" | "pot" | "activity" | "closing";
 
 export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {

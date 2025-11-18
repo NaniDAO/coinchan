@@ -117,7 +117,11 @@ export const SingleEthLiquidity = ({ isJapanese = false, japaneseTranslate }: Si
   const [txError, setTxError] = useState<string | null>(null);
 
   const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(
-    buyToken?.symbol === "JPYC" ? 3000n : buyToken?.symbol === "CULT" || buyToken?.symbol === "ENS" ? 1000n : SINGLE_ETH_SLIPPAGE_BPS,
+    buyToken?.symbol === "JPYC"
+      ? 3000n
+      : buyToken?.symbol === "CULT" || buyToken?.symbol === "ENS"
+        ? 1000n
+        : SINGLE_ETH_SLIPPAGE_BPS,
   );
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
@@ -752,9 +756,7 @@ export const SingleEthLiquidity = ({ isJapanese = false, japaneseTranslate }: Si
           <li>{translate("half_eth_swapped")}</li>
           <li>{translate("remaining_eth_added")}</li>
           <li>{translate("earn_fees_from_trades")}</li>
-          <li className="text-yellow-600 dark:text-yellow-500">
-            {translate("dust_refund_note")}
-          </li>
+          <li className="text-yellow-600 dark:text-yellow-500">{translate("dust_refund_note")}</li>
           {buyToken && buyToken.symbol === "CULT" && (
             <>
               <li className="text-primary">Using CULT-optimized LP-ZAP contract</li>

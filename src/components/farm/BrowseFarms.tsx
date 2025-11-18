@@ -220,7 +220,7 @@ const IncentiveStreamCardListItem = ({
 
   // If lpToken is not found and tokens are not loading, show error
   // Otherwise, use ETH_TOKEN as fallback during loading
-  console.log(lpToken, isLoadingLpToken);
+
   if (!lpToken && !isLoadingLpToken) {
     return (
       <Alert tone="info" key={stream.chefId.toString()} className="group">
