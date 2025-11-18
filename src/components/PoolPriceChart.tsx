@@ -331,6 +331,14 @@ const TVPriceChart: React.FC<{
         },
         autoSize: true,
         height: 300,
+        crosshair: {
+          horzLine: {
+            visible: false,
+          },
+          vertLine: {
+            visible: false,
+          },
+        },
         rightPriceScale: {
           autoScale: true,
           mode: PriceScaleMode.Logarithmic,
@@ -377,7 +385,7 @@ const TVPriceChart: React.FC<{
           formatter: formatWithSubscriptZeros, // Use custom formatter
           minMove: 0.000000001,
         },
-        crosshairMarkerVisible: true,
+        crosshairMarkerVisible: false,
         crosshairMarkerRadius: 5,
         lastValueVisible: true,
         priceLineVisible: true,
@@ -398,7 +406,7 @@ const TVPriceChart: React.FC<{
           formatter: formatWithSubscriptZeros, // Use custom formatter
           minMove: 0.000000001,
         },
-        crosshairMarkerVisible: true,
+        crosshairMarkerVisible: false,
         crosshairMarkerRadius: 4,
       } as LineSeriesOptions);
 

@@ -3,9 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   CandlestickSeries,
-  type CandlestickSeriesOptions,
   ColorType,
-  CrosshairMode,
   type IChartApi,
   type ISeriesApi,
   type CandlestickData as TVCandlestickData,
@@ -182,18 +180,11 @@ const TVCandlestick: React.FC<TVChartProps> = ({
       width: containerRef.current.clientWidth,
       height: 400,
       crosshair: {
-        mode: CrosshairMode.Normal,
         horzLine: {
-          color: chartTheme.crosshairColor,
-          width: 1,
-          style: 2,
-          labelBackgroundColor: chartTheme.background || "#ffffff",
+          visible: false,
         },
         vertLine: {
-          color: chartTheme.crosshairColor,
-          width: 1,
-          style: 2,
-          labelBackgroundColor: chartTheme.background || "#ffffff",
+          visible: false,
         },
       },
       rightPriceScale: {
@@ -240,7 +231,9 @@ const TVCandlestick: React.FC<TVChartProps> = ({
       borderVisible: true,
       borderUpColor: chartTheme.upColor || "#10b981",
       borderDownColor: chartTheme.downColor || "#ef4444",
+      borderColor: chartTheme.upColor || "#10b981",
       wickVisible: true,
+      wickColor: chartTheme.wickUpColor || "#10b981",
       title: showUsd && ethUsdPrice ? `${ticker} / USD` : `ETH / ${ticker}`,
       priceFormat: {
         type: "custom",
@@ -252,7 +245,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({
       priceLineWidth: 1,
       priceLineColor: chartTheme.textColor || "#333333",
       priceLineStyle: 2,
-    } as CandlestickSeriesOptions);
+    });
 
     const handleResize = () => {
       requestAnimationFrame(() => {
@@ -286,7 +279,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({
         formatter: formatWithSubscriptZeros,
         minMove: 0.000000001,
       },
-    } as CandlestickSeriesOptions);
+    });
   }, [showUsd, ethUsdPrice, ticker]);
 
   useEffect(() => {
