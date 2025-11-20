@@ -312,13 +312,13 @@ const ContentView = ({ mode, onBack }: { mode: ViewMode; onBack: () => void }) =
 
   return (
     <motion.div
-      className="w-full max-w-5xl"
+      className="w-full max-w-5xl h-full flex flex-col"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
     >
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
+      {/* Header - Fixed */}
+      <div className="flex items-center gap-4 mb-6 flex-shrink-0">
         <motion.button
           onClick={onBack}
           className="px-4 py-2 border border-white/30 hover:border-white/60 bg-black/40 backdrop-blur-sm font-mono text-sm transition-all"
@@ -329,8 +329,8 @@ const ContentView = ({ mode, onBack }: { mode: ViewMode; onBack: () => void }) =
         <div className="font-mono text-2xl tracking-wider text-white/90">{title}</div>
       </div>
 
-      {/* Content Panel */}
-      <div className="border border-white/20 bg-black/60 backdrop-blur-md p-8 cyberspace-panel cyberspace-content">
+      {/* Content Panel - Scrollable */}
+      <div className="border border-white/20 bg-black/60 backdrop-blur-md p-8 cyberspace-panel cyberspace-content overflow-y-auto flex-1 max-h-[calc(100vh-200px)]">
         <Component />
       </div>
 
