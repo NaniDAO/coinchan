@@ -266,7 +266,7 @@ class EnergyWave {
     }
 
     render(ctx: CanvasRenderingContext2D, time: number) {
-        const segments = 32;
+        const segments = 24; // Reduced from 32 for performance (still smooth)
         ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.intensity * (1 - this.radius / this.maxRadius)})`;
         ctx.lineWidth =
             this.thickness * (1 - (this.radius / this.maxRadius) * 0.5);
@@ -423,22 +423,32 @@ class VoidParticle {
         height: number,
         time: number,
         chaosField: Array<any>,
+        getNearbyPointsFn?: (x: number, y: number) => Array<any>,
     ) {
         // Apply turbulence
         let turbulenceX = 0;
         let turbulenceY = 0;
 
-        chaosField.forEach((point: any) => {
+        // Use spatial lookup if available for performance
+        const pointsToCheck = getNearbyPointsFn
+            ? getNearbyPointsFn(this.x, this.y)
+            : chaosField;
+
+        for (let i = 0; i < pointsToCheck.length; i++) {
+            const point = pointsToCheck[i];
             const dx = this.x - point.x;
             const dy = this.y - point.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
+            const distSq = dx * dx + dy * dy;
 
-            if (dist < 100 && dist > 0) {
+            // Use squared distance to avoid expensive sqrt
+            if (distSq < 10000 && distSq > 0) {
+                // 100^2 = 10000
+                const dist = Math.sqrt(distSq); // Only calculate sqrt when needed
                 const force = (100 - dist) / 100;
                 turbulenceX += (dx / dist) * force * point.vx;
                 turbulenceY += (dy / dist) * force * point.vy;
             }
-        });
+        }
 
         this.vx += turbulenceX * 0.3;
         this.vy += turbulenceY * 0.3;
@@ -568,9 +578,14 @@ const ChaosVoidSystem = () => {
         if (!noiseCanvas || !energyCanvas || !glitchCanvas || !particleCanvas)
             return;
 
-        const noiseCtx = noiseCanvas.getContext("2d");
+        // Use willReadFrequently for canvases that frequently use getImageData/putImageData
+        const noiseCtx = noiseCanvas.getContext("2d", {
+            willReadFrequently: true,
+        });
         const energyCtx = energyCanvas.getContext("2d");
-        const glitchCtx = glitchCanvas.getContext("2d");
+        const glitchCtx = glitchCanvas.getContext("2d", {
+            willReadFrequently: true,
+        });
         const particleCtx = particleCanvas.getContext("2d");
 
         if (!noiseCtx || !energyCtx || !glitchCtx || !particleCtx) return;
@@ -579,6 +594,8 @@ const ChaosVoidSystem = () => {
         let height = window.innerHeight;
         let time = 0;
         let animationId: number;
+        let lastFrameTime = 0;
+        const targetFrameTime = 1000 / 60; // 60fps cap
 
         const chaosField: Array<{
             x: number;
@@ -594,6 +611,32 @@ const ChaosVoidSystem = () => {
         const glitchZones: GlitchZone[] = [];
         const voidParticles: VoidParticle[] = [];
 
+        // Spatial grid for fast chaos field lookups
+        const GRID_CELL_SIZE = 50;
+        let spatialGrid: Map<string, typeof chaosField> = new Map();
+
+        const getSpatialKey = (x: number, y: number) => {
+            const gridX = Math.floor(x / GRID_CELL_SIZE);
+            const gridY = Math.floor(y / GRID_CELL_SIZE);
+            return `${gridX},${gridY}`;
+        };
+
+        const getNearbyPoints = (x: number, y: number) => {
+            const points: typeof chaosField = [];
+            const gridX = Math.floor(x / GRID_CELL_SIZE);
+            const gridY = Math.floor(y / GRID_CELL_SIZE);
+
+            // Check 3x3 grid around point
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    const key = `${gridX + dx},${gridY + dy}`;
+                    const cell = spatialGrid.get(key);
+                    if (cell) points.push(...cell);
+                }
+            }
+            return points;
+        };
+
         // Initialize
         const resize = () => {
             width = window.innerWidth;
@@ -608,10 +651,11 @@ const ChaosVoidSystem = () => {
 
             // Initialize chaos field
             chaosField.length = 0;
+            spatialGrid.clear();
             const gridSize = 20;
             for (let x = 0; x < width; x += gridSize) {
                 for (let y = 0; y < height; y += gridSize) {
-                    chaosField.push({
+                    const point = {
                         x,
                         y,
                         vx: (Math.random() - 0.5) * 2,
@@ -619,7 +663,15 @@ const ChaosVoidSystem = () => {
                         intensity: Math.random(),
                         frequency: Math.random() * 0.1,
                         phase: Math.random() * Math.PI * 2,
-                    });
+                    };
+                    chaosField.push(point);
+
+                    // Add to spatial grid
+                    const key = getSpatialKey(x, y);
+                    if (!spatialGrid.has(key)) {
+                        spatialGrid.set(key, []);
+                    }
+                    spatialGrid.get(key)!.push(point);
                 }
             }
         };
@@ -627,19 +679,27 @@ const ChaosVoidSystem = () => {
         resize();
         window.addEventListener("resize", resize);
 
-        // Initialize systems
-        for (let i = 0; i < 20; i++) {
+        // Initialize systems - slightly reduced for performance (visually imperceptible)
+        for (let i = 0; i < 15; i++) {
             energyWaves.push(new EnergyWave());
         }
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 20; i++) {
             glitchZones.push(new GlitchZone());
         }
-        for (let i = 0; i < 150; i++) {
+        for (let i = 0; i < 100; i++) {
             voidParticles.push(new VoidParticle());
         }
 
         // Main render loop
-        const render = () => {
+        const render = (currentTime: number = 0) => {
+            // Throttle to 60fps for performance
+            const deltaTime = currentTime - lastFrameTime;
+            if (deltaTime < targetFrameTime) {
+                animationId = requestAnimationFrame(render);
+                return;
+            }
+            lastFrameTime = currentTime - (deltaTime % targetFrameTime);
+
             time += 3; // HYPERSPEED
 
             // Layer 1: Noise field
@@ -672,13 +732,18 @@ const ChaosVoidSystem = () => {
                         Math.abs(noise2) * 0.3 +
                         Math.abs(noise3) * 0.3;
 
-                    // Chaos field influence
-                    chaosField.forEach((point) => {
+                    // Chaos field influence - OPTIMIZED: use spatial grid
+                    const nearbyPoints = getNearbyPoints(x, y);
+                    for (let i = 0; i < nearbyPoints.length; i++) {
+                        const point = nearbyPoints[i];
                         const dx = x - point.x;
                         const dy = y - point.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const distSq = dx * dx + dy * dy;
 
-                        if (dist < 50) {
+                        // Use squared distance for faster comparison
+                        if (distSq < 2500) {
+                            // 50^2 = 2500
+                            const dist = Math.sqrt(distSq);
                             intensity +=
                                 Math.sin(
                                     point.phase + time * point.frequency * 2,
@@ -687,7 +752,7 @@ const ChaosVoidSystem = () => {
                                 (1 - dist / 50) *
                                 0.8;
                         }
-                    });
+                    }
 
                     intensity = Math.pow(intensity, 0.7);
 
@@ -755,12 +820,13 @@ const ChaosVoidSystem = () => {
             for (let i = 0; i < chaosField.length - 1; i += 2) {
                 const point1 = chaosField[i];
                 const point2 = chaosField[i + 1];
-                const dist = Math.sqrt(
-                    Math.pow(point2.x - point1.x, 2) +
-                        Math.pow(point2.y - point1.y, 2),
-                );
+                const dx = point2.x - point1.x;
+                const dy = point2.y - point1.y;
+                const distSq = dx * dx + dy * dy;
 
-                if (dist < 50) {
+                // Use squared distance for faster comparison
+                if (distSq < 2500) {
+                    // 50^2 = 2500
                     energyCtx.beginPath();
                     energyCtx.moveTo(point1.x, point1.y);
                     const cx =
@@ -801,7 +867,13 @@ const ChaosVoidSystem = () => {
             particleCtx.fillRect(0, 0, width, height);
 
             voidParticles.forEach((particle) => {
-                particle.update(width, height, time, chaosField);
+                particle.update(
+                    width,
+                    height,
+                    time,
+                    chaosField,
+                    getNearbyPoints,
+                );
                 particle.render(particleCtx, width, height);
             });
 
@@ -929,11 +1001,7 @@ export const CyberspaceDAO = () => {
             }}
         >
             {/* CHAOS VOID SYSTEM - Multi-layer Canvas */}
-            <ChaosVoidSystem />
-
-            {/* Legacy Effects */}
-            {/*<ChromaticAberration />*/}
-            {/*<StrobeFlash />*/}
+            {/*<ChaosVoidSystem />*/}
 
             {/* Entry Animation with Warning */}
             <AnimatePresence>
@@ -1105,7 +1173,7 @@ const VoidView = ({
                     y1="50%"
                     x2="50%"
                     y2="15%"
-                    stroke="rgba(255,255,255,0.1)"
+                    stroke="white"
                     strokeWidth="1"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
@@ -1114,9 +1182,9 @@ const VoidView = ({
                 <motion.line
                     x1="50%"
                     y1="50%"
-                    x2="15%"
+                    x2="10%"
                     y2="50%"
-                    stroke="rgba(255,255,255,0.1)"
+                    stroke="white"
                     strokeWidth="1"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
@@ -1125,9 +1193,9 @@ const VoidView = ({
                 <motion.line
                     x1="50%"
                     y1="50%"
-                    x2="85%"
+                    x2="90%"
                     y2="50%"
-                    stroke="rgba(255,255,255,0.1)"
+                    stroke="white"
                     strokeWidth="1"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
@@ -1136,9 +1204,9 @@ const VoidView = ({
                 <motion.line
                     x1="50%"
                     y1="50%"
-                    x2="20%"
-                    y2="85%"
-                    stroke="rgba(255,255,255,0.1)"
+                    x2="10%"
+                    y2="81%"
+                    stroke="white"
                     strokeWidth="1"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
@@ -1147,9 +1215,9 @@ const VoidView = ({
                 <motion.line
                     x1="50%"
                     y1="50%"
-                    x2="80%"
-                    y2="85%"
-                    stroke="rgba(255,255,255,0.1)"
+                    x2="90%"
+                    y2="81%"
+                    stroke="white"
                     strokeWidth="1"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
@@ -1273,7 +1341,7 @@ const DataNode = ({
 
                 {/* Hex Border */}
                 <motion.div
-                    className="w-24 h-24 border-2 flex items-center justify-center bg-black/80 backdrop-blur-sm clip-hexagon relative overflow-hidden"
+                    className="w-24 h-24 border-2 flex items-center justify-center bg-white/80 backdrop-blur-sm clip-hexagon relative overflow-hidden"
                     animate={{
                         borderColor: isHovered
                             ? color.primary
@@ -1285,9 +1353,7 @@ const DataNode = ({
                     <Icon
                         className="w-10 h-10 transition-colors relative z-10"
                         style={{
-                            color: isHovered
-                                ? color.primary
-                                : "rgba(255,255,255,0.6)",
+                            color: isHovered ? color.primary : "black",
                         }}
                     />
 
@@ -1325,7 +1391,7 @@ const DataNode = ({
                 {/* Label with color pop */}
                 <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap">
                     <motion.div
-                        className="font-mono text-xs tracking-wider"
+                        className="font-mono text-lg tracking-wider"
                         animate={{
                             color: isHovered
                                 ? color.primary
