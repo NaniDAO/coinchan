@@ -19,7 +19,26 @@ class NoiseGenerator {
 
     private static initialize() {
         if (this.initialized) return;
-        const permutation = [151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180];
+        const permutation = [
+            151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7,
+            225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6,
+            148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35,
+            11, 32, 57, 177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136, 171,
+            168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77, 146, 158, 231,
+            83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55, 46, 245,
+            40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80, 73, 209, 76,
+            132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86,
+            164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123, 5,
+            202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16,
+            58, 17, 182, 189, 28, 42, 223, 183, 170, 213, 119, 248, 152, 2, 44,
+            154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9, 129, 22, 39, 253,
+            19, 98, 108, 110, 79, 113, 224, 232, 178, 185, 112, 104, 218, 246,
+            97, 228, 251, 34, 242, 193, 238, 210, 144, 12, 191, 179, 162, 241,
+            81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31, 181, 199,
+            106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254,
+            138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78,
+            66, 215, 61, 156, 180,
+        ];
         this.p = new Array(512);
         for (let i = 0; i < 512; i++) {
             this.p[i] = permutation[i % 256];
@@ -28,7 +47,20 @@ class NoiseGenerator {
     }
 
     private static grad3(h: number, x: number, y: number, z: number): number {
-        const g = [[1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],[1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],[0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]];
+        const g = [
+            [1, 1, 0],
+            [-1, 1, 0],
+            [1, -1, 0],
+            [-1, -1, 0],
+            [1, 0, 1],
+            [-1, 0, 1],
+            [1, 0, -1],
+            [-1, 0, -1],
+            [0, 1, 1],
+            [0, -1, 1],
+            [0, 1, -1],
+            [0, -1, -1],
+        ];
         const gg = g[h % 12];
         return gg[0] * x + gg[1] * y + gg[2] * z;
     }
@@ -36,8 +68,8 @@ class NoiseGenerator {
     static simplex(x: number, y: number, z: number): number {
         this.initialize();
 
-        const F3 = 1.0/3.0;
-        const G3 = 1.0/6.0;
+        const F3 = 1.0 / 3.0;
+        const G3 = 1.0 / 6.0;
 
         const s = (x + y + z) * F3;
         const i = Math.floor(x + s);
@@ -52,27 +84,70 @@ class NoiseGenerator {
         const y0 = y - Y0;
         const z0 = z - Z0;
 
-        let i1: number, j1: number, k1: number, i2: number, j2: number, k2: number;
+        let i1: number,
+            j1: number,
+            k1: number,
+            i2: number,
+            j2: number,
+            k2: number;
 
         if (x0 >= y0) {
-            if (y0 >= z0) { i1=1; j1=0; k1=0; i2=1; j2=1; k2=0; }
-            else if (x0 >= z0) { i1=1; j1=0; k1=0; i2=1; j2=0; k2=1; }
-            else { i1=0; j1=0; k1=1; i2=1; j2=0; k2=1; }
+            if (y0 >= z0) {
+                i1 = 1;
+                j1 = 0;
+                k1 = 0;
+                i2 = 1;
+                j2 = 1;
+                k2 = 0;
+            } else if (x0 >= z0) {
+                i1 = 1;
+                j1 = 0;
+                k1 = 0;
+                i2 = 1;
+                j2 = 0;
+                k2 = 1;
+            } else {
+                i1 = 0;
+                j1 = 0;
+                k1 = 1;
+                i2 = 1;
+                j2 = 0;
+                k2 = 1;
+            }
         } else {
-            if (y0 < z0) { i1=0; j1=0; k1=1; i2=0; j2=1; k2=1; }
-            else if (x0 < z0) { i1=0; j1=1; k1=0; i2=0; j2=1; k2=1; }
-            else { i1=0; j1=1; k1=0; i2=1; j2=1; k2=0; }
+            if (y0 < z0) {
+                i1 = 0;
+                j1 = 0;
+                k1 = 1;
+                i2 = 0;
+                j2 = 1;
+                k2 = 1;
+            } else if (x0 < z0) {
+                i1 = 0;
+                j1 = 1;
+                k1 = 0;
+                i2 = 0;
+                j2 = 1;
+                k2 = 1;
+            } else {
+                i1 = 0;
+                j1 = 1;
+                k1 = 0;
+                i2 = 1;
+                j2 = 1;
+                k2 = 0;
+            }
         }
 
         const x1 = x0 - i1 + G3;
         const y1 = y0 - j1 + G3;
         const z1 = z0 - k1 + G3;
-        const x2 = x0 - i2 + 2.0*G3;
-        const y2 = y0 - j2 + 2.0*G3;
-        const z2 = z0 - k2 + 2.0*G3;
-        const x3 = x0 - 1.0 + 3.0*G3;
-        const y3 = y0 - 1.0 + 3.0*G3;
-        const z3 = z0 - 1.0 + 3.0*G3;
+        const x2 = x0 - i2 + 2.0 * G3;
+        const y2 = y0 - j2 + 2.0 * G3;
+        const z2 = z0 - k2 + 2.0 * G3;
+        const x3 = x0 - 1.0 + 3.0 * G3;
+        const y3 = y0 - 1.0 + 3.0 * G3;
+        const z3 = z0 - 1.0 + 3.0 * G3;
 
         const ii = i & 255;
         const jj = j & 255;
@@ -85,28 +160,28 @@ class NoiseGenerator {
 
         let n0: number, n1: number, n2: number, n3: number;
 
-        let t0 = 0.6 - x0*x0 - y0*y0 - z0*z0;
+        let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
         if (t0 < 0) n0 = 0.0;
         else {
             t0 *= t0;
             n0 = t0 * t0 * this.grad3(gi0, x0, y0, z0);
         }
 
-        let t1 = 0.6 - x1*x1 - y1*y1 - z1*z1;
+        let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
         if (t1 < 0) n1 = 0.0;
         else {
             t1 *= t1;
             n1 = t1 * t1 * this.grad3(gi1, x1, y1, z1);
         }
 
-        let t2 = 0.6 - x2*x2 - y2*y2 - z2*z2;
+        let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
         if (t2 < 0) n2 = 0.0;
         else {
             t2 *= t2;
             n2 = t2 * t2 * this.grad3(gi2, x2, y2, z2);
         }
 
-        let t3 = 0.6 - x3*x3 - y3*y3 - z3*z3;
+        let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
         if (t3 < 0) n3 = 0.0;
         else {
             t3 *= t3;
@@ -116,14 +191,23 @@ class NoiseGenerator {
         return 32.0 * (n0 + n1 + n2 + n3);
     }
 
-    static fbm(x: number, y: number, z: number, octaves = 4, persistence = 0.5, lacunarity = 2.0): number {
+    static fbm(
+        x: number,
+        y: number,
+        z: number,
+        octaves = 4,
+        persistence = 0.5,
+        lacunarity = 2.0,
+    ): number {
         let value = 0;
         let amplitude = 1;
         let frequency = 1;
         let maxValue = 0;
 
         for (let i = 0; i < octaves; i++) {
-            value += this.simplex(x * frequency, y * frequency, z * frequency) * amplitude;
+            value +=
+                this.simplex(x * frequency, y * frequency, z * frequency) *
+                amplitude;
             maxValue += amplitude;
             amplitude *= persistence;
             frequency *= lacunarity;
@@ -168,7 +252,7 @@ class EnergyWave {
         this.color = {
             r: Math.random() > 0.5 ? 255 : 0,
             g: Math.random() > 0.5 ? 255 : 0,
-            b: Math.random() > 0.5 ? 255 : 100
+            b: Math.random() > 0.5 ? 255 : 100,
         };
         this.thickness = 2 + Math.random() * 8;
         this.distortion = Math.random() * 0.5;
@@ -184,16 +268,18 @@ class EnergyWave {
     render(ctx: CanvasRenderingContext2D, time: number) {
         const segments = 32;
         ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.intensity * (1 - this.radius / this.maxRadius)})`;
-        ctx.lineWidth = this.thickness * (1 - this.radius / this.maxRadius * 0.5);
+        ctx.lineWidth =
+            this.thickness * (1 - (this.radius / this.maxRadius) * 0.5);
         ctx.beginPath();
 
         for (let i = 0; i <= segments; i++) {
             const angle = (i / segments) * Math.PI * 2;
-            const distort = NoiseGenerator.simplex(
-                Math.cos(angle) * this.distortion,
-                Math.sin(angle) * this.distortion,
-                time * 0.01
-            ) * 50;
+            const distort =
+                NoiseGenerator.simplex(
+                    Math.cos(angle) * this.distortion,
+                    Math.sin(angle) * this.distortion,
+                    time * 0.01,
+                ) * 50;
             const r = this.radius + distort;
             const x = this.x + Math.cos(angle) * r;
             const y = this.y + Math.sin(angle) * r;
@@ -273,7 +359,12 @@ class GlitchZone {
             }
         } else {
             // Pixel sort
-            const gradient = ctx.createLinearGradient(this.x, this.y, this.x + this.width, this.y);
+            const gradient = ctx.createLinearGradient(
+                this.x,
+                this.y,
+                this.x + this.width,
+                this.y,
+            );
             gradient.addColorStop(0, `rgba(0, 255, 255, ${alpha})`);
             gradient.addColorStop(0.5, `rgba(255, 0, 255, ${alpha})`);
             gradient.addColorStop(1, `rgba(255, 255, 0, ${alpha})`);
@@ -323,11 +414,16 @@ class VoidParticle {
         this.color = {
             h: Math.random() * 360,
             s: 50 + Math.random() * 50,
-            l: 50 + Math.random() * 50
+            l: 50 + Math.random() * 50,
         };
     }
 
-    update(width: number, height: number, time: number, chaosField: Array<any>) {
+    update(
+        width: number,
+        height: number,
+        time: number,
+        chaosField: Array<any>,
+    ) {
         // Apply turbulence
         let turbulenceX = 0;
         let turbulenceY = 0;
@@ -368,7 +464,13 @@ class VoidParticle {
         }
 
         // Reset if out of bounds
-        if (this.z <= 0 || this.x < -100 || this.x > width + 100 || this.y < -100 || this.y > height + 100) {
+        if (
+            this.z <= 0 ||
+            this.x < -100 ||
+            this.x > width + 100 ||
+            this.y < -100 ||
+            this.y > height + 100
+        ) {
             this.reset(width, height);
             this.z = 1000;
         }
@@ -384,9 +486,12 @@ class VoidParticle {
         if (this.trail.length > 1) {
             ctx.beginPath();
             this.trail.forEach((point, index) => {
-                const trailPerspective = 500 / (500 + this.z + (this.trail.length - index) * 10);
-                const trailX = (point.x - width / 2) * trailPerspective + width / 2;
-                const trailY = (point.y - height / 2) * trailPerspective + height / 2;
+                const trailPerspective =
+                    500 / (500 + this.z + (this.trail.length - index) * 10);
+                const trailX =
+                    (point.x - width / 2) * trailPerspective + width / 2;
+                const trailY =
+                    (point.y - height / 2) * trailPerspective + height / 2;
 
                 if (index === 0) {
                     ctx.moveTo(trailX, trailY);
@@ -396,11 +501,19 @@ class VoidParticle {
             });
 
             const gradient = ctx.createLinearGradient(
-                this.trail[0].x, this.trail[0].y,
-                screenX, screenY
+                this.trail[0].x,
+                this.trail[0].y,
+                screenX,
+                screenY,
             );
-            gradient.addColorStop(0, `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, 0)`);
-            gradient.addColorStop(1, `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, ${perspective})`);
+            gradient.addColorStop(
+                0,
+                `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, 0)`,
+            );
+            gradient.addColorStop(
+                1,
+                `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, ${perspective})`,
+            );
 
             ctx.strokeStyle = gradient;
             ctx.lineWidth = size * 0.5;
@@ -413,11 +526,29 @@ class VoidParticle {
 
         // Add glow
         const glowSize = size * 4;
-        const glow = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, glowSize);
-        glow.addColorStop(0, `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, ${perspective * 0.5})`);
-        glow.addColorStop(1, `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, 0)`);
+        const glow = ctx.createRadialGradient(
+            screenX,
+            screenY,
+            0,
+            screenX,
+            screenY,
+            glowSize,
+        );
+        glow.addColorStop(
+            0,
+            `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, ${perspective * 0.5})`,
+        );
+        glow.addColorStop(
+            1,
+            `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, 0)`,
+        );
         ctx.fillStyle = glow;
-        ctx.fillRect(screenX - glowSize, screenY - glowSize, glowSize * 2, glowSize * 2);
+        ctx.fillRect(
+            screenX - glowSize,
+            screenY - glowSize,
+            glowSize * 2,
+            glowSize * 2,
+        );
     }
 }
 
@@ -434,12 +565,13 @@ const ChaosVoidSystem = () => {
         const glitchCanvas = glitchCanvasRef.current;
         const particleCanvas = particleCanvasRef.current;
 
-        if (!noiseCanvas || !energyCanvas || !glitchCanvas || !particleCanvas) return;
+        if (!noiseCanvas || !energyCanvas || !glitchCanvas || !particleCanvas)
+            return;
 
-        const noiseCtx = noiseCanvas.getContext('2d');
-        const energyCtx = energyCanvas.getContext('2d');
-        const glitchCtx = glitchCanvas.getContext('2d');
-        const particleCtx = particleCanvas.getContext('2d');
+        const noiseCtx = noiseCanvas.getContext("2d");
+        const energyCtx = energyCanvas.getContext("2d");
+        const glitchCtx = glitchCanvas.getContext("2d");
+        const particleCtx = particleCanvas.getContext("2d");
 
         if (!noiseCtx || !energyCtx || !glitchCtx || !particleCtx) return;
 
@@ -467,10 +599,12 @@ const ChaosVoidSystem = () => {
             width = window.innerWidth;
             height = window.innerHeight;
 
-            [noiseCanvas, energyCanvas, glitchCanvas, particleCanvas].forEach(canvas => {
-                canvas.width = width;
-                canvas.height = height;
-            });
+            [noiseCanvas, energyCanvas, glitchCanvas, particleCanvas].forEach(
+                (canvas) => {
+                    canvas.width = width;
+                    canvas.height = height;
+                },
+            );
 
             // Initialize chaos field
             chaosField.length = 0;
@@ -478,19 +612,20 @@ const ChaosVoidSystem = () => {
             for (let x = 0; x < width; x += gridSize) {
                 for (let y = 0; y < height; y += gridSize) {
                     chaosField.push({
-                        x, y,
+                        x,
+                        y,
                         vx: (Math.random() - 0.5) * 2,
                         vy: (Math.random() - 0.5) * 2,
                         intensity: Math.random(),
                         frequency: Math.random() * 0.1,
-                        phase: Math.random() * Math.PI * 2
+                        phase: Math.random() * Math.PI * 2,
                     });
                 }
             }
         };
 
         resize();
-        window.addEventListener('resize', resize);
+        window.addEventListener("resize", resize);
 
         // Initialize systems
         for (let i = 0; i < 20; i++) {
@@ -515,39 +650,79 @@ const ChaosVoidSystem = () => {
                 for (let y = 0; y < height; y += 3) {
                     const index = (y * width + x) * 4;
 
-                    const noise1 = NoiseGenerator.fbm(x * 0.005, y * 0.005, time * 0.008, 6, 0.6, 2.5);
-                    const noise2 = NoiseGenerator.simplex(x * 0.02, y * 0.02, time * 0.02);
-                    const noise3 = Math.sin(x * 0.1 + time * 0.05) * Math.cos(y * 0.1 - time * 0.05);
+                    const noise1 = NoiseGenerator.fbm(
+                        x * 0.005,
+                        y * 0.005,
+                        time * 0.008,
+                        6,
+                        0.6,
+                        2.5,
+                    );
+                    const noise2 = NoiseGenerator.simplex(
+                        x * 0.02,
+                        y * 0.02,
+                        time * 0.02,
+                    );
+                    const noise3 =
+                        Math.sin(x * 0.1 + time * 0.05) *
+                        Math.cos(y * 0.1 - time * 0.05);
 
-                    let intensity = Math.abs(noise1) * 0.4 + Math.abs(noise2) * 0.3 + Math.abs(noise3) * 0.3;
+                    let intensity =
+                        Math.abs(noise1) * 0.4 +
+                        Math.abs(noise2) * 0.3 +
+                        Math.abs(noise3) * 0.3;
 
                     // Chaos field influence
-                    chaosField.forEach(point => {
+                    chaosField.forEach((point) => {
                         const dx = x - point.x;
                         const dy = y - point.y;
                         const dist = Math.sqrt(dx * dx + dy * dy);
 
                         if (dist < 50) {
-                            intensity += Math.sin(point.phase + time * point.frequency * 2) * point.intensity * (1 - dist / 50) * 0.8;
+                            intensity +=
+                                Math.sin(
+                                    point.phase + time * point.frequency * 2,
+                                ) *
+                                point.intensity *
+                                (1 - dist / 50) *
+                                0.8;
                         }
                     });
 
                     intensity = Math.pow(intensity, 0.7);
 
                     if (intensity > 0.8) {
-                        data[index] = 255; data[index + 1] = 255; data[index + 2] = 255; data[index + 3] = 255;
+                        data[index] = 255;
+                        data[index + 1] = 255;
+                        data[index + 2] = 255;
+                        data[index + 3] = 255;
                     } else if (intensity > 0.6) {
-                        data[index] = intensity * 50; data[index + 1] = intensity * 255; data[index + 2] = intensity * 255; data[index + 3] = intensity * 255;
+                        data[index] = intensity * 50;
+                        data[index + 1] = intensity * 255;
+                        data[index + 2] = intensity * 255;
+                        data[index + 3] = intensity * 255;
                     } else if (intensity > 0.4) {
-                        data[index] = intensity * 255; data[index + 1] = intensity * 50; data[index + 2] = intensity * 255; data[index + 3] = intensity * 200;
+                        data[index] = intensity * 255;
+                        data[index + 1] = intensity * 50;
+                        data[index + 2] = intensity * 255;
+                        data[index + 3] = intensity * 200;
                     } else if (intensity > 0.2) {
-                        data[index] = 0; data[index + 1] = intensity * 50; data[index + 2] = intensity * 200; data[index + 3] = intensity * 150;
+                        data[index] = 0;
+                        data[index + 1] = intensity * 50;
+                        data[index + 2] = intensity * 200;
+                        data[index + 3] = intensity * 150;
                     } else {
                         const spark = Math.random() > 0.999;
                         if (spark) {
-                            data[index] = 255; data[index + 1] = 255; data[index + 2] = 255; data[index + 3] = 255;
+                            data[index] = 255;
+                            data[index + 1] = 255;
+                            data[index + 2] = 255;
+                            data[index + 3] = 255;
                         } else {
-                            data[index] = 0; data[index + 1] = 0; data[index + 2] = 0; data[index + 3] = 255;
+                            data[index] = 0;
+                            data[index + 1] = 0;
+                            data[index + 2] = 0;
+                            data[index + 3] = 255;
                         }
                     }
 
@@ -569,24 +744,29 @@ const ChaosVoidSystem = () => {
 
             // Layer 2: Energy waves
             energyCtx.clearRect(0, 0, width, height);
-            energyWaves.forEach(wave => {
+            energyWaves.forEach((wave) => {
                 wave.update(width, height);
                 wave.render(energyCtx, time);
             });
 
             // Energy field lines
-            energyCtx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+            energyCtx.strokeStyle = "rgba(0, 255, 255, 0.1)";
             energyCtx.lineWidth = 0.5;
             for (let i = 0; i < chaosField.length - 1; i += 2) {
                 const point1 = chaosField[i];
                 const point2 = chaosField[i + 1];
-                const dist = Math.sqrt(Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2));
+                const dist = Math.sqrt(
+                    Math.pow(point2.x - point1.x, 2) +
+                        Math.pow(point2.y - point1.y, 2),
+                );
 
                 if (dist < 50) {
                     energyCtx.beginPath();
                     energyCtx.moveTo(point1.x, point1.y);
-                    const cx = (point1.x + point2.x) / 2 + Math.sin(time * 0.05) * 20;
-                    const cy = (point1.y + point2.y) / 2 + Math.cos(time * 0.05) * 20;
+                    const cx =
+                        (point1.x + point2.x) / 2 + Math.sin(time * 0.05) * 20;
+                    const cy =
+                        (point1.y + point2.y) / 2 + Math.cos(time * 0.05) * 20;
                     energyCtx.quadraticCurveTo(cx, cy, point2.x, point2.y);
                     energyCtx.stroke();
                 }
@@ -594,7 +774,7 @@ const ChaosVoidSystem = () => {
 
             // Layer 3: Glitch zones
             glitchCtx.clearRect(0, 0, width, height);
-            glitchZones.forEach(zone => {
+            glitchZones.forEach((zone) => {
                 zone.update();
                 zone.render(glitchCtx);
             });
@@ -603,27 +783,37 @@ const ChaosVoidSystem = () => {
             if (Math.random() > 0.92) {
                 const corruptY = Math.random() * height;
                 const corruptHeight = 1 + Math.random() * 20;
-                const imageData = glitchCtx.getImageData(0, corruptY, width, corruptHeight);
-                glitchCtx.putImageData(imageData, Math.random() * 20 - 10, corruptY);
+                const imageData = glitchCtx.getImageData(
+                    0,
+                    corruptY,
+                    width,
+                    corruptHeight,
+                );
+                glitchCtx.putImageData(
+                    imageData,
+                    Math.random() * 20 - 10,
+                    corruptY,
+                );
             }
 
             // Layer 4: Void particles
-            particleCtx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            particleCtx.fillStyle = "rgba(0, 0, 0, 0.15)";
             particleCtx.fillRect(0, 0, width, height);
 
-            voidParticles.forEach(particle => {
+            voidParticles.forEach((particle) => {
                 particle.update(width, height, time, chaosField);
                 particle.render(particleCtx, width, height);
             });
 
             // Update chaos field
-            chaosField.forEach(point => {
+            chaosField.forEach((point) => {
                 point.vx += (Math.random() - 0.5) * 0.5;
                 point.vy += (Math.random() - 0.5) * 0.5;
                 point.vx *= 0.95;
                 point.vy *= 0.95;
                 point.phase += point.frequency * 3;
-                point.intensity = 0.5 + Math.sin(time * 0.005 + point.phase) * 0.5;
+                point.intensity =
+                    0.5 + Math.sin(time * 0.005 + point.phase) * 0.5;
             });
 
             animationId = requestAnimationFrame(render);
@@ -665,7 +855,7 @@ const ChaosVoidSystem = () => {
 
         return () => {
             cancelAnimationFrame(animationId);
-            window.removeEventListener('resize', resize);
+            window.removeEventListener("resize", resize);
             clearInterval(glitchInterval);
             clearInterval(burstInterval);
         };
@@ -673,18 +863,35 @@ const ChaosVoidSystem = () => {
 
     return (
         <div className="absolute inset-0 overflow-hidden">
-            <canvas ref={noiseCanvasRef} className="absolute inset-0 w-full h-full" style={{ mixBlendMode: 'normal' }} />
-            <canvas ref={energyCanvasRef} className="absolute inset-0 w-full h-full opacity-90" style={{ mixBlendMode: 'screen' }} />
-            <canvas ref={glitchCanvasRef} className="absolute inset-0 w-full h-full opacity-80" style={{ mixBlendMode: 'difference' }} />
-            <canvas ref={particleCanvasRef} className="absolute inset-0 w-full h-full" style={{ mixBlendMode: 'screen' }} />
+            <canvas
+                ref={noiseCanvasRef}
+                className="absolute inset-0 w-full h-full"
+                style={{ mixBlendMode: "normal" }}
+            />
+            <canvas
+                ref={energyCanvasRef}
+                className="absolute inset-0 w-full h-full opacity-90"
+                style={{ mixBlendMode: "screen" }}
+            />
+            <canvas
+                ref={glitchCanvasRef}
+                className="absolute inset-0 w-full h-full opacity-80"
+                style={{ mixBlendMode: "difference" }}
+            />
+            <canvas
+                ref={particleCanvasRef}
+                className="absolute inset-0 w-full h-full"
+                style={{ mixBlendMode: "screen" }}
+            />
 
             {/* Scanlines overlay */}
             <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
-                    background: 'linear-gradient(0deg, transparent 0%, rgba(255, 0, 255, 0.03) 3%, transparent 3.5%, transparent 7%, rgba(0, 255, 255, 0.02) 7.5%, transparent 8%)',
-                    backgroundSize: '100% 8px',
-                    animation: 'scanlines 2s linear infinite'
+                    background:
+                        "linear-gradient(0deg, transparent 0%, rgba(255, 0, 255, 0.03) 3%, transparent 3.5%, transparent 7%, rgba(0, 255, 255, 0.02) 7.5%, transparent 8%)",
+                    backgroundSize: "100% 8px",
+                    animation: "scanlines 2s linear infinite",
                 }}
             />
             <style>{`
@@ -725,8 +932,8 @@ export const CyberspaceDAO = () => {
             <ChaosVoidSystem />
 
             {/* Legacy Effects */}
-            <ChromaticAberration />
-            <StrobeFlash />
+            {/*<ChromaticAberration />*/}
+            {/*<StrobeFlash />*/}
 
             {/* Entry Animation with Warning */}
             <AnimatePresence>
@@ -871,13 +1078,12 @@ const VoidView = ({
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 1, delay: 0.5 }}
             >
-                <div className="w-32 h-32 border-2 border-white/40 rounded-full flex items-center justify-center relative">
+                <div className="w-32 h-32 border-2 bg-white border-white/40 rounded-full flex items-center justify-center relative">
                     <div className="absolute inset-0 border-2 border-white/20 rounded-full animate-ping" />
-                    <Binary className="w-12 h-12 text-white" />
-                    <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                        <div className="font-mono text-sm text-white/60">
-                            ZORG DAO
-                        </div>
+                    {/* <Binary className="w-12 h-12 text-white" />*/}
+                    <div className="flex flex-col font-mono text-4xl text-black">
+                        <span className="tracking-widest">ZO</span>
+                        <span className="tracking-widest">RG</span>
                     </div>
                 </div>
             </motion.div>
@@ -1325,138 +1531,5 @@ const ContentView = ({
         }
       `}</style>
         </motion.div>
-    );
-};
-// Chromatic Aberration Effect
-const ChromaticAberration = () => {
-    const [aberration, setAberration] = useState({
-        active: false,
-        intensity: 0,
-        offset: 0,
-    });
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (Math.random() > 0.8) {
-                const intensity = Math.random() * 0.8 + 0.3;
-                const offset = Math.random() * 8 + 2;
-                setAberration({ active: true, intensity, offset });
-                setTimeout(
-                    () =>
-                        setAberration({
-                            active: false,
-                            intensity: 0,
-                            offset: 0,
-                        }),
-                    80 + Math.random() * 150,
-                );
-            }
-        }, 1000);
-        return () => clearInterval(interval);
-    }, []);
-
-    // Always show subtle aberration, intensify on glitch
-    const baseOffset = 2;
-    const currentOffset = aberration.active ? aberration.offset : baseOffset;
-    const currentOpacity = aberration.active ? aberration.intensity : 0.3;
-
-    return (
-        <>
-            {/* Red channel */}
-            <motion.div
-                className="absolute inset-0 pointer-events-none z-40"
-                style={{
-                    mixBlendMode: "screen",
-                }}
-                animate={{
-                    x: aberration.active
-                        ? [-currentOffset, currentOffset * 0.5, -currentOffset]
-                        : -baseOffset,
-                    opacity: currentOpacity,
-                }}
-                transition={{ duration: 0.1 }}
-            >
-                <div className="absolute inset-0 bg-red-500/40 blur-[1px]" />
-            </motion.div>
-
-            {/* Cyan channel */}
-            <motion.div
-                className="absolute inset-0 pointer-events-none z-40"
-                style={{
-                    mixBlendMode: "screen",
-                }}
-                animate={{
-                    x: aberration.active
-                        ? [currentOffset, -currentOffset * 0.5, currentOffset]
-                        : baseOffset,
-                    opacity: currentOpacity,
-                }}
-                transition={{ duration: 0.1 }}
-            >
-                <div className="absolute inset-0 bg-cyan-400/40 blur-[1px]" />
-            </motion.div>
-
-            {/* Green channel for extra VHS feel */}
-            <motion.div
-                className="absolute inset-0 pointer-events-none z-40"
-                style={{
-                    mixBlendMode: "screen",
-                }}
-                animate={{
-                    y: aberration.active
-                        ? [
-                              -currentOffset * 0.3,
-                              currentOffset * 0.3,
-                              -currentOffset * 0.3,
-                          ]
-                        : 0,
-                    opacity: aberration.active ? currentOpacity * 0.5 : 0.15,
-                }}
-                transition={{ duration: 0.1 }}
-            >
-                <div className="absolute inset-0 bg-green-500/30 blur-[1px]" />
-            </motion.div>
-        </>
-    );
-};
-
-// Intense Strobe Flash Effect - VIGNETTE ONLY - CYAN
-const StrobeFlash = () => {
-    const [flash, setFlash] = useState({
-        active: false,
-        intensity: 0,
-    });
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            // High frequency flashing - 60% chance each interval
-            if (Math.random() > 0.4) {
-                const intensity = Math.random() * 0.4 + 0.3; // 0.3 to 0.7
-
-                setFlash({ active: true, intensity });
-                setTimeout(
-                    () => setFlash({ active: false, intensity: 0 }),
-                    30 + Math.random() * 80, // Very brief: 30-110ms
-                );
-            }
-        }, 200); // Check every 200ms for high frequency
-        return () => clearInterval(interval);
-    }, []);
-
-    if (!flash.active) return null;
-
-    return (
-        <motion.div
-            className="absolute inset-0 pointer-events-none z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: flash.intensity }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.03 }}
-            style={{
-                background:
-                    "radial-gradient(ellipse at center, transparent 0%, transparent 40%, #00FFFF 100%)",
-                mixBlendMode: "screen",
-            }}
-        />
     );
 };
