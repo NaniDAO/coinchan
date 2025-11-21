@@ -1001,7 +1001,7 @@ export const CyberspaceDAO = () => {
             }}
         >
             {/* CHAOS VOID SYSTEM - Multi-layer Canvas */}
-            {/*<ChaosVoidSystem />*/}
+            <ChaosVoidSystem />
 
             {/* Entry Animation with Warning */}
             <AnimatePresence>
@@ -1118,6 +1118,8 @@ const VoidView = ({
 }: {
     onSelectMode: (mode: ViewMode) => void;
 }) => {
+    const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+
     // Position nodes in corners and edges of the viewport
     const nodes = [
         { id: "proposals", label: "PROPOSALS", icon: Network, corner: "top" },
@@ -1137,6 +1139,25 @@ const VoidView = ({
         },
     ];
 
+    // Get color based on corner
+    const getColorForCorner = (corner: string) => {
+        const colors = {
+            top: "#FF0000", // Pure Red
+            left: "#FF00FF", // Pure Magenta
+            right: "#00FFFF", // Pure Cyan
+            "bottom-left": "#FFFF00", // Pure Yellow
+            "bottom-right": "#0000FF", // Pure Blue
+        };
+        return colors[corner as keyof typeof colors] || "#FFFFFF";
+    };
+
+    // Get the color of the currently hovered node
+    const hoveredColor = hoveredNode
+        ? getColorForCorner(
+              nodes.find((n) => n.id === hoveredNode)?.corner || "",
+          )
+        : null;
+
     return (
         <>
             {/* Central Core - Absolutely positioned */}
@@ -1146,14 +1167,30 @@ const VoidView = ({
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 1, delay: 0.5 }}
             >
-                <div className="w-32 h-32 border-2 bg-white border-white/40 rounded-full flex items-center justify-center relative">
-                    <div className="absolute inset-0 border-2 border-white/20 rounded-full animate-ping" />
+                <motion.div
+                    className="w-32 h-32 border-2 bg-white rounded-full flex items-center justify-center relative"
+                    animate={{
+                        borderColor: hoveredColor || "rgba(255,255,255,0.4)",
+                        boxShadow: hoveredColor
+                            ? `0 0 60px ${hoveredColor}, 0 0 100px ${hoveredColor}`
+                            : "none",
+                    }}
+                    transition={{ duration: 0.2 }}
+                >
+                    <motion.div
+                        className="absolute inset-0 border-2 rounded-full animate-ping"
+                        animate={{
+                            borderColor:
+                                hoveredColor || "rgba(255,255,255,0.2)",
+                        }}
+                        transition={{ duration: 0.2 }}
+                    />
                     {/* <Binary className="w-12 h-12 text-white" />*/}
                     <div className="flex flex-col font-mono text-4xl text-black">
                         <span className="tracking-widest">ZO</span>
                         <span className="tracking-widest">RG</span>
                     </div>
-                </div>
+                </motion.div>
             </motion.div>
 
             {/* Data Nodes in Corners */}
@@ -1163,64 +1200,122 @@ const VoidView = ({
                     {...node}
                     delay={0.7 + i * 0.1}
                     onClick={() => onSelectMode(node.id as ViewMode)}
+                    onHoverChange={(isHovered) =>
+                        setHoveredNode(isHovered ? node.id : null)
+                    }
                 />
             ))}
 
             {/* Connection Lines from center to corners */}
             <svg className="fixed inset-0 w-full h-full pointer-events-none z-5">
+                {/* Line to proposals (top) */}
                 <motion.line
                     x1="50%"
                     y1="50%"
                     x2="50%"
                     y2="15%"
-                    stroke="white"
                     strokeWidth="1"
                     initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
+                    animate={{
+                        pathLength: 1,
+                        stroke:
+                            hoveredNode === "proposals"
+                                ? getColorForCorner("top")
+                                : "white",
+                        strokeWidth: hoveredNode === "proposals" ? 3 : 1,
+                        filter:
+                            hoveredNode === "proposals"
+                                ? `drop-shadow(0 0 10px ${getColorForCorner("top")})`
+                                : "none",
+                    }}
                     transition={{ duration: 1, delay: 1 }}
                 />
+                {/* Line to voting (left) */}
                 <motion.line
                     x1="50%"
                     y1="50%"
                     x2="10%"
                     y2="50%"
-                    stroke="white"
                     strokeWidth="1"
                     initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
+                    animate={{
+                        pathLength: 1,
+                        stroke:
+                            hoveredNode === "voting"
+                                ? getColorForCorner("left")
+                                : "white",
+                        strokeWidth: hoveredNode === "voting" ? 3 : 1,
+                        filter:
+                            hoveredNode === "voting"
+                                ? `drop-shadow(0 0 10px ${getColorForCorner("left")})`
+                                : "none",
+                    }}
                     transition={{ duration: 1, delay: 1.1 }}
                 />
+                {/* Line to stats (right) */}
                 <motion.line
                     x1="50%"
                     y1="50%"
                     x2="90%"
                     y2="50%"
-                    stroke="white"
                     strokeWidth="1"
                     initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
+                    animate={{
+                        pathLength: 1,
+                        stroke:
+                            hoveredNode === "stats"
+                                ? getColorForCorner("right")
+                                : "white",
+                        strokeWidth: hoveredNode === "stats" ? 3 : 1,
+                        filter:
+                            hoveredNode === "stats"
+                                ? `drop-shadow(0 0 10px ${getColorForCorner("right")})`
+                                : "none",
+                    }}
                     transition={{ duration: 1, delay: 1.2 }}
                 />
+                {/* Line to join (bottom-left) */}
                 <motion.line
                     x1="50%"
                     y1="50%"
                     x2="10%"
                     y2="81%"
-                    stroke="white"
                     strokeWidth="1"
                     initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
+                    animate={{
+                        pathLength: 1,
+                        stroke:
+                            hoveredNode === "join"
+                                ? getColorForCorner("bottom-left")
+                                : "white",
+                        strokeWidth: hoveredNode === "join" ? 3 : 1,
+                        filter:
+                            hoveredNode === "join"
+                                ? `drop-shadow(0 0 10px ${getColorForCorner("bottom-left")})`
+                                : "none",
+                    }}
                     transition={{ duration: 1, delay: 1.3 }}
                 />
+                {/* Line to create (bottom-right) */}
                 <motion.line
                     x1="50%"
                     y1="50%"
                     x2="90%"
                     y2="81%"
-                    stroke="white"
                     strokeWidth="1"
                     initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
+                    animate={{
+                        pathLength: 1,
+                        stroke:
+                            hoveredNode === "create"
+                                ? getColorForCorner("bottom-right")
+                                : "white",
+                        strokeWidth: hoveredNode === "create" ? 3 : 1,
+                        filter:
+                            hoveredNode === "create"
+                                ? `drop-shadow(0 0 10px ${getColorForCorner("bottom-right")})`
+                                : "none",
+                    }}
                     transition={{ duration: 1, delay: 1.4 }}
                 />
             </svg>
@@ -1235,14 +1330,26 @@ const DataNode = ({
     corner,
     delay,
     onClick,
+    onHoverChange,
 }: {
     label: string;
     icon: React.ElementType;
     corner: string;
     delay: number;
     onClick: () => void;
+    onHoverChange?: (isHovered: boolean) => void;
 }) => {
     const [isHovered, setIsHovered] = useState(false);
+
+    const handleHoverStart = () => {
+        setIsHovered(true);
+        onHoverChange?.(true);
+    };
+
+    const handleHoverEnd = () => {
+        setIsHovered(false);
+        onHoverChange?.(false);
+    };
 
     // Calculate position based on corner
     const getPositionStyles = (corner: string): React.CSSProperties => {
@@ -1310,7 +1417,7 @@ const DataNode = ({
 
     return (
         <motion.button
-            className="fixed group z-20"
+            className="fixed group z-20 rounded-lg"
             style={getPositionStyles(corner)}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -1318,8 +1425,8 @@ const DataNode = ({
             whileHover={{ scale: 1.15 }}
             whileTap={{ scale: 0.9 }}
             onClick={onClick}
-            onHoverStart={() => setIsHovered(true)}
-            onHoverEnd={() => setIsHovered(false)}
+            onHoverStart={handleHoverStart}
+            onHoverEnd={handleHoverEnd}
         >
             <div className="relative">
                 {/* Color burst glow */}
@@ -1456,7 +1563,7 @@ const ContentView = ({
                 >
                     ← RETURN
                 </motion.button>
-                <div className="font-mono text-2xl tracking-wider text-white/90">
+                <div className="border border-white/30 hover:border-white/60 bg-black/40 font-mono text-sm tracking-wider px-4 py-2">
                     {title}
                 </div>
             </div>
