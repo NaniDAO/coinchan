@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Binary, Network, Vote, Coins as CoinsIcon } from "lucide-react";
+import { Binary, Network, Vote, Coins as CoinsIcon, Vault, Shield, User } from "lucide-react";
 import { DataNode } from "./DataNode";
 
-export type ViewMode = "void" | "proposals" | "voting" | "stats" | "join" | "create";
+export type ViewMode = "void" | "proposals" | "voting" | "stats" | "join" | "create" | "treasury" | "governance" | "membership";
 
 interface VoidViewProps {
     onSelectMode: (mode: ViewMode) => void;
@@ -15,18 +15,18 @@ export const VoidView = ({ onSelectMode }: VoidViewProps) => {
     // Position nodes in corners and edges of the viewport
     const nodes = [
         { id: "proposals", label: "PROPOSALS", icon: Network, corner: "top" },
-        { id: "voting", label: "VOTING POWER", icon: Vote, corner: "left" },
-        { id: "stats", label: "STATISTICS", icon: Binary, corner: "right" },
+        { id: "treasury", label: "TREASURY", icon: Vault, corner: "left" },
+        { id: "governance", label: "GOVERNANCE", icon: Shield, corner: "right" },
         {
-            id: "join",
-            label: "JOIN DAO",
-            icon: CoinsIcon,
+            id: "membership",
+            label: "MEMBERSHIP",
+            icon: User,
             corner: "bottom-left",
         },
         {
             id: "create",
             label: "CREATE",
-            icon: Network,
+            icon: CoinsIcon,
             corner: "bottom-right",
         },
     ];

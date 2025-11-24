@@ -109,30 +109,14 @@ export const DataNode = ({
         >
             <div className="relative">
                 {/* Color burst glow */}
-                <AnimatePresence>
-                    {isHovered && (
-                        <motion.div
-                            className="absolute inset-0 clip-hexagon"
-                            initial={{ opacity: 0, scale: 1 }}
-                            animate={{ opacity: 0.6, scale: 1.5 }}
-                            exit={{ opacity: 0, scale: 1 }}
-                            transition={{ duration: 0.3 }}
-                            style={{
-                                background: `radial-gradient(circle, ${color.primary}40 0%, transparent 70%)`,
-                                filter: "blur(20px)",
-                            }}
-                        />
-                    )}
-                </AnimatePresence>
 
                 {/* Hex Border */}
                 <motion.div
-                    className="w-24 h-24 border-2 flex items-center justify-center bg-white/80 backdrop-blur-sm clip-hexagon relative overflow-hidden"
+                    className="w-24 h-24 border-2 flex flex-col items-center justify-center gap-1 bg-white/80 backdrop-blur-sm clip-hexagon relative overflow-hidden"
                     animate={{
                         borderColor: isHovered
                             ? color.primary
                             : "rgba(255,255,255,0.3)",
-                        boxShadow: isHovered ? color.shadow : "none",
                     }}
                     transition={{ duration: 0.2 }}
                 >
@@ -142,6 +126,22 @@ export const DataNode = ({
                             color: isHovered ? color.primary : "black",
                         }}
                     />
+
+                    {/* Label with color pop - now inside the box */}
+                    <motion.div
+                        className="font-mono text-xs tracking-wider relative z-10 text-center px-1"
+                        animate={{
+                            color: isHovered
+                                ? color.primary
+                                : "rgba(0,0,0,0.8)",
+                            textShadow: isHovered
+                                ? `0 0 10px ${color.primary}`
+                                : "none",
+                        }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        {label}
+                    </motion.div>
 
                     {/* Animated scan line */}
                     <AnimatePresence>
@@ -173,24 +173,6 @@ export const DataNode = ({
                         repeat: isHovered ? Number.POSITIVE_INFINITY : 0,
                     }}
                 />
-
-                {/* Label with color pop */}
-                <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                    <motion.div
-                        className="font-mono text-lg tracking-wider"
-                        animate={{
-                            color: isHovered
-                                ? color.primary
-                                : "rgba(255,255,255,0.6)",
-                            textShadow: isHovered
-                                ? `0 0 10px ${color.primary}`
-                                : "none",
-                        }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        {label}
-                    </motion.div>
-                </div>
             </div>
         </motion.button>
     );

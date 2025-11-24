@@ -29,7 +29,7 @@ export const CyberspaceDAO = () => {
             }}
         >
             {/* CHAOS VOID SYSTEM - Multi-layer Canvas */}
-            <ChaosVoidSystem />
+            {/*<ChaosVoidSystem />*/}
 
             {/* Entry Animation with Warning */}
             <AnimatePresence>

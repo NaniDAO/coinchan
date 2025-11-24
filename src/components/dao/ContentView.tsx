@@ -4,6 +4,9 @@ import { VotingPower } from "./VotingPower";
 import { DAOStats } from "./DAOStats";
 import { JoinDAO } from "./JoinDAO";
 import { CreateProposal } from "./CreateProposal";
+import { TreasuryView } from "./TreasuryView";
+import { GovernanceInfo } from "./GovernanceInfo";
+import { MembershipView } from "./MembershipView";
 import type { ViewMode } from "./VoidView";
 
 interface ContentViewProps {
@@ -24,6 +27,12 @@ export const ContentView = ({ mode, onBack }: ContentViewProps) => {
                 return { title: "JOIN DAO", Component: JoinDAO };
             case "create":
                 return { title: "CREATE PROPOSAL", Component: CreateProposal };
+            case "treasury":
+                return { title: "TREASURY", Component: TreasuryView };
+            case "governance":
+                return { title: "GOVERNANCE", Component: GovernanceInfo };
+            case "membership":
+                return { title: "MEMBERSHIP", Component: MembershipView };
             default:
                 return null;
         }
