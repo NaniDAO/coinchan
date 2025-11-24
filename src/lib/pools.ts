@@ -47,6 +47,8 @@ export const ZAMM_TOKEN: TokenMetadata = {
   tags: ["zamm", "crypto", "token"],
 };
 
+export const ZAMM_ERC20_TOKEN = "0xe9b1cfea55baa219e34301f2f31b9fd0921664ed";
+
 // veZAMM token - Special ERC6909 cookbook coin for farm rewards
 export const VEZAMM_TOKEN: TokenMetadata = {
   address: CookbookAddress,

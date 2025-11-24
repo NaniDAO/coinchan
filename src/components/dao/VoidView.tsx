@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Binary, Network, Vote, Coins as CoinsIcon, Vault, Shield, User } from "lucide-react";
+import { Network, Coins as CoinsIcon, Vault, Shield, User } from "lucide-react";
 import { DataNode } from "./DataNode";
 
 export type ViewMode = "void" | "proposals" | "voting" | "stats" | "join" | "create" | "treasury" | "governance" | "membership";
@@ -54,10 +54,13 @@ export const VoidView = ({ onSelectMode }: VoidViewProps) => {
         <>
             {/* Central Core - Absolutely positioned */}
             <motion.div
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 cursor-pointer"
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 1, delay: 0.5 }}
+                onClick={() => onSelectMode("join")}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
             >
                 <motion.div
                     className="w-32 h-32 border-2 bg-white rounded-full flex items-center justify-center relative"

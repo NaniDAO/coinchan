@@ -25,7 +25,12 @@ import { mainnet } from "viem/chains";
 import { useGetTokens } from "@/hooks/use-get-tokens";
 import { useZRouterQuote } from "@/hooks/use-zrouter-quote";
 import { TradePanel } from "@/components/trade/TradePanel";
-import { ETH_TOKEN, ZAMM_TOKEN, type TokenMetadata } from "@/lib/pools";
+import {
+    ETH_TOKEN,
+    ZAMM_TOKEN,
+    ZAMM_ERC20_TOKEN,
+    type TokenMetadata,
+} from "@/lib/pools";
 import {
     buildRoutePlan,
     checkRouteApprovals,
@@ -67,29 +72,15 @@ export const JoinDAO = () => {
         address: ZORG_ADDRESS,
         abi: ZORG_ABI,
         functionName: "sales",
-        args: ["0xe9b1cfea55baa219e34301f2f31b9fd0921664ed"],
+        args: [ZAMM_ERC20_TOKEN],
         query: {
             staleTime: 10_000,
         },
     });
 
-    // Also check ETH sale config as fallback
-    const { data: ethSaleConfig } = useReadContract({
-        address: ZORG_ADDRESS,
-        abi: ZORG_ABI,
-        functionName: "sales",
-        args: [zeroAddress],
-        query: {
-            staleTime: 10_000,
-        },
-    });
-
-    // Use ZAMM sale if active, otherwise fall back to ETH
-    const saleConfig =
-        zammSaleConfig && zammSaleConfig[3] ? zammSaleConfig : ethSaleConfig;
-    const payToken =
-        zammSaleConfig && zammSaleConfig[3] ? CoinsAddress : zeroAddress;
-    const payTokenSymbol = zammSaleConfig && zammSaleConfig[3] ? "ZAMM" : "ETH";
+    const saleConfig = zammSaleConfig;
+    const payToken = ZAMM_ERC20_TOKEN;
+    const payTokenSymbol = "ZAMM";
 
     // Get quote from input token to the payment token (ZAMM or ETH)
     const targetToken: TokenMetadata = ZAMM_TOKEN;
@@ -322,12 +313,13 @@ export const JoinDAO = () => {
                     </div>
 
                     {/* Input Token Panel */}
-                    <div className="z-10 bg-white">
+                    <div className="z-10 bg-background text-foreground">
                         <label className="block text-sm font-medium mb-2">
                             Pay with
                         </label>
                         <TradePanel
-                            title=""
+                            className="rounded-2xl"
+                            title="Sell"
                             selectedToken={inputToken}
                             tokens={tokens}
                             onSelect={setInputToken}
@@ -359,6 +351,7 @@ export const JoinDAO = () => {
                                     BigInt(inputToken.balance) > 0n
                                 )
                             }
+                            locked={false}
                         />
                     </div>
 

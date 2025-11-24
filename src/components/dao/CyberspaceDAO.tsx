@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Binary } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { ChaosVoidSystem } from "./chaos/ChaosVoidSystem";
 import { VoidView, type ViewMode } from "./VoidView";
 import { ContentView } from "./ContentView";
 
