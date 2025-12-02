@@ -22,7 +22,7 @@ export const CyberspaceDAO = () => {
 
     return (
         <div
-            className="fixed h-screen w-screen inset-0 z-[9999] bg-black text-white overflow-hidden relative"
+            className="fixed h-screen w-screen inset-0 z-40 bg-black text-white overflow-hidden relative"
             style={{
                 filter: "contrast(1.4) brightness(1.2) saturate(1.5)",
             }}

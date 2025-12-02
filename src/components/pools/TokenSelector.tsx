@@ -121,7 +121,6 @@ export const TokenSelector = memo(
         locked?: boolean;
         className?: string;
     }) => {
-        console.log("Tokens TokenSelector:", tokens);
         const { t } = useTranslation();
         const [open, setOpen] = useState(false);
         const [query, setQuery] = useState("");
