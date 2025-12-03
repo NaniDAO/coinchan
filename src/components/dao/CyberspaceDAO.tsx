@@ -4,7 +4,7 @@ import { X, Binary } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { VoidView, type ViewMode } from "./VoidView";
 import { ContentView } from "./ContentView";
-import { ChaosVoidSystem } from "./chaos/ChaosVoidSystem";
+// import { ChaosVoidSystem } from "./chaos/ChaosVoidSystem";
 
 export const CyberspaceDAO = () => {
     const navigate = useNavigate();
@@ -29,7 +29,7 @@ export const CyberspaceDAO = () => {
             }}
         >
             {/* CHAOS VOID SYSTEM - Multi-layer Canvas */}
-            <ChaosVoidSystem />
+            {/* <ChaosVoidSystem />*/}
 
             {/* Entry Animation with Warning */}
             <AnimatePresence>
