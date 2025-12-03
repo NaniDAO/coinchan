@@ -25,7 +25,7 @@ export const useDAOGovernance = () => {
       {
         address: ZORG_ADDRESS,
         abi: ZORG_ABI,
-        functionName: "auto FutarchyParam",
+        functionName: "autoFutarchyParam",
       },
       {
         address: ZORG_ADDRESS,

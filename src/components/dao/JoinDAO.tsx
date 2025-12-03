@@ -9,7 +9,6 @@ import {
     useSendTransaction,
 } from "wagmi";
 import { ZORG_ADDRESS, ZORG_ABI, ZORG_SHARES } from "@/constants/ZORG";
-import { CoinsAddress } from "@/constants/Coins";
 import { ZRouterAddress, ZRouterAbi } from "@/constants/ZRouter";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -18,7 +17,6 @@ import {
     parseUnits,
     formatUnits,
     formatEther,
-    zeroAddress,
     maxUint256,
 } from "viem";
 import { mainnet } from "viem/chains";
@@ -235,8 +233,20 @@ export const JoinDAO = () => {
                 args: [ZORG_SHARES, 0n, 0n, owner],
             });
 
-            // Combine all calls: swap steps + execute + sweep
-            const allCalls = [...swapPlan.calls, executeCall, sweepCall];
+            // Split swap plan: all calls except the last one, and the last call separately
+            const swapCalls = swapPlan.calls.slice(0, -1); // all calls except the last one
+            const swapSweepCall = swapPlan.calls[swapPlan.calls.length - 1]; // only the last call
+
+            console.log("Swap Plan:", swapPlan.calls.length, "calls total");
+            console.log("Swap calls:", swapCalls.length, "Execute + sweep: 2", "Final sweep: 1");
+
+            // Combine all calls: swap steps + execute + sweep + final sweep
+            const allCalls = [
+                ...swapCalls,
+                executeCall,
+                sweepCall,
+                swapSweepCall,
+            ];
 
             console.log("Executing multicall with", allCalls.length, "calls");
 

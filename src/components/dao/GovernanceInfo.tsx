@@ -103,11 +103,11 @@ export const GovernanceInfo = () => {
           <div className="text-2xl font-bold font-mono">
             {autoFutarchyParam && autoFutarchyParam > 0n ? "ENABLED" : "DISABLED"}
           </div>
-          {autoFutarchyParam && autoFutarchyParam > 0n && (
+          {autoFutarchyParam && autoFutarchyParam > 0n ? (
             <div className="text-xs text-white/50 mt-2">
               Cap: {autoFutarchyCap ? formatUnits(autoFutarchyCap, 18) : "N/A"}
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Transfers Locked */}
