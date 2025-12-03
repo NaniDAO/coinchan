@@ -4,6 +4,7 @@ import { X, Binary } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { VoidView, type ViewMode } from "./VoidView";
 import { ContentView } from "./ContentView";
+import { ChaosVoidSystem } from "./chaos/ChaosVoidSystem";
 
 export const CyberspaceDAO = () => {
     const navigate = useNavigate();
