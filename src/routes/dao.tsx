@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CyberspaceDAO } from "@/components/dao/CyberspaceDAO";
+import { ZORG } from "@/components/dao/ZORG";
 
 export const Route = createFileRoute("/dao")({
-  component: RouteComponent,
+    component: RouteComponent,
 });
 
 function RouteComponent() {
-  return <CyberspaceDAO />;
+    return <ZORG />;
 }

@@ -66,15 +66,16 @@ export const JoinDAO = () => {
     }, [inputAmount]);
 
     // Fetch sale config for ZAMM token
-    const { data: zammSaleConfig } = useReadContract({
-        address: ZORG_ADDRESS,
-        abi: ZORG_ABI,
-        functionName: "sales",
-        args: [ZAMM_ERC20_TOKEN],
-        query: {
-            staleTime: 10_000,
-        },
-    });
+    const { data: zammSaleConfig, isLoading: isSaleConfigLoading } =
+        useReadContract({
+            address: ZORG_ADDRESS,
+            abi: ZORG_ABI,
+            functionName: "sales",
+            args: [ZAMM_ERC20_TOKEN],
+            query: {
+                staleTime: 10_000,
+            },
+        });
 
     const saleConfig = zammSaleConfig;
     const payToken = ZAMM_ERC20_TOKEN;
@@ -238,7 +239,12 @@ export const JoinDAO = () => {
             const swapSweepCall = swapPlan.calls[swapPlan.calls.length - 1]; // only the last call
 
             console.log("Swap Plan:", swapPlan.calls.length, "calls total");
-            console.log("Swap calls:", swapCalls.length, "Execute + sweep: 2", "Final sweep: 1");
+            console.log(
+                "Swap calls:",
+                swapCalls.length,
+                "Execute + sweep: 2",
+                "Final sweep: 1",
+            );
 
             // Combine all calls: swap steps + execute + sweep + final sweep
             const allCalls = [
@@ -295,15 +301,20 @@ export const JoinDAO = () => {
 
     return (
         <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">{t("dao.join_dao")}</h3>
+            {isSaleConfigLoading && (
+                <div className="mb-4 p-3 bg-muted border border-border rounded text-sm flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading sale information...</span>
+                </div>
+            )}
 
-            {!isActive && (
+            {!isSaleConfigLoading && !isActive && (
                 <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded text-sm text-yellow-400">
                     {t("dao.sale_not_active")}
                 </div>
             )}
 
-            {isActive && (
+            {!isSaleConfigLoading && isActive && (
                 <div className="space-y-4">
                     <div>
                         <div className="flex justify-between text-xs text-muted-foreground mb-2">
@@ -323,7 +334,7 @@ export const JoinDAO = () => {
                     </div>
 
                     {/* Input Token Panel */}
-                    <div className="z-10 bg-background text-foreground">
+                    <div className="z-10 text-foreground">
                         <label className="block text-sm font-medium mb-2">
                             Pay with
                         </label>
