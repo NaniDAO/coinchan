@@ -137,13 +137,17 @@ export const ManageFarms = () => {
               const isExpired = stream.endTime <= currentTime;
               if (!showExpired && isExpired) return null;
 
-              const lpToken = tokens.find((t) => {
-                if (!stream) return false;
-                if (t.poolId === BigInt(stream.lpId)) return true;
-                if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
-                if (t.symbol === "JPYC" && BigInt(stream.lpId) === t.poolId) return true;
-                return false;
-              }) || (BigInt(stream.lpId) === JPYC_POOL_ID || BigInt(stream.chefId) === JPYC_FARM_CHEF_ID ? JPYC_TOKEN : undefined);
+              const lpToken =
+                tokens.find((t) => {
+                  if (!stream) return false;
+                  if (t.poolId === BigInt(stream.lpId)) return true;
+                  if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
+                  if (t.symbol === "JPYC" && BigInt(stream.lpId) === t.poolId) return true;
+                  return false;
+                }) ||
+                (BigInt(stream.lpId) === JPYC_POOL_ID || BigInt(stream.chefId) === JPYC_FARM_CHEF_ID
+                  ? JPYC_TOKEN
+                  : undefined);
 
               return (
                 <div key={position.chefId.toString()} className="group min-h-[400px] lg:min-h-[450px]">
