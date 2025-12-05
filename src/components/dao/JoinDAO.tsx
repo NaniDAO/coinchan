@@ -38,18 +38,48 @@ import {
 import { CoinsAbi } from "@/constants/Coins";
 import { Loader2 } from "lucide-react";
 import { handleWalletError } from "@/lib/errors";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export const JoinDAO = () => {
     const { t } = useTranslation();
     const { address: owner, isConnected } = useAccount();
-    const { data: tokens = [] } = useGetTokens(owner);
+    const { data: allTokens = [], isLoading: isTokensLoading } = useGetTokens(owner);
     const publicClient = usePublicClient();
     const chainId = useChainId();
+
+    // Filter tokens to only show ETH and ZAMM with balances
+    const filteredTokens = allTokens.filter(
+        (token) =>
+            (token.address === ETH_TOKEN.address && token.id === ETH_TOKEN.id) ||
+            (token.address === ZAMM_TOKEN.address && token.id === ZAMM_TOKEN.id),
+    );
+
+    // Check if balances are loaded (tokens have balance property defined)
+    const hasBalances = filteredTokens.length > 0 && filteredTokens.every(token => token.balance !== undefined);
+
+    // Only use tokens when balances are loaded
+    const tokens = hasBalances
+        ? filteredTokens
+        : [];
 
     const [inputToken, setInputToken] = useState<TokenMetadata>(ETH_TOKEN);
     const [inputAmount, setInputAmount] = useState("");
     const [isExecuting, setIsExecuting] = useState(false);
     const [txError, setTxError] = useState<string | null>(null);
+    const [hasInitializedToken, setHasInitializedToken] = useState(false);
+
+    // Update the selected token with balance when tokens are first loaded
+    useEffect(() => {
+        if (hasBalances && tokens.length > 0 && !hasInitializedToken) {
+            const ethTokenWithBalance = tokens.find(
+                (token) => token.address === ETH_TOKEN.address && token.id === ETH_TOKEN.id
+            );
+            if (ethTokenWithBalance) {
+                setInputToken(ethTokenWithBalance);
+                setHasInitializedToken(true);
+            }
+        }
+    }, [hasBalances, tokens, hasInitializedToken]);
 
     const { sendTransactionAsync, isPending } = useSendTransaction();
     const [txHash, setTxHash] = useState<`0x${string}`>();
@@ -300,161 +330,182 @@ export const JoinDAO = () => {
         quote?.ok && quote.amountOut ? quote.amountOut : "0";
 
     return (
-        <div className="p-6">
-            {isSaleConfigLoading && (
-                <div className="mb-4 p-3 bg-muted border border-border rounded text-sm flex items-center justify-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Loading sale information...</span>
-                </div>
-            )}
-
-            {!isSaleConfigLoading && !isActive && (
-                <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded text-sm text-yellow-400">
-                    {t("dao.sale_not_active")}
-                </div>
-            )}
-
-            {!isSaleConfigLoading && isActive && (
-                <div className="space-y-4">
-                    <div>
-                        <div className="flex justify-between text-xs text-muted-foreground mb-2">
-                            <span>{t("dao.price_per_share")}</span>
-                            <span className="font-mono">
-                                {formatEther(pricePerShare)} {payTokenSymbol}
-                            </span>
-                        </div>
-                        {cap > 0n && (
-                            <div className="flex justify-between text-xs text-muted-foreground mb-2">
-                                <span>{t("dao.remaining_shares")}</span>
-                                <span className="font-mono">
-                                    {formatEther(cap)}
-                                </span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Input Token Panel */}
-                    <div className="z-10 text-foreground">
-                        <label className="block text-sm font-medium mb-2">
-                            Pay with
-                        </label>
-                        <TradePanel
-                            className="rounded-2xl"
-                            title="Sell"
-                            selectedToken={inputToken}
-                            tokens={tokens}
-                            onSelect={setInputToken}
-                            amount={inputAmount}
-                            onAmountChange={(val) => {
-                                setInputAmount(val);
-                                setTxError(null);
-                            }}
-                            showMaxButton={
-                                !!(
-                                    inputToken?.balance &&
-                                    BigInt(inputToken.balance) > 0n
-                                )
-                            }
-                            onMax={() => {
-                                if (!inputToken?.balance) return;
-                                const decimals = inputToken.decimals ?? 18;
-                                setInputAmount(
-                                    formatUnits(
-                                        inputToken.balance as bigint,
-                                        decimals,
-                                    ),
-                                );
-                                setTxError(null);
-                            }}
-                            showPercentageSlider={
-                                !!(
-                                    inputToken?.balance &&
-                                    BigInt(inputToken.balance) > 0n
-                                )
-                            }
-                            locked={false}
-                        />
-                    </div>
-
-                    {/* Quote loading indicator */}
-                    {isQuoteFetching && (
-                        <div className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
+        <ConnectButton.Custom>
+            {({ openConnectModal }) => (
+                <div className="p-6">
+                    {isSaleConfigLoading && (
+                        <div className="mb-4 p-3 bg-muted border border-border rounded text-sm flex items-center justify-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            <span>Finding best route...</span>
+                            <span>Loading sale information...</span>
                         </div>
                     )}
 
-                    {/* Estimated output */}
-                    {quote?.ok &&
-                        !isQuoteFetching &&
-                        inputAmount &&
-                        Number(inputAmount) > 0 && (
-                            <div className="p-3 bg-muted rounded text-sm space-y-2">
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">
-                                        You will receive
-                                    </span>
-                                    <span className="font-mono font-semibold">
-                                        ~{estimatedShares} ZORG Shares
-                                    </span>
-                                </div>
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-muted-foreground">
-                                        Route
-                                    </span>
+                    {!isSaleConfigLoading && !isActive && (
+                        <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded text-sm text-yellow-400">
+                            {t("dao.sale_not_active")}
+                        </div>
+                    )}
+
+                    {!isSaleConfigLoading && isActive && (
+                        <div className="space-y-4">
+                            <div>
+                                <div className="flex justify-between text-xs text-muted-foreground mb-2">
+                                    <span>{t("dao.price_per_share")}</span>
                                     <span className="font-mono">
-                                        {inputToken.symbol} → {payTokenSymbol} →
-                                        ZORG Shares
+                                        {formatEther(pricePerShare)}{" "}
+                                        {payTokenSymbol}
                                     </span>
                                 </div>
-                                {quote.routes && quote.routes[0] && (
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-muted-foreground">
-                                            Via
-                                        </span>
+                                {cap > 0n && (
+                                    <div className="flex justify-between text-xs text-muted-foreground mb-2">
+                                        <span>{t("dao.remaining_shares")}</span>
                                         <span className="font-mono">
-                                            {quote.routes[0].venue}
+                                            {formatEther(cap)}
                                         </span>
                                     </div>
                                 )}
                             </div>
-                        )}
 
-                    <Button
-                        onClick={handleJoinDAO}
-                        disabled={
-                            !owner ||
-                            isExecuting ||
-                            isPending ||
-                            !inputAmount ||
-                            Number(inputAmount) <= 0 ||
-                            !quote?.ok
-                        }
-                        className="w-full"
-                    >
-                        {!owner
-                            ? t("common.connect_wallet")
-                            : isExecuting || isPending
-                              ? "Processing..."
-                              : "Join DAO"}
-                    </Button>
+                            {/* Input Token Panel */}
+                            {isTokensLoading || !hasBalances ? (
+                                <div className="z-10 text-foreground">
+                                    <label className="block text-sm font-medium mb-2">
+                                        Pay with
+                                    </label>
+                                    <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground border border-white/20 rounded-2xl bg-black/40">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span>Loading token balances...</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="z-10 text-foreground">
+                                    <label className="block text-sm font-medium mb-2">
+                                        Pay with
+                                    </label>
+                                    <TradePanel
+                                        className="rounded-2xl"
+                                        title="Sell"
+                                        selectedToken={inputToken}
+                                        tokens={tokens}
+                                        onSelect={setInputToken}
+                                        amount={inputAmount}
+                                        onAmountChange={(val) => {
+                                            setInputAmount(val);
+                                            setTxError(null);
+                                        }}
+                                        showMaxButton={
+                                            !!(
+                                                inputToken?.balance &&
+                                                BigInt(inputToken.balance) > 0n
+                                            )
+                                        }
+                                        onMax={() => {
+                                            if (!inputToken?.balance) return;
+                                            const decimals = inputToken.decimals ?? 18;
+                                            setInputAmount(
+                                                formatUnits(
+                                                    inputToken.balance as bigint,
+                                                    decimals,
+                                                ),
+                                            );
+                                            setTxError(null);
+                                        }}
+                                        showPercentageSlider={
+                                            !!(
+                                                inputToken?.balance &&
+                                                BigInt(inputToken.balance) > 0n
+                                            )
+                                        }
+                                        locked={false}
+                                    />
+                                </div>
+                            )}
 
-                    {/* Errors / Success */}
-                    {txError && (
-                        <div className="text-sm text-red-500">{txError}</div>
-                    )}
-                    {isSuccess && (
-                        <div className="text-sm text-green-500">
-                            Successfully joined the DAO! TX:{" "}
-                            {txHash?.slice(0, 10)}...
+                            {/* Quote loading indicator */}
+                            {isQuoteFetching && (
+                                <div className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>Finding best route...</span>
+                                </div>
+                            )}
+
+                            {/* Estimated output */}
+                            {quote?.ok &&
+                                !isQuoteFetching &&
+                                inputAmount &&
+                                Number(inputAmount) > 0 && (
+                                    <div className="p-3 bg-muted rounded text-sm space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">
+                                                You will receive
+                                            </span>
+                                            <span className="font-mono font-semibold">
+                                                ~{estimatedShares} ZORG Shares
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-muted-foreground">
+                                                Route
+                                            </span>
+                                            <span className="font-mono">
+                                                {inputToken.symbol} →{" "}
+                                                {payTokenSymbol} → ZORG Shares
+                                            </span>
+                                        </div>
+                                        {quote.routes && quote.routes[0] && (
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-muted-foreground">
+                                                    Via
+                                                </span>
+                                                <span className="font-mono">
+                                                    {quote.routes[0].venue}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                            <Button
+                                onClick={
+                                    !owner ? openConnectModal : handleJoinDAO
+                                }
+                                disabled={
+                                    owner &&
+                                    (isExecuting ||
+                                        isPending ||
+                                        !inputAmount ||
+                                        Number(inputAmount) <= 0 ||
+                                        !quote?.ok)
+                                }
+                                className="w-full"
+                            >
+                                {!owner
+                                    ? t("common.connect_wallet")
+                                    : isExecuting || isPending
+                                      ? "Processing..."
+                                      : "Join DAO"}
+                            </Button>
+
+                            {/* Errors / Success */}
+                            {txError && (
+                                <div className="text-sm text-red-500">
+                                    {txError}
+                                </div>
+                            )}
+                            {isSuccess && (
+                                <div className="text-sm text-green-500">
+                                    Successfully joined the DAO! TX:{" "}
+                                    {txHash?.slice(0, 10)}...
+                                </div>
+                            )}
                         </div>
                     )}
+
+                    <p className="text-xs text-muted-foreground mt-4">
+                        {t("dao.buy_shares_note")}
+                    </p>
                 </div>
             )}
-
-            <p className="text-xs text-muted-foreground mt-4">
-                {t("dao.buy_shares_note")}
-            </p>
-        </div>
+        </ConnectButton.Custom>
     );
 };
