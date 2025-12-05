@@ -1,8 +1,4 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Binary } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { VoidView, type ViewMode } from "./VoidView";
 import { ContentView } from "./ContentView";
 
 export const ZORG = () => {
