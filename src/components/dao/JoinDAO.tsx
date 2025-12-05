@@ -443,25 +443,6 @@ export const JoinDAO = () => {
                                                 ~{estimatedShares} ZORG Shares
                                             </span>
                                         </div>
-                                        <div className="flex justify-between text-xs">
-                                            <span className="text-muted-foreground">
-                                                Route
-                                            </span>
-                                            <span className="font-mono">
-                                                {inputToken.symbol} →{" "}
-                                                {payTokenSymbol} → ZORG Shares
-                                            </span>
-                                        </div>
-                                        {quote.routes && quote.routes[0] && (
-                                            <div className="flex justify-between text-xs">
-                                                <span className="text-muted-foreground">
-                                                    Via
-                                                </span>
-                                                <span className="font-mono">
-                                                    {quote.routes[0].venue}
-                                                </span>
-                                            </div>
-                                        )}
                                     </div>
                                 )}
 
