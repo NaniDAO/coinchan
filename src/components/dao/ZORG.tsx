@@ -1,5 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ContentView } from "./ContentView";
+import { RainbowConnectButton } from "@/components/RainbowConnectButton";
+import UserSettingsMenu from "@/components/UserSettingsMenu";
 
 export const ZORG = () => {
     const navigate = useNavigate();
@@ -25,21 +27,37 @@ export const ZORG = () => {
                 }}
             />
 
+            {/* Top Header with Wallet */}
+            <div className="fixed top-0 left-0 right-0 z-20 bg-black/60 backdrop-blur-sm border-b border-white/10">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+                    <div className="font-mono text-sm sm:text-base font-bold tracking-widest">
+                        ZORG DAO
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <RainbowConnectButton />
+                        <UserSettingsMenu />
+                    </div>
+                </div>
+            </div>
+
             {/* Main Content */}
-            <div className="relative z-10 h-full flex items-center justify-center p-8">
+            <div className="relative z-10 h-full flex items-center justify-center p-4 sm:p-8 pt-20">
                 <ContentView mode={"join"} onBack={handleExit} />
             </div>
 
             {/* Status Bar */}
             <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/10 bg-black/60 backdrop-blur-sm">
-                <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between text-xs font-mono">
-                    <div className="flex items-center gap-4">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 sm:py-3 flex items-center justify-between text-[10px] sm:text-xs font-mono">
+                    <div className="flex items-center gap-2 sm:gap-4">
                         <span className="text-green-400">◉ ONLINE</span>
-                        <span className="text-gray-400">
+                        <span className="text-gray-400 hidden sm:inline">
                             NETWORK: ETHEREUM MAINNET
                         </span>
+                        <span className="text-gray-400 sm:hidden">
+                            ETH MAINNET
+                        </span>
                         <a
-                            href="https://majeurdao.eth.limo/"
+                            href="https://majeurdao.eth.limo/#/dao/1/0x5E58BA0e06ED0F5558f83bE732a4b899a674053E"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-cyan-400 hover:text-cyan-300 transition-colors underline"
@@ -48,7 +66,7 @@ export const ZORG = () => {
                         </a>
                     </div>
                     <div className="text-gray-400">
-                        ZORG DAO v1.0 • {new Date().toISOString().split("T")[0]}
+                        v1.0 • {new Date().toISOString().split("T")[0]}
                     </div>
                 </div>
             </div>

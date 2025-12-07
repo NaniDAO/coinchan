@@ -7,6 +7,7 @@ import {
     usePublicClient,
     useChainId,
     useSendTransaction,
+    useConnectorClient,
 } from "wagmi";
 import { ZORG_ADDRESS, ZORG_ABI, ZORG_SHARES } from "@/constants/ZORG";
 import { ZRouterAddress, ZRouterAbi } from "@/constants/ZRouter";
@@ -42,10 +43,14 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export const JoinDAO = () => {
     const { t } = useTranslation();
-    const { address: owner, isConnected } = useAccount();
+    const { address: owner, isConnected, connector } = useAccount();
     const { data: allTokens = [], isLoading: isTokensLoading } = useGetTokens(owner);
     const publicClient = usePublicClient();
     const chainId = useChainId();
+
+    // Check if connector client is ready - this prevents the "getChainId is not a function" error
+    const { data: connectorClient, isLoading: isConnectorLoading } = useConnectorClient();
+    const isWalletReady = isConnected && !!connectorClient && !!connector;
 
     // Filter tokens to only show ETH and ZAMM with balances
     const filteredTokens = allTokens.filter(
@@ -132,6 +137,11 @@ export const JoinDAO = () => {
         try {
             if (!isConnected || !owner) {
                 setTxError("Connect your wallet to proceed");
+                setIsExecuting(false);
+                return;
+            }
+            if (!isWalletReady || isConnectorLoading) {
+                setTxError("Wallet is still connecting. Please wait a moment and try again.");
                 setIsExecuting(false);
                 return;
             }
@@ -332,34 +342,34 @@ export const JoinDAO = () => {
     return (
         <ConnectButton.Custom>
             {({ openConnectModal }) => (
-                <div className="p-6">
+                <div className="p-3 sm:p-6 max-w-md mx-auto">
                     {isSaleConfigLoading && (
-                        <div className="mb-4 p-3 bg-muted border border-border rounded text-sm flex items-center justify-center gap-2">
+                        <div className="mb-4 p-3 bg-muted border border-border rounded text-xs sm:text-sm flex items-center justify-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin" />
                             <span>Loading sale information...</span>
                         </div>
                     )}
 
                     {!isSaleConfigLoading && !isActive && (
-                        <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded text-sm text-yellow-400">
+                        <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded text-xs sm:text-sm text-yellow-400">
                             {t("dao.sale_not_active")}
                         </div>
                     )}
 
                     {!isSaleConfigLoading && isActive && (
-                        <div className="space-y-4">
-                            <div>
-                                <div className="flex justify-between text-xs text-muted-foreground mb-2">
-                                    <span>{t("dao.price_per_share")}</span>
-                                    <span className="font-mono">
-                                        {formatEther(pricePerShare)}{" "}
-                                        {payTokenSymbol}
+                        <div className="space-y-3 sm:space-y-4">
+                            {/* Sale Info Card */}
+                            <div className="p-3 sm:p-4 border border-white/20 rounded-xl bg-white/5">
+                                <div className="flex justify-between items-center text-xs sm:text-sm mb-2">
+                                    <span className="text-muted-foreground">{t("dao.price_per_share")}</span>
+                                    <span className="font-mono font-semibold">
+                                        {pricePerShare.toString()} {payTokenSymbol}
                                     </span>
                                 </div>
                                 {cap > 0n && (
-                                    <div className="flex justify-between text-xs text-muted-foreground mb-2">
-                                        <span>{t("dao.remaining_shares")}</span>
-                                        <span className="font-mono">
+                                    <div className="flex justify-between items-center text-xs sm:text-sm">
+                                        <span className="text-muted-foreground">{t("dao.remaining_shares")}</span>
+                                        <span className="font-mono font-semibold">
                                             {formatEther(cap)}
                                         </span>
                                     </div>
@@ -369,21 +379,21 @@ export const JoinDAO = () => {
                             {/* Input Token Panel */}
                             {isTokensLoading || !hasBalances ? (
                                 <div className="z-10 text-foreground">
-                                    <label className="block text-sm font-medium mb-2">
+                                    <label className="block text-xs sm:text-sm font-medium mb-2">
                                         Pay with
                                     </label>
-                                    <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground border border-white/20 rounded-2xl bg-black/40">
+                                    <div className="flex items-center justify-center gap-2 py-6 sm:py-8 text-xs sm:text-sm text-muted-foreground border border-white/20 rounded-xl bg-black/40">
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                         <span>Loading token balances...</span>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="z-10 text-foreground">
-                                    <label className="block text-sm font-medium mb-2">
+                                    <label className="block text-xs sm:text-sm font-medium mb-2">
                                         Pay with
                                     </label>
                                     <TradePanel
-                                        className="rounded-2xl"
+                                        className="rounded-xl"
                                         title="Sell"
                                         selectedToken={inputToken}
                                         tokens={tokens}
@@ -423,7 +433,7 @@ export const JoinDAO = () => {
 
                             {/* Quote loading indicator */}
                             {isQuoteFetching && (
-                                <div className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
+                                <div className="flex items-center justify-center gap-2 py-2 text-xs sm:text-sm text-muted-foreground">
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                     <span>Finding best route...</span>
                                 </div>
@@ -434,12 +444,12 @@ export const JoinDAO = () => {
                                 !isQuoteFetching &&
                                 inputAmount &&
                                 Number(inputAmount) > 0 && (
-                                    <div className="p-3 bg-muted rounded text-sm space-y-2">
-                                        <div className="flex justify-between">
+                                    <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-xs sm:text-sm">
+                                        <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                                             <span className="text-muted-foreground">
                                                 You will receive
                                             </span>
-                                            <span className="font-mono font-semibold">
+                                            <span className="font-mono font-semibold text-green-400">
                                                 ~{estimatedShares} ZORG Shares
                                             </span>
                                         </div>
@@ -454,27 +464,31 @@ export const JoinDAO = () => {
                                     owner &&
                                     (isExecuting ||
                                         isPending ||
+                                        isConnectorLoading ||
+                                        !isWalletReady ||
                                         !inputAmount ||
                                         Number(inputAmount) <= 0 ||
                                         !quote?.ok)
                                 }
-                                className="w-full"
+                                className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold"
                             >
                                 {!owner
                                     ? t("common.connect_wallet")
-                                    : isExecuting || isPending
-                                      ? "Processing..."
-                                      : "Join DAO"}
+                                    : isConnectorLoading
+                                      ? "Connecting..."
+                                      : isExecuting || isPending
+                                        ? "Processing..."
+                                        : "Join DAO"}
                             </Button>
 
                             {/* Errors / Success */}
                             {txError && (
-                                <div className="text-sm text-red-500">
+                                <div className="text-xs sm:text-sm text-red-500 text-center">
                                     {txError}
                                 </div>
                             )}
                             {isSuccess && (
-                                <div className="text-sm text-green-500">
+                                <div className="text-xs sm:text-sm text-green-500 text-center">
                                     Successfully joined the DAO! TX:{" "}
                                     {txHash?.slice(0, 10)}...
                                 </div>
@@ -482,7 +496,7 @@ export const JoinDAO = () => {
                         </div>
                     )}
 
-                    <p className="text-xs text-muted-foreground mt-4">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-4 text-center">
                         {t("dao.buy_shares_note")}
                     </p>
                 </div>

@@ -46,27 +46,26 @@ export const ContentView = ({ mode, onBack }: ContentViewProps) => {
     return (
         <motion.div
             className="w-full max-w-5xl h-full flex flex-col"
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
         >
             {/* Header - Fixed */}
-            <div className="flex items-center gap-4 mb-6 flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-6 flex-shrink-0">
                 <motion.button
                     onClick={onBack}
-                    className="px-4 py-2 border border-white/30 hover:border-white/60 bg-black/40 backdrop-blur-sm font-mono text-sm transition-all"
+                    className="px-3 py-1.5 sm:px-4 sm:py-2 border border-white/30 hover:border-white/60 bg-black/40 backdrop-blur-sm font-mono text-xs sm:text-sm transition-all"
                     whileHover={{ x: -4 }}
                 >
                     ← RETURN
                 </motion.button>
-                <div className="border border-white/30 hover:border-white/60 bg-black/40 font-mono text-sm tracking-wider px-4 py-2">
+                <div className="border border-white/30 hover:border-white/60 bg-black/40 font-mono text-xs sm:text-sm tracking-wider px-3 py-1.5 sm:px-4 sm:py-2">
                     {title}
                 </div>
             </div>
 
             {/* Content Panel - Scrollable */}
             <div
-                className="border border-white/20 bg-black/60 backdrop-blur-md p-8 cyberspace-content overflow-y-auto flex-1 max-h-[calc(100vh-200px)]"
+                className="border border-white/20 bg-black/60 backdrop-blur-md p-4 sm:p-8 cyberspace-content overflow-y-auto flex-1 max-h-[calc(100vh-180px)] sm:max-h-[calc(100vh-200px)]"
                 style={{
                     scrollBehavior: "smooth",
                     boxShadow: "0 0 30px rgba(255, 255, 255, 0.05)",

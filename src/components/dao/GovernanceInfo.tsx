@@ -35,9 +35,19 @@ export const GovernanceInfo = () => {
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-semibold border-b border-white/20 pb-3">
-        Governance Parameters
-      </h3>
+      <div className="flex items-center justify-between border-b border-white/20 pb-3">
+        <h3 className="text-xl font-semibold">
+          Governance Parameters
+        </h3>
+        <a
+          href="https://majeurdao.eth.limo/#/dao/1/0x5E58BA0e06ED0F5558f83bE732a4b899a674053E"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-2 border border-white/30 hover:border-white/60 bg-white/10 hover:bg-white/20 font-mono text-sm tracking-wider transition-all"
+        >
+          GOVERN →
+        </a>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Quorum */}

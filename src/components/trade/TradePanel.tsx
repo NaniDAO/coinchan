@@ -195,7 +195,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({
                     showMaxButton &&
                     onMax && (
                         <button
-                            className="bg-terminal-black dark:bg-terminal-white text-terminal-white dark:text-terminal-black hover:opacity-90 text-[10px] px-2 py-1 uppercase min-w-[50px]"
+                            className="ml-2 bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70 text-accent-foreground text-[10px] sm:text-xs font-bold px-2.5 sm:px-3 py-1.5 sm:py-1 rounded-md uppercase tracking-wide shadow-sm hover:shadow-md active:scale-95 transition-all duration-150 min-w-[44px] sm:min-w-[50px]"
                             onClick={onMax}
                         >
                             MAX
