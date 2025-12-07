@@ -12,9 +12,7 @@ export const VotingPower = () => {
     return (
       <div className="border border-border rounded-lg p-6 bg-card">
         <h3 className="text-lg font-semibold mb-4">{t("dao.voting_power")}</h3>
-        <p className="text-sm text-muted-foreground text-center">
-          {t("dao.connect_to_view_power")}
-        </p>
+        <p className="text-sm text-muted-foreground text-center">{t("dao.connect_to_view_power")}</p>
       </div>
     );
   }
@@ -32,16 +30,12 @@ export const VotingPower = () => {
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">{t("dao.shares")}</span>
-            <span className="font-mono font-semibold text-lg">
-              {formatUnits(balance, 18)}
-            </span>
+            <span className="font-mono font-semibold text-lg">{formatUnits(balance, 18)}</span>
           </div>
 
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">{t("dao.voting_power_label")}</span>
-            <span className="font-mono font-semibold text-lg">
-              {formatUnits(votingPower, 18)}
-            </span>
+            <span className="font-mono font-semibold text-lg">{formatUnits(votingPower, 18)}</span>
           </div>
 
           {isDelegating && delegate && (
