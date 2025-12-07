@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 export const MenuView = () => {
     return (
         <motion.div
-            className="w-full max-w-md h-full flex flex-col"
+            className="w-full max-w-2xl h-lg flex flex-col"
             initial={false}
             animate={{ opacity: 1, y: 0 }}
         >
@@ -29,17 +29,20 @@ export const MenuView = () => {
 
                     <div className="space-y-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
                         <p>
-                            Welcome to the ZORG DAO interface - a decentralized autonomous organization
-                            built on Ethereum mainnet.
+                            Welcome to the ZORG DAO interface - a decentralized
+                            autonomous organization built on Ethereum mainnet.
                         </p>
 
                         <p>
-                            This is a governance platform where members can propose, vote on, and execute
-                            decisions collectively through smart contracts.
+                            This is a governance platform where members can
+                            propose, vote on, and execute decisions collectively
+                            through smart contracts.
                         </p>
 
                         <div className="pt-2 border-t border-border/20">
-                            <h3 className="font-semibold text-foreground mb-2">Key Features:</h3>
+                            <h3 className="font-semibold text-foreground mb-2">
+                                Key Features:
+                            </h3>
                             <ul className="space-y-1 list-disc list-inside">
                                 <li>Join the DAO by purchasing shares</li>
                                 <li>Create and vote on proposals</li>
@@ -50,10 +53,13 @@ export const MenuView = () => {
                         </div>
 
                         <div className="pt-2 border-t border-border/20">
-                            <h3 className="font-semibold text-foreground mb-2">Getting Started:</h3>
+                            <h3 className="font-semibold text-foreground mb-2">
+                                Getting Started:
+                            </h3>
                             <p>
-                                Connect your wallet and join the DAO to participate in governance.
-                                Shares grant voting rights, while loot represents economic ownership
+                                Connect your wallet and join the DAO to
+                                participate in governance. Shares grant voting
+                                rights, while loot represents economic ownership
                                 without voting power.
                             </p>
                         </div>

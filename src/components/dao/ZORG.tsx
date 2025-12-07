@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ContentView } from "./ContentView";
 import { RainbowConnectButton } from "@/components/RainbowConnectButton";
 import UserSettingsMenu from "@/components/UserSettingsMenu";
+import { MenuView } from "@/components/dao/MenuView";
 
 export const ZORG = () => {
     const navigate = useNavigate();
@@ -41,12 +42,8 @@ export const ZORG = () => {
             </div>
 
             {/* Main Content */}
-            <div className="relative z-10 h-full flex items-center justify-center p-4 sm:p-8 pt-20">
-                <ContentView
-                    className="w-xl max-h-[10rem] rounded-2xl"
-                    mode={"join"}
-                    onBack={handleExit}
-                />
+            <div className="relative z-10 h-full grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 p-4 sm:p-8 pt-20 pb-24 items-start justify-center max-w-[1600px] mx-auto">
+                <ContentView mode={"join"} onBack={handleExit} />
                 <MenuView />
             </div>
 
