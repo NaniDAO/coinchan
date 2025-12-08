@@ -47,7 +47,7 @@ export const ContentView = ({ mode, onBack, className }: ContentViewProps) => {
 
     return (
         <motion.div
-            className="w-full max-w-5xl h-full flex flex-col"
+            className="w-full max-w-5xl h-fit flex flex-col"
             initial={false}
             animate={{ opacity: 1, y: 0 }}
         >
