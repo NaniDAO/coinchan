@@ -17,13 +17,15 @@ export const useDAOStats = () => {
       },
       {
         address: sharesAddress,
-        abi: [{
-          inputs: [],
-          name: "totalSupply",
-          outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-          stateMutability: "view",
-          type: "function",
-        }],
+        abi: [
+          {
+            inputs: [],
+            name: "totalSupply",
+            outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+            stateMutability: "view",
+            type: "function",
+          },
+        ],
         functionName: "totalSupply",
       },
       {

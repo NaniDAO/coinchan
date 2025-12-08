@@ -44,28 +44,32 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 export const JoinDAO = () => {
     const { t } = useTranslation();
     const { address: owner, isConnected, connector } = useAccount();
-    const { data: allTokens = [], isLoading: isTokensLoading } = useGetTokens(owner);
+    const { data: allTokens = [], isLoading: isTokensLoading } =
+        useGetTokens(owner);
     const publicClient = usePublicClient();
     const chainId = useChainId();
 
     // Check if connector client is ready - this prevents the "getChainId is not a function" error
-    const { data: connectorClient, isLoading: isConnectorLoading } = useConnectorClient();
+    const { data: connectorClient, isLoading: isConnectorLoading } =
+        useConnectorClient();
     const isWalletReady = isConnected && !!connectorClient && !!connector;
 
     // Filter tokens to only show ETH and ZAMM with balances
     const filteredTokens = allTokens.filter(
         (token) =>
-            (token.address === ETH_TOKEN.address && token.id === ETH_TOKEN.id) ||
-            (token.address === ZAMM_TOKEN.address && token.id === ZAMM_TOKEN.id),
+            (token.address === ETH_TOKEN.address &&
+                token.id === ETH_TOKEN.id) ||
+            (token.address === ZAMM_TOKEN.address &&
+                token.id === ZAMM_TOKEN.id),
     );
 
     // Check if balances are loaded (tokens have balance property defined)
-    const hasBalances = filteredTokens.length > 0 && filteredTokens.every(token => token.balance !== undefined);
+    const hasBalances =
+        filteredTokens.length > 0 &&
+        filteredTokens.every((token) => token.balance !== undefined);
 
     // Only use tokens when balances are loaded
-    const tokens = hasBalances
-        ? filteredTokens
-        : [];
+    const tokens = hasBalances ? filteredTokens : [];
 
     const [inputToken, setInputToken] = useState<TokenMetadata>(ETH_TOKEN);
     const [inputAmount, setInputAmount] = useState("");
@@ -77,7 +81,9 @@ export const JoinDAO = () => {
     useEffect(() => {
         if (hasBalances && tokens.length > 0 && !hasInitializedToken) {
             const ethTokenWithBalance = tokens.find(
-                (token) => token.address === ETH_TOKEN.address && token.id === ETH_TOKEN.id
+                (token) =>
+                    token.address === ETH_TOKEN.address &&
+                    token.id === ETH_TOKEN.id,
             );
             if (ethTokenWithBalance) {
                 setInputToken(ethTokenWithBalance);
@@ -141,7 +147,9 @@ export const JoinDAO = () => {
                 return;
             }
             if (!isWalletReady || isConnectorLoading) {
-                setTxError("Wallet is still connecting. Please wait a moment and try again.");
+                setTxError(
+                    "Wallet is still connecting. Please wait a moment and try again.",
+                );
                 setIsExecuting(false);
                 return;
             }
@@ -342,7 +350,7 @@ export const JoinDAO = () => {
     return (
         <ConnectButton.Custom>
             {({ openConnectModal }) => (
-                <div className="p-3 sm:p-6 max-w-md mx-auto">
+                <div className="p-3 sm:p-6 mx-auto">
                     {isSaleConfigLoading && (
                         <div className="mb-4 p-3 bg-muted border border-border rounded text-xs sm:text-sm flex items-center justify-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -359,16 +367,21 @@ export const JoinDAO = () => {
                     {!isSaleConfigLoading && isActive && (
                         <div className="space-y-3 sm:space-y-4">
                             {/* Sale Info Card */}
-                            <div className="p-3 sm:p-4 border border-white/20 rounded-xl bg-white/5">
+                            <div className="p-3 sm:p-4 border border-border rounded-xl bg-card">
                                 <div className="flex justify-between items-center text-xs sm:text-sm mb-2">
-                                    <span className="text-muted-foreground">{t("dao.price_per_share")}</span>
+                                    <span className="text-muted-foreground">
+                                        {t("dao.price_per_share")}
+                                    </span>
                                     <span className="font-mono font-semibold">
-                                        {pricePerShare.toString()} {payTokenSymbol}
+                                        {pricePerShare.toString()}{" "}
+                                        {payTokenSymbol}
                                     </span>
                                 </div>
                                 {cap > 0n && (
                                     <div className="flex justify-between items-center text-xs sm:text-sm">
-                                        <span className="text-muted-foreground">{t("dao.remaining_shares")}</span>
+                                        <span className="text-muted-foreground">
+                                            {t("dao.remaining_shares")}
+                                        </span>
                                         <span className="font-mono font-semibold">
                                             {formatEther(cap)}
                                         </span>
@@ -382,7 +395,7 @@ export const JoinDAO = () => {
                                     <label className="block text-xs sm:text-sm font-medium mb-2">
                                         Pay with
                                     </label>
-                                    <div className="flex items-center justify-center gap-2 py-6 sm:py-8 text-xs sm:text-sm text-muted-foreground border border-white/20 rounded-xl bg-black/40">
+                                    <div className="flex items-center justify-center gap-2 py-6 sm:py-8 text-xs sm:text-sm text-muted-foreground border border-border rounded-xl bg-muted">
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                         <span>Loading token balances...</span>
                                     </div>
@@ -411,7 +424,8 @@ export const JoinDAO = () => {
                                         }
                                         onMax={() => {
                                             if (!inputToken?.balance) return;
-                                            const decimals = inputToken.decimals ?? 18;
+                                            const decimals =
+                                                inputToken.decimals ?? 18;
                                             setInputAmount(
                                                 formatUnits(
                                                     inputToken.balance as bigint,
