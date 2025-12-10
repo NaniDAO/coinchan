@@ -80,8 +80,9 @@ export const EnhancedPoolChart = ({
   }, []);
 
   // Prevent chart flashing by maintaining minimum height
+  // Increased minHeight to accommodate candlestick chart with controls
   const chartContainerStyle = {
-    minHeight: "400px",
+    minHeight: "480px",
     position: "relative" as const,
   };
 
@@ -193,15 +194,6 @@ style.textContent = `
   .chart-wrapper {
     position: relative;
     width: 100%;
-    height: 100%;
-  }
-
-  .chart-wrapper > div {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
   }
 
   /* Prevent layout shift during chart loading */
