@@ -121,12 +121,14 @@ export const EnhancedPoolChart = ({
         </Suspense>
       </div>
 
-      <div className="w-fit border border-border flex flex-row items-center mt-2">
+      <div className="w-fit bg-muted/30 rounded-xl p-1 flex flex-row items-center gap-1 mt-2">
         <button
           onClick={() => handleChartTypeChange("candle")}
           className={cn(
-            "h-8 px-2 sm:px-3 flex items-center justify-center transition-all",
-            chartType === "candle" ? "bg-primary !text-primary-foreground" : "bg-transparent hover:bg-muted",
+            "h-8 px-2 sm:px-3 flex items-center justify-center rounded-lg transition-all duration-200",
+            chartType === "candle"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
           )}
           disabled={!isStable}
         >
@@ -135,8 +137,10 @@ export const EnhancedPoolChart = ({
         <button
           onClick={() => handleChartTypeChange("line")}
           className={cn(
-            "h-8 px-2 sm:px-3 flex items-center justify-center transition-all",
-            chartType === "line" ? "bg-primary !text-primary-foreground" : "bg-transparent hover:bg-muted",
+            "h-8 px-2 sm:px-3 flex items-center justify-center rounded-lg transition-all duration-200",
+            chartType === "line"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
           )}
           disabled={!isStable}
         >

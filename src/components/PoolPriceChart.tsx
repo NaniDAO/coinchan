@@ -151,12 +151,14 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
   return (
     <div className="w-full">
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="flex border border-border">
+        <div className="flex bg-muted/30 rounded-xl p-1 gap-1">
           <button
             onClick={setLast24Hours}
             className={cn(
-              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "24h" && "bg-accent text-accent-foreground",
+              "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+              timeRange.activeButton === "24h"
+                ? "bg-background text-foreground shadow-sm font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             {t("coin.24h")}
@@ -164,8 +166,10 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
           <button
             onClick={setLastWeek}
             className={cn(
-              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "1w" && "bg-accent text-accent-foreground",
+              "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+              timeRange.activeButton === "1w"
+                ? "bg-background text-foreground shadow-sm font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             {t("coin.7d")}
@@ -173,8 +177,10 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
           <button
             onClick={setLastMonth}
             className={cn(
-              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "1m" && "bg-accent text-accent-foreground",
+              "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+              timeRange.activeButton === "1m"
+                ? "bg-background text-foreground shadow-sm font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             {t("coin.30d")}
@@ -182,20 +188,24 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
           <button
             onClick={setAllTime}
             className={cn(
-              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "all" && "bg-accent text-accent-foreground",
+              "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+              timeRange.activeButton === "all"
+                ? "bg-background text-foreground shadow-sm font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             {t("coin.all")}
           </button>
         </div>
         {ethUsdPrice && (
-          <div className="flex flex-row ml-auto">
+          <div className="flex bg-muted/30 rounded-xl p-1 gap-1 ml-auto">
             <button
               onClick={() => setShowUsd(false)}
               className={cn(
-                "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-                !showUsd && "bg-accent text-accent-foreground",
+                "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+                !showUsd
+                  ? "bg-background text-foreground shadow-sm font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
               )}
             >
               ETH
@@ -203,8 +213,10 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
             <button
               onClick={() => setShowUsd(true)}
               className={cn(
-                "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-                showUsd && "bg-accent text-accent-foreground",
+                "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+                showUsd
+                  ? "bg-background text-foreground shadow-sm font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
               )}
             >
               USD
