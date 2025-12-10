@@ -226,7 +226,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
       </div>
 
       {isLoading ? (
-        <div className="relative h-[300px]">
+        <div className="relative h-[400px]">
           {/* Skeleton chart lines */}
           <div className="absolute inset-0 p-4">
             <div className="h-full w-full flex flex-col justify-end space-y-1">
@@ -244,7 +244,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
           </div>
         </div>
       ) : chartError ? (
-        <div className="flex flex-col items-center justify-center h-[300px] space-y-4">
+        <div className="flex flex-col items-center justify-center h-[400px] space-y-4">
           <div className="text-center space-y-2">
             <svg
               className="w-12 h-12 mx-auto text-red-500 opacity-50"
@@ -439,7 +439,7 @@ const TVPriceChart: React.FC<{
 
   if (chartData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[320px] text-muted-foreground">
+      <div className="flex items-center justify-center h-[400px] text-muted-foreground">
         {t("chart.no_data")}
       </div>
     );
@@ -449,7 +449,7 @@ const TVPriceChart: React.FC<{
     <div
       className="flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none h-full w-full"
     >
-      <ResponsiveContainer width="100%" height={320}>
+      <ResponsiveContainer width="100%" height={400}>
         <AreaChart
           data={chartData}
           margin={{ top: 12, right: 12, bottom: 0, left: 0 }}
