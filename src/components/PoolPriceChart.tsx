@@ -1,23 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useChartTheme } from "@/hooks/use-chart-theme";
-import { formatWithSubscriptZeros } from "@/lib/chart";
 import { type PricePointData, fetchPoolPricePoints } from "@/lib/indexer";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ColorType,
-  type ISeriesApi,
-  LineSeries,
-  type LineSeriesOptions,
-  PriceScaleMode,
-  type UTCTimestamp,
-  createChart,
-} from "lightweight-charts";
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { useTheme } from "@/lib/theme";
 
 interface PriceChartProps {
   poolId: string;
@@ -151,12 +151,14 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
   return (
     <div className="w-full">
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="flex border border-border">
+        <div className="flex bg-muted/30 rounded-xl p-1 gap-1">
           <button
             onClick={setLast24Hours}
             className={cn(
-              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "24h" && "bg-accent text-accent-foreground",
+              "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+              timeRange.activeButton === "24h"
+                ? "bg-background text-foreground shadow-sm font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             {t("coin.24h")}
@@ -164,8 +166,10 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
           <button
             onClick={setLastWeek}
             className={cn(
-              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "1w" && "bg-accent text-accent-foreground",
+              "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+              timeRange.activeButton === "1w"
+                ? "bg-background text-foreground shadow-sm font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             {t("coin.7d")}
@@ -173,8 +177,10 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
           <button
             onClick={setLastMonth}
             className={cn(
-              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "1m" && "bg-accent text-accent-foreground",
+              "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+              timeRange.activeButton === "1m"
+                ? "bg-background text-foreground shadow-sm font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             {t("coin.30d")}
@@ -182,20 +188,24 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
           <button
             onClick={setAllTime}
             className={cn(
-              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "all" && "bg-accent text-accent-foreground",
+              "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+              timeRange.activeButton === "all"
+                ? "bg-background text-foreground shadow-sm font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             {t("coin.all")}
           </button>
         </div>
         {ethUsdPrice && (
-          <div className="flex flex-row ml-auto">
+          <div className="flex bg-muted/30 rounded-xl p-1 gap-1 ml-auto">
             <button
               onClick={() => setShowUsd(false)}
               className={cn(
-                "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-                !showUsd && "bg-accent text-accent-foreground",
+                "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+                !showUsd
+                  ? "bg-background text-foreground shadow-sm font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
               )}
             >
               ETH
@@ -203,8 +213,10 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
             <button
               onClick={() => setShowUsd(true)}
               className={cn(
-                "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-                showUsd && "bg-accent text-accent-foreground",
+                "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+                showUsd
+                  ? "bg-background text-foreground shadow-sm font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
               )}
             >
               USD
@@ -214,7 +226,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
       </div>
 
       {isLoading ? (
-        <div className="relative h-[300px]">
+        <div className="relative h-[400px]">
           {/* Skeleton chart lines */}
           <div className="absolute inset-0 p-4">
             <div className="h-full w-full flex flex-col justify-end space-y-1">
@@ -232,7 +244,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
           </div>
         </div>
       ) : chartError ? (
-        <div className="flex flex-col items-center justify-center h-[300px] space-y-4">
+        <div className="flex flex-col items-center justify-center h-[400px] space-y-4">
           <div className="text-center space-y-2">
             <svg
               className="w-12 h-12 mx-auto text-red-500 opacity-50"
@@ -281,6 +293,48 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
   );
 };
 
+// Custom tooltip component with Apple-style design
+const CustomTooltip = ({ active, payload, showUsd }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const date = new Date(data.timestamp * 1000);
+
+    return (
+      <div className="bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg px-3 py-2 shadow-lg">
+        <p className="text-xs text-muted-foreground mb-1">
+          {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </p>
+        <p className="text-sm font-semibold">
+          {formatPriceValue(data.price)} {showUsd ? 'USD' : 'ETH'}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Format price with proper decimal handling
+const formatPriceValue = (value: number): string => {
+  if (value === 0) return '0';
+
+  // For very small numbers, use scientific notation
+  if (value < 0.000001) {
+    return value.toExponential(2);
+  }
+
+  // For small numbers, show more decimals
+  if (value < 0.01) {
+    return value.toFixed(8);
+  }
+
+  // For regular numbers
+  if (value < 1) {
+    return value.toFixed(6);
+  }
+
+  return value.toFixed(4);
+};
+
 const TVPriceChart: React.FC<{
   priceData: PricePointData[];
   ticker?: string;
@@ -292,306 +346,182 @@ const TVPriceChart: React.FC<{
     impactPercent: number;
     action: "buy" | "sell";
   } | null;
-}> = ({ priceData, ticker, showUsd = false, ethUsdPrice, priceImpact }) => {
+}> = ({ priceData, showUsd = false, ethUsdPrice, priceImpact }) => {
   const { t } = useTranslation();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<ReturnType<typeof createChart>>();
-  const priceSeriesRef = useRef<ISeriesApi<"Line">>();
-  const impactSeriesRef = useRef<ISeriesApi<"Line">>();
-  const chartTheme = useChartTheme();
-  const [isChartReady, setIsChartReady] = useState(false);
-  const lastValidDataRef = useRef<Array<{ time: UTCTimestamp; value: number }>>();
+  const { theme } = useTheme();
 
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+  // Process chart data
+  const chartData = useMemo(() => {
+    if (!priceData || priceData.length === 0) return [];
 
-    try {
-      // Clean up any existing chart first
-      if (chartRef.current) {
-        try {
-          chartRef.current.remove();
-        } catch (e: any) {
-          // Chart was already disposed, which is fine
-          if (!e?.message?.includes("disposed")) {
-            console.error("Error removing existing chart:", e);
-          }
-        }
-        chartRef.current = undefined;
-        priceSeriesRef.current = undefined;
-        impactSeriesRef.current = undefined;
-      }
+    // Deduplicate and sort data
+    const uniqueData = new Map<string, PricePointData>();
+    priceData.forEach((point) => {
+      uniqueData.set(point.timestamp, point);
+    });
 
-      // Create chart
-      const chart = createChart(container, {
-        layout: {
-          background: { type: ColorType.Solid, color: chartTheme.background },
-          textColor: chartTheme.textColor,
-          attributionLogo: false,
-        },
-        autoSize: true,
-        height: 300,
-        rightPriceScale: {
-          autoScale: true,
-          mode: PriceScaleMode.Logarithmic,
-          scaleMargins: { top: 0.1, bottom: 0.2 },
-          borderVisible: false,
-        },
-        timeScale: {
-          timeVisible: true,
-          borderVisible: false,
-          rightOffset: 5,
-          barSpacing: 6,
-        },
-        grid: {
-          vertLines: {
-            color: chartTheme.gridColor,
-            style: 1,
-          },
-          horzLines: {
-            color: chartTheme.gridColor,
-            style: 1,
-          },
-        },
-        handleScroll: {
-          vertTouchDrag: false,
-          horzTouchDrag: true,
-          mouseWheel: true,
-          pressedMouseMove: true,
-        },
-        handleScale: {
-          axisPressedMouseMove: true,
-          mouseWheel: true,
-          pinch: true,
-        },
-      });
-      chartRef.current = chart;
+    const sorted = Array.from(uniqueData.values()).sort(
+      (a, b) => Number.parseInt(a.timestamp) - Number.parseInt(b.timestamp)
+    );
 
-      priceSeriesRef.current = chart.addSeries(LineSeries, {
-        color: chartTheme.lineColor || "#10b981",
-        lineWidth: 2,
-        lineStyle: 0, // Solid line
-        title: `ETH / ${ticker}`, // Default title, will be updated dynamically
-        priceFormat: {
-          type: "custom",
-          formatter: formatWithSubscriptZeros, // Use custom formatter
-          minMove: 0.000000001,
-        },
-        crosshairMarkerVisible: true,
-        crosshairMarkerRadius: 5,
-        lastValueVisible: true,
-        priceLineVisible: true,
-        priceLineWidth: 1,
-        priceLineColor: chartTheme.lineColor || "#10b981",
-        priceLineStyle: 2, // Dashed
-      });
-
-      // Add impact series for projected price (dotted line)
-      impactSeriesRef.current = chart.addSeries(LineSeries, {
-        color: chartTheme.lineColor, // Will be updated based on buy/sell
-        lineWidth: 3, // Make it slightly thicker for visibility
-        lineStyle: 2, // Dotted line
-        priceLineVisible: false,
-        lastValueVisible: true, // Show the last value
-        priceFormat: {
-          type: "custom",
-          formatter: formatWithSubscriptZeros, // Use custom formatter
-          minMove: 0.000000001,
-        },
-        crosshairMarkerVisible: true,
-        crosshairMarkerRadius: 4,
-      } as LineSeriesOptions);
-
-      setIsChartReady(true);
-
-      // Handle window resize
-      const handleResize = () => {
-        if (chartRef.current && container) {
-          try {
-            chartRef.current.applyOptions({
-              width: container.clientWidth,
-            });
-          } catch (e) {
-            console.error("Error resizing chart:", e);
-          }
-        }
-      };
-
-      window.addEventListener("resize", handleResize);
-
-      return () => {
-        window.removeEventListener("resize", handleResize);
-        setIsChartReady(false);
-        try {
-          if (chartRef.current) {
-            chartRef.current.remove();
-            chartRef.current = undefined;
-            priceSeriesRef.current = undefined;
-            impactSeriesRef.current = undefined;
-          }
-        } catch (e: any) {
-          // Chart was already disposed, which is fine
-          if (!e?.message?.includes("disposed")) {
-            console.error("Error cleaning up chart:", e);
-          }
-        }
-      };
-    } catch (error) {
-      console.error("Failed to create chart:", error);
-      setIsChartReady(false);
-    }
-  }, [ticker, chartTheme]); // Remove showUsd and ethUsdPrice to prevent chart recreation
-
-  // Update chart options when showUsd or ethUsdPrice changes
-  useEffect(() => {
-    if (!priceSeriesRef.current) return;
-
-    // Update series options based on USD mode
-    priceSeriesRef.current.applyOptions({
-      title: showUsd && ethUsdPrice ? `${ticker} / USD` : `ETH / ${ticker}`,
-      priceFormat: {
-        type: "custom",
-        formatter: formatWithSubscriptZeros, // Maintain custom formatter
-        minMove: 0.000000001,
-      },
-    } as LineSeriesOptions);
-  }, [showUsd, ethUsdPrice, ticker]);
-
-  // Simple effect to process and display data with price impact
-  useEffect(() => {
-    if (!priceSeriesRef.current || !impactSeriesRef.current || !isChartReady) return;
-
-    if (!priceData || priceData.length === 0) {
-      if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
-        priceSeriesRef.current.setData(lastValidDataRef.current);
-      }
-      return;
-    }
-
-    try {
-      // Process the raw data
-      const uniqueData = new Map<string, PricePointData>();
-      priceData.forEach((point) => {
-        uniqueData.set(point.timestamp, point);
-      });
-
-      const sorted = Array.from(uniqueData.values()).sort(
-        (a, b) => Number.parseInt(a.timestamp) - Number.parseInt(b.timestamp),
-      );
-
-      const timestampMap = new Map<number, number>();
-
-      sorted.forEach((d) => {
+    // Convert to chart format
+    const processed = sorted
+      .map((d) => {
         try {
           const timestamp = Number.parseInt(d.timestamp);
-          if (isNaN(timestamp)) return;
+          if (isNaN(timestamp)) return null;
 
-          let value: number;
-          try {
-            value = Number(formatEther(BigInt(d.price1)));
-          } catch (e) {
-            return;
-          }
-
-          if (value === 0 || !isFinite(value)) return;
+          let value = Number(formatEther(BigInt(d.price1)));
+          if (value === 0 || !isFinite(value)) return null;
 
           if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
             value = value * ethUsdPrice;
           }
 
-          timestampMap.set(timestamp, value);
+          return {
+            timestamp,
+            price: value,
+          };
         } catch (err) {
           console.error("Error processing price point:", err);
+          return null;
         }
-      });
+      })
+      .filter((d): d is { timestamp: number; price: number } => d !== null);
 
-      const points = Array.from(timestampMap.entries())
-        .map(([time, value]) => ({
-          time: time as UTCTimestamp,
-          value,
-        }))
-        .sort((a, b) => a.time - b.time);
+    // Add projected price impact point if available
+    if (priceImpact && priceImpact.projectedPrice > 0 && processed.length > 0) {
+      const lastPoint = processed[processed.length - 1];
+      let projectedValue = priceImpact.projectedPrice;
 
-      if (points.length > 0) {
-        // Store the base data
-        lastValidDataRef.current = points;
-
-        // Build the data to display
-        let displayData = [...points];
-
-        // Add price impact point if available
-        if (priceImpact && priceImpact.projectedPrice > 0) {
-          const lastPoint = points[points.length - 1];
-          if (lastPoint) {
-            let projectedValue: number;
-
-            if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
-              // Convert ETH price to USD
-              projectedValue = priceImpact.projectedPrice * ethUsdPrice;
-            } else {
-              // Use ETH price directly
-              projectedValue = priceImpact.projectedPrice;
-            }
-
-            if (isFinite(projectedValue) && projectedValue > 0) {
-              // Create impact line data: from last point to projected point
-              const projectedTime = lastPoint.time + 1; // Just 1 second after
-              const impactData = [
-                { time: lastPoint.time, value: lastPoint.value },
-                { time: projectedTime as UTCTimestamp, value: projectedValue },
-              ];
-
-              // Update impact series color based on buy/sell action
-              const impactColor = priceImpact.action === "buy" ? "#10b981" : "#ef4444"; // green for buy, red for sell
-              impactSeriesRef.current.applyOptions({
-                color: impactColor,
-              });
-
-              // Set the impact line data
-              impactSeriesRef.current.setData(impactData);
-            } else {
-              // Clear impact series if invalid
-              impactSeriesRef.current.setData([]);
-            }
-          } else {
-            // Clear impact series when no price impact
-            impactSeriesRef.current.setData([]);
-          }
-        } else {
-          // Clear impact series when no price impact
-          impactSeriesRef.current.setData([]);
-        }
-
-        // Update the main chart with historical data only
-        priceSeriesRef.current.setData(displayData);
-
-        // Make sure we see all the data
-        if (chartRef.current) {
-          chartRef.current.timeScale().fitContent();
-        }
+      if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
+        projectedValue = projectedValue * ethUsdPrice;
       }
-    } catch (error) {
-      console.error("Error updating chart:", error);
-      // Fallback to last valid data
-      if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
-        priceSeriesRef.current.setData(lastValidDataRef.current);
+
+      if (isFinite(projectedValue) && projectedValue > 0) {
+        processed.push({
+          timestamp: lastPoint.timestamp + 60,
+          price: projectedValue,
+        });
       }
     }
-  }, [priceData, showUsd, ethUsdPrice, priceImpact, isChartReady, t]);
+
+    return processed;
+  }, [priceData, showUsd, ethUsdPrice, priceImpact]);
+
+  // Calculate average price for reference line
+  const averagePrice = useMemo(() => {
+    if (chartData.length === 0) return 0;
+    const sum = chartData.reduce((acc, d) => acc + d.price, 0);
+    return sum / chartData.length;
+  }, [chartData]);
+
+  // Determine if price is going up or down
+  const priceChange = useMemo(() => {
+    if (chartData.length < 2) return 0;
+    const first = chartData[0].price;
+    const last = chartData[chartData.length - 1].price;
+    return ((last - first) / first) * 100;
+  }, [chartData]);
+
+  const isPositive = priceChange >= 0;
+  const chartColor = isPositive ? "hsl(var(--chart-1))" : "hsl(var(--chart-2))";
+
+  // Chart theme colors
+  const isDark = theme === "dark";
+  const gridColor = isDark ? "hsl(var(--border) / 0.15)" : "hsl(var(--border) / 0.25)";
+  const textColor = "hsl(var(--muted-foreground))";
+
+  // Theme-specific gradient settings
+  const gradientStartOpacity = isDark ? 0.5 : 0.4;
+  const gradientEndOpacity = isDark ? 0.05 : 0.05;
+  const strokeWidth = isDark ? 2 : 2;
+
+  if (chartData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+        {t("chart.no_data")}
+      </div>
+    );
+  }
 
   return (
-    <div className="relative transition-opacity duration-300">
-      <div
-        ref={containerRef}
-        className={cn("w-full transition-opacity duration-500", isChartReady ? "opacity-100" : "opacity-0")}
-        style={{ height: "300px", position: "relative", zIndex: 1 }}
-      />
-      {!isChartReady && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-300">
-          <LoadingLogo size="sm" />
-          <p className="text-xs text-muted-foreground mt-2">{t("chart.rendering", "Rendering chart...")}</p>
-        </div>
-      )}
+    <div
+      className="flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none h-full w-full"
+    >
+      <ResponsiveContainer width="100%" height={400}>
+        <AreaChart
+          data={chartData}
+          margin={{ top: 12, right: 12, bottom: 0, left: 0 }}
+        >
+          <defs>
+            <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={chartColor} stopOpacity={gradientStartOpacity} />
+              <stop offset="95%" stopColor={chartColor} stopOpacity={gradientEndOpacity} />
+            </linearGradient>
+          </defs>
+
+          <CartesianGrid
+            strokeDasharray="14 10"
+            stroke={gridColor}
+            strokeWidth={0.5}
+            vertical={false}
+          />
+
+          <XAxis
+            dataKey="timestamp"
+            type="number"
+            domain={['dataMin', 'dataMax']}
+            tickFormatter={(timestamp) => {
+              const date = new Date(timestamp * 1000);
+              return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            }}
+            stroke={textColor}
+            tickLine={false}
+            axisLine={false}
+            dy={10}
+            style={{ fontSize: '11px' }}
+            minTickGap={50}
+          />
+
+          <YAxis
+            dataKey="price"
+            type="number"
+            domain={['auto', 'auto']}
+            tickFormatter={formatPriceValue}
+            stroke={textColor}
+            tickLine={false}
+            axisLine={false}
+            dx={-10}
+            style={{ fontSize: '11px' }}
+            width={80}
+          />
+
+          <ReferenceLine
+            y={averagePrice}
+            stroke={gridColor}
+            strokeDasharray="14 10"
+            strokeWidth={3}
+            strokeOpacity={0.5}
+          />
+
+          <Tooltip
+            content={<CustomTooltip showUsd={showUsd} />}
+            cursor={{ stroke: 'hsl(var(--border))', strokeWidth: 1, strokeDasharray: '4 4' }}
+          />
+
+          <Area
+            type="monotone"
+            dataKey="price"
+            stroke={chartColor}
+            strokeWidth={strokeWidth}
+            fill="url(#priceGradient)"
+            fillOpacity={1}
+            dot={false}
+            activeDot={{ r: 4, strokeWidth: 0 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 };

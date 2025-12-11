@@ -80,8 +80,9 @@ export const EnhancedPoolChart = ({
   }, []);
 
   // Prevent chart flashing by maintaining minimum height
+  // Both charts now use 400px height for consistency
   const chartContainerStyle = {
-    minHeight: "400px",
+    minHeight: "460px",
     position: "relative" as const,
   };
 
@@ -120,12 +121,14 @@ export const EnhancedPoolChart = ({
         </Suspense>
       </div>
 
-      <div className="w-fit border border-border flex flex-row items-center mt-2">
+      <div className="w-fit bg-muted/30 rounded-xl p-1 flex flex-row items-center gap-1 mt-2">
         <button
           onClick={() => handleChartTypeChange("candle")}
           className={cn(
-            "h-8 px-2 sm:px-3 flex items-center justify-center transition-all",
-            chartType === "candle" ? "bg-primary !text-primary-foreground" : "bg-transparent hover:bg-muted",
+            "h-8 px-2 sm:px-3 flex items-center justify-center rounded-lg transition-all duration-200",
+            chartType === "candle"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
           )}
           disabled={!isStable}
         >
@@ -134,8 +137,10 @@ export const EnhancedPoolChart = ({
         <button
           onClick={() => handleChartTypeChange("line")}
           className={cn(
-            "h-8 px-2 sm:px-3 flex items-center justify-center transition-all",
-            chartType === "line" ? "bg-primary !text-primary-foreground" : "bg-transparent hover:bg-muted",
+            "h-8 px-2 sm:px-3 flex items-center justify-center rounded-lg transition-all duration-200",
+            chartType === "line"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
           )}
           disabled={!isStable}
         >
@@ -193,15 +198,6 @@ style.textContent = `
   .chart-wrapper {
     position: relative;
     width: 100%;
-    height: 100%;
-  }
-
-  .chart-wrapper > div {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
   }
 
   /* Prevent layout shift during chart loading */

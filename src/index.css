@@ -46,6 +46,10 @@
     --sidebar-accent-foreground: #111111;
     --sidebar-border: #1e1e1e;
     --sidebar-ring: #222222;
+
+    /* Chart colors for price charts */
+    --chart-1: 270 70% 60%;  /* Purple for positive movement */
+    --chart-2: 270 70% 60%;  /* Purple for negative movement */
   }
 }
 
@@ -87,6 +91,10 @@
   --sidebar-accent-foreground: #e0e0e0;
   --sidebar-border: #2c2c2c;
   --sidebar-ring: #777777;
+
+  /* Chart colors for price charts - brighter for dark mode */
+  --chart-1: 270 70% 70%;  /* Lighter purple for positive movement */
+  --chart-2: 270 70% 70%;  /* Lighter purple for negative movement */
 }
 
 /* Dark mode datetime-local calendar icon fix */

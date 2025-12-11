@@ -59,12 +59,14 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h", 
   return (
     <div className="w-full">
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="flex border border-border">
+        <div className="flex bg-muted/30 rounded-xl p-1 gap-1">
           <button
             onClick={() => handleIntervalChange("1h")}
             className={cn(
-              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              selectedInterval === "1h" && "bg-accent text-accent-foreground",
+              "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+              selectedInterval === "1h"
+                ? "bg-background text-foreground shadow-sm font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             1h
@@ -72,8 +74,10 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h", 
           <button
             onClick={() => handleIntervalChange("1d")}
             className={cn(
-              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              selectedInterval === "1d" && "bg-accent text-accent-foreground",
+              "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+              selectedInterval === "1d"
+                ? "bg-background text-foreground shadow-sm font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             1d
@@ -81,12 +85,14 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h", 
         </div>
 
         {ethUsdPrice && (
-          <div className="flex flex-row ml-auto">
+          <div className="flex bg-muted/30 rounded-xl p-1 gap-1 ml-auto">
             <button
               onClick={() => setShowUsd(false)}
               className={cn(
-                "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-                !showUsd && "bg-accent text-accent-foreground",
+                "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+                !showUsd
+                  ? "bg-background text-foreground shadow-sm font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
               )}
             >
               ETH
@@ -94,8 +100,10 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h", 
             <button
               onClick={() => setShowUsd(true)}
               className={cn(
-                "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-                showUsd && "bg-accent text-accent-foreground",
+                "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
+                showUsd
+                  ? "bg-background text-foreground shadow-sm font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
               )}
             >
               USD
