@@ -78,12 +78,14 @@ export const useDAOTreasuryTokenBalance = ({ tokenAddress }: { tokenAddress?: Ad
 
   // ERC20 balance
   const { data: tokenBalance, isLoading } = useReadContracts({
-    contracts: [{
-      address: tokenAddress,
-      abi: ERC20_ABI,
-      functionName: "balanceOf",
-      args: [ZORG_ADDRESS],
-    }],
+    contracts: [
+      {
+        address: tokenAddress,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [ZORG_ADDRESS],
+      },
+    ],
     query: {
       enabled: !!tokenAddress && tokenAddress !== "0x0000000000000000000000000000000000000000",
       staleTime: 30_000,

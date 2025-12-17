@@ -42,14 +42,14 @@ export const useDAOSale = ({ payToken }: { payToken?: Address }) => {
  * Hook to fetch sales for multiple payment tokens
  */
 export const useDAOSales = ({ payTokens }: { payTokens: Address[] }) => {
-  const salesData = payTokens.map(payToken => {
+  const salesData = payTokens.map((payToken) => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const sale = useDAOSale({ payToken });
     return { payToken, ...sale };
   });
 
-  const isLoading = salesData.some(s => s.isLoading);
-  const activeSales = salesData.filter(s => s.active);
+  const isLoading = salesData.some((s) => s.isLoading);
+  const activeSales = salesData.filter((s) => s.active);
 
   return {
     sales: salesData,

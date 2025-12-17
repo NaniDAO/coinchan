@@ -27,6 +27,7 @@ import { Route as FarmRouteImport } from './routes/farm'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as EnsRouteImport } from './routes/ens'
 import { Route as DaoRouteImport } from './routes/dao'
+import { Route as DaicoRouteImport } from './routes/daico'
 import { Route as CultRouteImport } from './routes/cult'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as AboutRouteImport } from './routes/about'
@@ -34,6 +35,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PositionsIndexRouteImport } from './routes/positions/index'
 import { Route as FarmIndexRouteImport } from './routes/farm/index'
 import { Route as PositionsCreateRouteImport } from './routes/positions/create'
+import { Route as PPoolIdRouteImport } from './routes/p.$poolId'
 import { Route as FarmCreateRouteImport } from './routes/farm/create'
 import { Route as ExploreTokensRouteImport } from './routes/explore/tokens'
 import { Route as ExploreTokenRouteImport } from './routes/explore/token'
@@ -132,6 +134,11 @@ const DaoRoute = DaoRouteImport.update({
   path: '/dao',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DaicoRoute = DaicoRouteImport.update({
+  id: '/daico',
+  path: '/daico',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CultRoute = CultRouteImport.update({
   id: '/cult',
   path: '/cult',
@@ -166,6 +173,11 @@ const PositionsCreateRoute = PositionsCreateRouteImport.update({
   id: '/create',
   path: '/create',
   getParentRoute: () => PositionsRoute,
+} as any)
+const PPoolIdRoute = PPoolIdRouteImport.update({
+  id: '/p/$poolId',
+  path: '/p/$poolId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const FarmCreateRoute = FarmCreateRouteImport.update({
   id: '/create',
@@ -209,6 +221,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/create': typeof CreateRoute
   '/cult': typeof CultRoute
+  '/daico': typeof DaicoRoute
   '/dao': typeof DaoRoute
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
@@ -233,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
+  '/p/$poolId': typeof PPoolIdRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
@@ -243,6 +257,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/create': typeof CreateRoute
   '/cult': typeof CultRoute
+  '/daico': typeof DaicoRoute
   '/dao': typeof DaoRoute
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
@@ -265,6 +280,7 @@ export interface FileRoutesByTo {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
+  '/p/$poolId': typeof PPoolIdRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm': typeof FarmIndexRoute
   '/positions': typeof PositionsIndexRoute
@@ -276,6 +292,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/create': typeof CreateRoute
   '/cult': typeof CultRoute
+  '/daico': typeof DaicoRoute
   '/dao': typeof DaoRoute
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
@@ -300,6 +317,7 @@ export interface FileRoutesById {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
+  '/p/$poolId': typeof PPoolIdRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
@@ -312,6 +330,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/create'
     | '/cult'
+    | '/daico'
     | '/dao'
     | '/ens'
     | '/explore'
@@ -336,6 +355,7 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
+    | '/p/$poolId'
     | '/positions/create'
     | '/farm/'
     | '/positions/'
@@ -346,6 +366,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/create'
     | '/cult'
+    | '/daico'
     | '/dao'
     | '/ens'
     | '/explore'
@@ -368,6 +389,7 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
+    | '/p/$poolId'
     | '/positions/create'
     | '/farm'
     | '/positions'
@@ -378,6 +400,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/create'
     | '/cult'
+    | '/daico'
     | '/dao'
     | '/ens'
     | '/explore'
@@ -402,6 +425,7 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
+    | '/p/$poolId'
     | '/positions/create'
     | '/farm/'
     | '/positions/'
@@ -413,6 +437,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   CreateRoute: typeof CreateRoute
   CultRoute: typeof CultRoute
+  DaicoRoute: typeof DaicoRoute
   DaoRoute: typeof DaoRoute
   EnsRoute: typeof EnsRoute
   ExploreRoute: typeof ExploreRouteWithChildren
@@ -432,6 +457,7 @@ export interface RootRouteChildren {
   UserRoute: typeof UserRoute
   WlfiRoute: typeof WlfiRoute
   CCoinIdRoute: typeof CCoinIdRoute
+  PPoolIdRoute: typeof PPoolIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -562,6 +588,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DaoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/daico': {
+      id: '/daico'
+      path: '/daico'
+      fullPath: '/daico'
+      preLoaderRoute: typeof DaicoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cult': {
       id: '/cult'
       path: '/cult'
@@ -610,6 +643,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/positions/create'
       preLoaderRoute: typeof PositionsCreateRouteImport
       parentRoute: typeof PositionsRoute
+    }
+    '/p/$poolId': {
+      id: '/p/$poolId'
+      path: '/p/$poolId'
+      fullPath: '/p/$poolId'
+      preLoaderRoute: typeof PPoolIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/farm/create': {
       id: '/farm/create'
@@ -722,6 +762,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   CreateRoute: CreateRoute,
   CultRoute: CultRoute,
+  DaicoRoute: DaicoRoute,
   DaoRoute: DaoRoute,
   EnsRoute: EnsRoute,
   ExploreRoute: ExploreRouteWithChildren,
@@ -741,6 +782,7 @@ const rootRouteChildren: RootRouteChildren = {
   UserRoute: UserRoute,
   WlfiRoute: WlfiRoute,
   CCoinIdRoute: CCoinIdRoute,
+  PPoolIdRoute: PPoolIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

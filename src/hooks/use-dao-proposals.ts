@@ -75,11 +75,13 @@ export const useDAOProposalTallies = ({ proposalId }: { proposalId?: bigint }) =
   });
 
   return {
-    tallies: data ? {
-      forVotes: data[0],
-      againstVotes: data[1],
-      abstainVotes: data[2],
-    } : undefined,
+    tallies: data
+      ? {
+          forVotes: data[0],
+          againstVotes: data[1],
+          abstainVotes: data[2],
+        }
+      : undefined,
     isLoading,
   };
 };
