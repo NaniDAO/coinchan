@@ -531,9 +531,9 @@ export default function PoolsTable({
                                     }}
                                     onClick={() => {
                                         navigate({
-                                            to: "/p/$poolId" as any,
+                                            to: "/p/$poolId",
                                             params: { poolId: pool.poolId },
-                                        });
+                                        } as any);
                                     }}
                                 >
                                     {row.getVisibleCells().map((cell) => (

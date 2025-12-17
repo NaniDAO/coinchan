@@ -34,6 +34,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PositionsIndexRouteImport } from './routes/positions/index'
 import { Route as FarmIndexRouteImport } from './routes/farm/index'
 import { Route as PositionsCreateRouteImport } from './routes/positions/create'
+import { Route as PPoolIdRouteImport } from './routes/p.$poolId'
 import { Route as FarmCreateRouteImport } from './routes/farm/create'
 import { Route as ExploreTokensRouteImport } from './routes/explore/tokens'
 import { Route as ExploreTokenRouteImport } from './routes/explore/token'
@@ -167,6 +168,11 @@ const PositionsCreateRoute = PositionsCreateRouteImport.update({
   path: '/create',
   getParentRoute: () => PositionsRoute,
 } as any)
+const PPoolIdRoute = PPoolIdRouteImport.update({
+  id: '/p/$poolId',
+  path: '/p/$poolId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FarmCreateRoute = FarmCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -233,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
+  '/p/$poolId': typeof PPoolIdRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
@@ -265,6 +272,7 @@ export interface FileRoutesByTo {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
+  '/p/$poolId': typeof PPoolIdRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm': typeof FarmIndexRoute
   '/positions': typeof PositionsIndexRoute
@@ -300,6 +308,7 @@ export interface FileRoutesById {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
+  '/p/$poolId': typeof PPoolIdRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
@@ -336,6 +345,7 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
+    | '/p/$poolId'
     | '/positions/create'
     | '/farm/'
     | '/positions/'
@@ -368,6 +378,7 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
+    | '/p/$poolId'
     | '/positions/create'
     | '/farm'
     | '/positions'
@@ -402,6 +413,7 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
+    | '/p/$poolId'
     | '/positions/create'
     | '/farm/'
     | '/positions/'
@@ -432,6 +444,7 @@ export interface RootRouteChildren {
   UserRoute: typeof UserRoute
   WlfiRoute: typeof WlfiRoute
   CCoinIdRoute: typeof CCoinIdRoute
+  PPoolIdRoute: typeof PPoolIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -611,6 +624,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PositionsCreateRouteImport
       parentRoute: typeof PositionsRoute
     }
+    '/p/$poolId': {
+      id: '/p/$poolId'
+      path: '/p/$poolId'
+      fullPath: '/p/$poolId'
+      preLoaderRoute: typeof PPoolIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/farm/create': {
       id: '/farm/create'
       path: '/create'
@@ -741,6 +761,7 @@ const rootRouteChildren: RootRouteChildren = {
   UserRoute: UserRoute,
   WlfiRoute: WlfiRoute,
   CCoinIdRoute: CCoinIdRoute,
+  PPoolIdRoute: PPoolIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
