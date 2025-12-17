@@ -19,8 +19,6 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Input } from "../ui/input";
 import { bpsToPct } from "@/lib/pools";
-import { encodeTokenQ } from "@/lib/token-query";
-import { Address } from "viem";
 import { formatDexscreenerStyle } from "@/lib/math";
 import { formatImageURL } from "@/hooks/metadata";
 
@@ -517,35 +515,6 @@ export default function PoolsTable({
                             const row = table.getRowModel().rows[vi.index];
                             const pool = row.original;
 
-                            // Build navigation params for this pool
-                            const tokenAParam = pool?.token0
-                                ? encodeTokenQ({
-                                      address: pool.token0 as Address,
-                                      id:
-                                          typeof pool.coin0.id === "bigint"
-                                              ? pool.coin0.id
-                                              : BigInt(pool.coin0.id ?? "0"),
-                                  })
-                                : undefined;
-
-                            const tokenBParam = pool?.token1
-                                ? encodeTokenQ({
-                                      address: pool.token1 as Address,
-                                      id:
-                                          typeof pool.coin1.id === "bigint"
-                                              ? pool.coin1.id
-                                              : BigInt(pool.coin1.id ?? "0"),
-                                  })
-                                : undefined;
-
-                            // v0 pools use swapFee, v1 pools use feeOrHook
-                            const feeParam =
-                                pool?.source === "ZAMM"
-                                    ? String(pool.swapFee)
-                                    : String(pool.feeOrHook || pool.swapFee);
-                            const protocolParam =
-                                pool?.source === "ZAMM" ? "ZAMMV0" : "ZAMMV1";
-
                             return (
                                 <div
                                     key={row.id}
@@ -562,21 +531,9 @@ export default function PoolsTable({
                                     }}
                                     onClick={() => {
                                         navigate({
-                                            to: "/positions/create",
-                                            search: {
-                                                tokenA: tokenAParam,
-                                                tokenB: tokenBParam,
-                                                ...(feeParam
-                                                    ? { fee: feeParam }
-                                                    : {}),
-                                                ...(protocolParam
-                                                    ? {
-                                                          protocol:
-                                                              protocolParam,
-                                                      }
-                                                    : {}),
-                                            },
-                                        });
+                                            to: "/p/$poolId",
+                                            params: { poolId: pool.poolId },
+                                        } as any);
                                     }}
                                 >
                                     {row.getVisibleCells().map((cell) => (
