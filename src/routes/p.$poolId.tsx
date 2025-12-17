@@ -7,16 +7,16 @@ import { formatImageURL } from "@/hooks/metadata";
 import { Skeleton } from "@/components/ui/skeleton";
 import { bpsToPct } from "@/lib/pools";
 import { formatEther } from "viem";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/p/$poolId")({
+export const Route = createFileRoute("/p/$poolId" as any)({
   component: PoolPage,
 });
 
 function PoolPage() {
-  const { poolId } = Route.useParams();
+  const { poolId } = Route.useParams() as { poolId: string };
   const { data: ethUsdPrice } = useEthUsdPrice();
 
   // Try COOKBOOK first, then ZAMM
@@ -73,7 +73,7 @@ function PoolPage() {
             tokenB: pool.token1 && pool.coin1?.id ? `${pool.token1}:${pool.coin1.id}` : undefined,
             fee: String(pool.swapFee),
             protocol: pool.source === "ZAMM" ? "ZAMMV0" : "ZAMMV1",
-          }}
+          } as any}
           className={cn(buttonVariants({ variant: "default" }))}
         >
           Add Liquidity
@@ -81,8 +81,8 @@ function PoolPage() {
         <Link
           to="/swap"
           search={{
-            tokenA: pool.token0 && pool.coin0?.id ? `${pool.token0}:${pool.coin0.id}` : undefined,
-            tokenB: pool.token1 && pool.coin1?.id ? `${pool.token1}:${pool.coin1.id}` : undefined,
+            sellToken: pool.token0 && pool.coin0?.id ? `${pool.token0}:${pool.coin0.id}` : undefined,
+            buyToken: pool.token1 && pool.coin1?.id ? `${pool.token1}:${pool.coin1.id}` : undefined,
           }}
           className={cn(buttonVariants({ variant: "outline" }))}
         >
