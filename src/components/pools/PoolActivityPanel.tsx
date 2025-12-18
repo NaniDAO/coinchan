@@ -2,7 +2,13 @@ import { useState } from "react";
 import { formatUnits, formatEther } from "viem";
 import { useEnsName } from "wagmi";
 import { cn } from "@/lib/utils";
-import { usePoolSwaps, useTokenHolders, formatSwapEvent, type SwapEvent, type TokenHolder } from "@/hooks/use-pool-activity";
+import {
+  usePoolSwaps,
+  usePoolLpProviders,
+  formatSwapEvent,
+  type SwapEvent,
+  type LpProvider,
+} from "@/hooks/use-pool-activity";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, ArrowUpRight, ArrowDownRight, ExternalLink, Users, Activity, Droplets } from "lucide-react";
@@ -24,33 +30,23 @@ export function PoolActivityPanel({ pool, pammData, className }: PoolActivityPan
   const isPredictionMarket = pammData?.isPAMMPool && pammData?.marketId !== null;
 
   // Fetch swaps - use the pool's source for the query
-  const { data: swaps, isLoading: swapsLoading } = usePoolSwaps(
-    pool.id,
-    pool.source as "ZAMM" | "COOKBOOK",
-    30
-  );
+  const { data: swaps, isLoading: swapsLoading } = usePoolSwaps(pool.id, pool.source as "ZAMM" | "COOKBOOK", 30);
 
-  // For holders, always use pool.coin0Id and coin1Id since these are what the indexer tracks
-  // For prediction markets, coin0 is one side (YES or NO depending on yesIsId0), coin1 is the other
-  const token0Id = pool.coin0?.id || pool.coin0Id;
-  const token1Id = pool.coin1?.id || pool.coin1Id;
+  // Fetch LP providers for ALL pools (including PAMM) - derived from liquidity events
+  const { data: lpProviders, isLoading: lpProvidersLoading } = usePoolLpProviders(pool.id, 20);
 
-  const { data: token0Holders, isLoading: token0HoldersLoading } = useTokenHolders(
-    token0Id || undefined,
-    20
-  );
-  const { data: token1Holders, isLoading: token1HoldersLoading } = useTokenHolders(
-    isPredictionMarket ? (token1Id || undefined) : undefined,
-    20
-  );
-
-  // For prediction markets, map to YES/NO based on which token is which
-  const yesHolders = isPredictionMarket && pammData?.yesIsId0 ? token0Holders : token1Holders;
-  const noHolders = isPredictionMarket && pammData?.yesIsId0 ? token1Holders : token0Holders;
-  const holdersLoading = token0HoldersLoading || token1HoldersLoading;
-
-  const token0Symbol = isPredictionMarket ? "YES" : (pool.coin0?.symbol || "Token0");
-  const token1Symbol = isPredictionMarket ? "NO" : (pool.coin1?.symbol || "Token1");
+  // For prediction markets, token symbols depend on yesIsId0 (which position is YES)
+  // ZAMM doesn't know YES/NO - we get that from PAMM's identifyYesNoIds
+  const token0Symbol = isPredictionMarket
+    ? pammData?.yesIsId0
+      ? "YES"
+      : "NO"
+    : pool.coin0?.symbol || "Token0";
+  const token1Symbol = isPredictionMarket
+    ? pammData?.yesIsId0
+      ? "NO"
+      : "YES"
+    : pool.coin1?.symbol || "Token1";
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className={className}>
@@ -84,8 +80,8 @@ export function PoolActivityPanel({ pool, pammData, className }: PoolActivityPan
               active={activeTab === "holders"}
               onClick={() => setActiveTab("holders")}
               icon={<Users className="w-3.5 h-3.5" />}
-              label={isPredictionMarket ? "Share Holders" : "Holders"}
-              count={(yesHolders?.length || 0) + (noHolders?.length || 0)}
+              label="LPs"
+              count={lpProviders?.length || 0}
             />
             <TabButton
               active={activeTab === "lp"}
@@ -108,15 +104,10 @@ export function PoolActivityPanel({ pool, pammData, className }: PoolActivityPan
               />
             )}
             {activeTab === "holders" && (
-              <HoldersTab
-                yesHolders={isPredictionMarket ? (yesHolders || []) : (token0Holders || [])}
-                noHolders={isPredictionMarket ? (noHolders || []) : []}
-                isLoading={holdersLoading}
-                isPredictionMarket={isPredictionMarket}
-              />
+              <LpProvidersTab lpProviders={lpProviders || []} isLoading={lpProvidersLoading} />
             )}
             {activeTab === "lp" && (
-              <LiquidityTab pool={pool} isPredictionMarket={isPredictionMarket} />
+              <LiquidityTab pool={pool} isPredictionMarket={isPredictionMarket} yesIsId0={pammData?.yesIsId0} />
             )}
           </div>
         </div>
@@ -145,14 +136,12 @@ function TabButton({
         "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
         active
           ? "border-primary text-foreground"
-          : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
+          : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
       )}
     >
       {icon}
       {label}
-      {count !== undefined && count > 0 && (
-        <span className="text-xs px-1.5 py-0.5 rounded bg-muted">{count}</span>
-      )}
+      {count !== undefined && count > 0 && <span className="text-xs px-1.5 py-0.5 rounded bg-muted">{count}</span>}
     </button>
   );
 }
@@ -213,7 +202,12 @@ function TradesTab({
               )}
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className={cn("text-sm font-medium", isBuy ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+                  <span
+                    className={cn(
+                      "text-sm font-medium",
+                      isBuy ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
+                    )}
+                  >
                     {isPredictionMarket && formatted.side ? `Buy ${formatted.side}` : isBuy ? "Buy" : "Sell"}
                   </span>
                   <span className="text-sm text-muted-foreground">
@@ -236,16 +230,12 @@ function TradesTab({
   );
 }
 
-function HoldersTab({
-  yesHolders,
-  noHolders,
+function LpProvidersTab({
+  lpProviders,
   isLoading,
-  isPredictionMarket,
 }: {
-  yesHolders: TokenHolder[];
-  noHolders: TokenHolder[];
+  lpProviders: LpProvider[];
   isLoading: boolean;
-  isPredictionMarket?: boolean;
 }) {
   if (isLoading) {
     return (
@@ -257,85 +247,52 @@ function HoldersTab({
     );
   }
 
-  const hasHolders = yesHolders.length > 0 || noHolders.length > 0;
-
-  if (!hasHolders) {
+  if (lpProviders.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-        <p>No holder data available</p>
+        <Droplets className="w-8 h-8 mx-auto mb-2 opacity-50" />
+        <p>No liquidity providers found</p>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-4">
-      {isPredictionMarket ? (
-        <>
-          {/* YES Holders */}
-          <div>
-            <h4 className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mb-2 flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              YES Holders ({yesHolders.length})
-            </h4>
-            <HoldersList holders={yesHolders} />
-          </div>
-          {/* NO Holders */}
-          {noHolders.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium text-rose-600 dark:text-rose-400 mb-2 flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-rose-500" />
-                NO Holders ({noHolders.length})
-              </h4>
-              <HoldersList holders={noHolders} />
-            </div>
-          )}
-        </>
-      ) : (
-        <HoldersList holders={yesHolders} />
-      )}
-    </div>
-  );
-}
+  // Filter out zero liquidity and sort by liquidity descending
+  const sortedProviders = lpProviders
+    .filter((lp) => BigInt(lp.liquidity) > 0n)
+    .sort((a, b) => (BigInt(b.liquidity) > BigInt(a.liquidity) ? 1 : -1))
+    .slice(0, 20);
 
-function HoldersList({ holders }: { holders: TokenHolder[] }) {
-  // Filter out zero balances and sort by balance descending
-  const sortedHolders = holders
-    .filter((h) => BigInt(h.balance) > 0n)
-    .sort((a, b) => (BigInt(b.balance) > BigInt(a.balance) ? 1 : -1))
-    .slice(0, 10);
-
-  const totalBalance = sortedHolders.reduce((acc, h) => acc + BigInt(h.balance), 0n);
+  const totalLiquidity = sortedProviders.reduce((acc, lp) => acc + BigInt(lp.liquidity), 0n);
 
   return (
     <div className="space-y-1">
-      {sortedHolders.map((holder, i) => (
-        <HolderRow
-          key={holder.address}
-          address={holder.address}
-          balance={holder.balance}
+      {sortedProviders.map((lp, i) => (
+        <LpProviderRow
+          key={lp.user}
+          address={lp.user}
+          liquidity={lp.liquidity}
           rank={i + 1}
-          totalBalance={totalBalance}
+          totalLiquidity={totalLiquidity}
         />
       ))}
     </div>
   );
 }
 
-function HolderRow({
+function LpProviderRow({
   address,
-  balance,
+  liquidity,
   rank,
-  totalBalance,
+  totalLiquidity,
 }: {
   address: string;
-  balance: string;
+  liquidity: string;
   rank: number;
-  totalBalance: bigint;
+  totalLiquidity: bigint;
 }) {
   const { data: ensName } = useEnsName({ address: address as `0x${string}` });
-  const balanceBigInt = BigInt(balance);
-  const percentage = totalBalance > 0n ? (Number(balanceBigInt) / Number(totalBalance)) * 100 : 0;
+  const liquidityBigInt = BigInt(liquidity);
+  const percentage = totalLiquidity > 0n ? (Number(liquidityBigInt) / Number(totalLiquidity)) * 100 : 0;
 
   return (
     <a
@@ -346,12 +303,11 @@ function HolderRow({
     >
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted-foreground w-4">{rank}</span>
-        <span className="text-sm font-mono">
-          {ensName || `${address.slice(0, 6)}...${address.slice(-4)}`}
-        </span>
+        <Droplets className="w-3.5 h-3.5 text-blue-500" />
+        <span className="text-sm font-mono">{ensName || `${address.slice(0, 6)}...${address.slice(-4)}`}</span>
       </div>
       <div className="flex items-center gap-3 text-sm">
-        <span className="tabular-nums">{Number(formatUnits(balanceBigInt, 18)).toFixed(2)}</span>
+        <span className="tabular-nums">{Number(formatUnits(liquidityBigInt, 18)).toFixed(4)}</span>
         <span className="text-xs text-muted-foreground w-12 text-right tabular-nums">{percentage.toFixed(1)}%</span>
         <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
       </div>
@@ -359,13 +315,22 @@ function HolderRow({
   );
 }
 
-function LiquidityTab({ pool, isPredictionMarket }: { pool: Pool; isPredictionMarket?: boolean }) {
+function LiquidityTab({
+  pool,
+  isPredictionMarket,
+  yesIsId0,
+}: {
+  pool: Pool;
+  isPredictionMarket?: boolean;
+  yesIsId0?: boolean;
+}) {
   const reserve0 = pool.reserve0 ? Number(formatEther(BigInt(pool.reserve0))) : 0;
   const reserve1 = pool.reserve1 ? Number(formatEther(BigInt(pool.reserve1))) : 0;
   const totalLiquidity = reserve0 + reserve1;
 
-  const token0Symbol = isPredictionMarket ? "YES" : (pool.coin0?.symbol || "Token0");
-  const token1Symbol = isPredictionMarket ? "NO" : (pool.coin1?.symbol || "Token1");
+  // For prediction markets, token symbols depend on yesIsId0
+  const token0Symbol = isPredictionMarket ? (yesIsId0 ? "YES" : "NO") : pool.coin0?.symbol || "Token0";
+  const token1Symbol = isPredictionMarket ? (yesIsId0 ? "NO" : "YES") : pool.coin1?.symbol || "Token1";
 
   return (
     <div className="space-y-4">
@@ -390,21 +355,11 @@ function LiquidityTab({ pool, isPredictionMarket }: { pool: Pool; isPredictionMa
           {totalLiquidity > 0 && (
             <>
               <div
-                className={cn(
-                  "transition-all",
-                  isPredictionMarket
-                    ? "bg-emerald-500"
-                    : "bg-blue-500"
-                )}
+                className={cn("transition-all", isPredictionMarket ? "bg-emerald-500" : "bg-blue-500")}
                 style={{ width: `${(reserve0 / totalLiquidity) * 100}%` }}
               />
               <div
-                className={cn(
-                  "transition-all",
-                  isPredictionMarket
-                    ? "bg-rose-500"
-                    : "bg-purple-500"
-                )}
+                className={cn("transition-all", isPredictionMarket ? "bg-rose-500" : "bg-purple-500")}
                 style={{ width: `${(reserve1 / totalLiquidity) * 100}%` }}
               />
             </>

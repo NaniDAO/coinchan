@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { PredictionMarketAbi } from "@/constants/PredictionMarket";
-import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
+import { PAMMSingletonAbi, PAMMSingletonAddress } from "@/constants/PAMMSingleton";
+import { ResolverAbi, ResolverAddress, isResolverSingleton } from "@/constants/Resolver";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -11,8 +11,6 @@ import { Badge } from "@/components/ui/badge";
 
 interface ResolverControlsProps {
   marketId: bigint;
-  contractAddress: string;
-  marketType: "parimutuel" | "amm";
   resolver: string;
   closingTime: number;
   canAccelerateClosing: boolean;
@@ -22,8 +20,6 @@ interface ResolverControlsProps {
 
 export const ResolverControls: React.FC<ResolverControlsProps> = ({
   marketId,
-  contractAddress,
-  marketType,
   resolver,
   closingTime,
   canAccelerateClosing,
@@ -34,21 +30,34 @@ export const ResolverControls: React.FC<ResolverControlsProps> = ({
   const { address } = useAccount();
   const [resolvingTo, setResolvingTo] = useState<boolean | null>(null);
 
+  // Check if this market uses the Resolver singleton for automatic resolution
+  const isAutoResolvable = isResolverSingleton(resolver);
+
   // Check if trading is still open
   const { data: tradingOpen } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: marketType === "amm" ? PredictionAMMAbi : PredictionMarketAbi,
+    address: PAMMSingletonAddress,
+    abi: PAMMSingletonAbi,
     functionName: "tradingOpen",
     args: [marketId],
   });
 
-  const { writeContract, isPending, error } = useWriteContract();
-  const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
-    hash: error ? undefined : undefined,
+  // For Resolver singleton markets, check the current condition status
+  const { data: previewData } = useReadContract({
+    address: ResolverAddress,
+    abi: ResolverAbi,
+    functionName: "preview",
+    args: [marketId],
+    query: { enabled: isAutoResolvable && !resolved },
   });
 
-  // Don't show if not the resolver
-  if (!address || address.toLowerCase() !== resolver.toLowerCase()) {
+  const { writeContract, data: txHash, isPending, error } = useWriteContract();
+  const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
+    hash: txHash,
+  });
+
+  // For manual resolution: only show to resolver address
+  // For auto-resolvable: show to everyone (anyone can trigger resolution)
+  if (!isAutoResolvable && (!address || address.toLowerCase() !== resolver.toLowerCase())) {
     return null;
   }
 
@@ -71,8 +80,8 @@ export const ResolverControls: React.FC<ResolverControlsProps> = ({
 
   const handleCloseMarket = () => {
     writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: marketType === "amm" ? PredictionAMMAbi : PredictionMarketAbi,
+      address: PAMMSingletonAddress,
+      abi: PAMMSingletonAbi,
       functionName: "closeMarket",
       args: [marketId],
     });
@@ -80,13 +89,26 @@ export const ResolverControls: React.FC<ResolverControlsProps> = ({
 
   const handleResolve = (outcome: boolean) => {
     setResolvingTo(outcome);
-    writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: marketType === "amm" ? PredictionAMMAbi : PredictionMarketAbi,
-      functionName: "resolve",
-      args: [marketId, outcome],
-    });
+
+    if (isAutoResolvable) {
+      // Call Resolver singleton's resolveMarket - outcome is determined by on-chain condition
+      writeContract({
+        address: ResolverAddress,
+        abi: ResolverAbi,
+        functionName: "resolveMarket",
+        args: [marketId],
+      });
+    } else {
+      // Manual resolution on PAMM
+      writeContract({
+        address: PAMMSingletonAddress,
+        abi: PAMMSingletonAbi,
+        functionName: "resolve",
+        args: [marketId, outcome],
+      });
+    }
   };
+
 
   React.useEffect(() => {
     if (isTxSuccess) {
@@ -165,7 +187,7 @@ export const ResolverControls: React.FC<ResolverControlsProps> = ({
         )}
 
         {/* Trading Closed - Ready to Resolve */}
-        {!tradingOpen && (
+        {!tradingOpen && !isAutoResolvable && (
           <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
             <AlertTitle className="text-green-800 dark:text-green-200 text-sm">
               {t("predict.ready_to_resolve")}
@@ -176,8 +198,51 @@ export const ResolverControls: React.FC<ResolverControlsProps> = ({
           </Alert>
         )}
 
-        {/* Resolve Buttons */}
-        {canResolve && (
+        {/* Auto-Resolvable Status */}
+        {isAutoResolvable && previewData && (
+          <Alert
+            className={
+              previewData[2]
+                ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
+                : "bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800"
+            }
+          >
+            <AlertTitle
+              className={
+                previewData[2]
+                  ? "text-green-800 dark:text-green-200 text-sm"
+                  : "text-yellow-800 dark:text-yellow-200 text-sm"
+              }
+            >
+              {previewData[2] ? t("predict.condition_ready") : t("predict.condition_pending")}
+            </AlertTitle>
+            <AlertDescription
+              className={
+                previewData[2]
+                  ? "text-green-700 dark:text-green-300 text-xs"
+                  : "text-yellow-700 dark:text-yellow-300 text-xs"
+              }
+            >
+              {previewData[1]
+                ? t("predict.condition_true_outcome_yes")
+                : t("predict.condition_false_outcome_no")}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Resolve Button for Auto-Resolvable Markets */}
+        {isAutoResolvable && previewData?.[2] && (
+          <Button
+            onClick={() => handleResolve(previewData[1])}
+            disabled={isPending || isTxLoading || resolvingTo !== null}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            {isPending || isTxLoading ? t("predict.resolving") : t("predict.resolve_market")}
+          </Button>
+        )}
+
+        {/* Manual Resolve Buttons */}
+        {canResolve && !isAutoResolvable && (
           <div className="grid grid-cols-2 gap-3">
             <Button
               onClick={() => handleResolve(true)}

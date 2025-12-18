@@ -28,21 +28,24 @@ export const CreateProposal = () => {
       return;
     }
 
-    writeContract({
-      address: ZORG_ADDRESS,
-      abi: ZORG_ABI,
-      functionName: "openProposal",
-      args: [
-        BigInt(0), // Placeholder proposal ID - in real impl, compute the ID first
-      ],
-    }, {
-      onSuccess: () => {
-        toast.success(t("dao.proposal_created"));
+    writeContract(
+      {
+        address: ZORG_ADDRESS,
+        abi: ZORG_ABI,
+        functionName: "openProposal",
+        args: [
+          BigInt(0), // Placeholder proposal ID - in real impl, compute the ID first
+        ],
       },
-      onError: (error) => {
-        toast.error(error.message);
+      {
+        onSuccess: () => {
+          toast.success(t("dao.proposal_created"));
+        },
+        onError: (error) => {
+          toast.error(error.message);
+        },
       },
-    });
+    );
   };
 
   return (
@@ -51,16 +54,14 @@ export const CreateProposal = () => {
 
       {!canPropose && (
         <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded text-sm text-yellow-400">
-          {t("dao.insufficient_voting_power")} (
-          {t("dao.need")}: {proposalThreshold.toString()}, {t("dao.have")}: {votingPower.toString()})
+          {t("dao.insufficient_voting_power")} ({t("dao.need")}: {proposalThreshold.toString()}, {t("dao.have")}:{" "}
+          {votingPower.toString()})
         </div>
       )}
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2">
-            {t("dao.target_address")}
-          </label>
+          <label className="block text-sm font-medium mb-2">{t("dao.target_address")}</label>
           <input
             type="text"
             value={targetAddress}
@@ -72,9 +73,7 @@ export const CreateProposal = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">
-            {t("dao.value_eth")}
-          </label>
+          <label className="block text-sm font-medium mb-2">{t("dao.value_eth")}</label>
           <input
             type="text"
             value={value}
@@ -86,9 +85,7 @@ export const CreateProposal = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">
-            {t("dao.calldata_optional")}
-          </label>
+          <label className="block text-sm font-medium mb-2">{t("dao.calldata_optional")}</label>
           <textarea
             value={calldata}
             onChange={(e) => setCalldata(e.target.value)}
@@ -99,18 +96,12 @@ export const CreateProposal = () => {
           />
         </div>
 
-        <Button
-          onClick={handleOpenProposal}
-          disabled={!canPropose || isConfirming || !address}
-          className="w-full"
-        >
+        <Button onClick={handleOpenProposal} disabled={!canPropose || isConfirming || !address} className="w-full">
           {!address ? t("common.connect_wallet") : t("dao.create_proposal")}
         </Button>
       </div>
 
-      <p className="text-xs text-muted-foreground mt-4">
-        {t("dao.create_proposal_note")}
-      </p>
+      <p className="text-xs text-muted-foreground mt-4">{t("dao.create_proposal_note")}</p>
     </div>
   );
 };

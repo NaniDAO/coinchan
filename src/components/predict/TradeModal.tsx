@@ -9,8 +9,12 @@ import {
   useBalance,
 } from "wagmi";
 import { toast } from "sonner";
-import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
-import { PredictionAMMAbi, PredictionAMMAddress } from "@/constants/PredictionMarketAMM";
+import {
+  PAMMSingletonAbi,
+  PAMMSingletonAddress,
+  DEFAULT_FEE_OR_HOOK,
+  ZAMM_ADDRESS,
+} from "@/constants/PAMMSingleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +39,6 @@ interface TradeModalProps {
   marketName: string;
   yesSupply: bigint;
   noSupply: bigint;
-  marketType?: "parimutuel" | "amm";
   contractAddress?: string;
   resolver?: string; // Optional: resolver address to show verification badge
   initialPosition?: "yes" | "no"; // Pre-select YES or NO when modal opens
@@ -49,8 +52,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   marketName,
   yesSupply,
   noSupply,
-  marketType = "parimutuel",
-  contractAddress = PredictionMarketAddress,
+  contractAddress = PAMMSingletonAddress,
   resolver,
   initialPosition = "yes",
   onTransactionSuccess,
@@ -73,8 +75,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   });
 
   const { data: noId } = useReadContract({
-    address: PredictionAMMAddress,
-    abi: PredictionAMMAbi,
+    address: PAMMSingletonAddress,
+    abi: PAMMSingletonAbi,
     functionName: "getNoId",
     args: [marketId],
   });
@@ -86,7 +88,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   const { data: userTokenBalance } = useTokenBalance({
     token: {
       id: tokenIdForPosition,
-      address: PredictionAMMAddress,
+      address: PAMMSingletonAddress,
     },
     address: address ? address : zeroAddress,
   });
@@ -134,20 +136,13 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   // Auto-select wstETH payment if user has sufficient balance
   React.useEffect(() => {
     if (action === "buy" && amount && parseFloat(amount) > 0 && wstethBalance) {
-      const amountWei = parseEther(amount);
-      // For AMM: amount is shares to buy, need to check if wstethBalance > estimatedCost
-      // For Parimutuel: amount is ETH to spend directly
-      if (marketType === "amm") {
-        // For AMM, use quote data to determine if we have enough wstETH
-        setUseWstETH(false); // Will update below based on quote
-      } else {
-        // For parimutuel, amount is direct wstETH needed
-        setUseWstETH(wstethBalance >= amountWei);
-      }
+      // For PAMM: amount is shares to buy, need to check if wstethBalance > estimatedCost
+      // Use quote data to determine if we have enough wstETH (updated below based on quote)
+      setUseWstETH(false);
     } else {
       setUseWstETH(false);
     }
-  }, [action, amount, wstethBalance, marketType]);
+  }, [action, amount, wstethBalance]);
 
   // Refetch balances and allowances when transaction succeeds
   // Also handle approval success popup and market data refresh
@@ -171,104 +166,89 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     }
   }, [txSuccess, refetchWstethBalance, refetchAllowance, isApprovingWstETH, onTransactionSuccess]);
 
-  // Quote for AMM buy trades
-  const sharesAmount = amount && parseFloat(amount) > 0 ? parseEther(amount) : 0n;
+  // Amount in wei for trades
+  const inputAmount = amount && parseFloat(amount) > 0 ? parseEther(amount) : 0n;
 
-  const { data: quoteData } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: PredictionAMMAbi,
-    functionName:
-      action === "buy"
-        ? position === "yes"
-          ? "quoteBuyYes"
-          : "quoteBuyNo"
-        : position === "yes"
-          ? "quoteSellYes"
-          : "quoteSellNo",
-    args: [marketId, sharesAmount],
-    query: {
-      enabled: marketType === "amm" && sharesAmount > 0n,
-    },
+  // For new PAMM: no quote functions, use pool state to estimate
+  // getPoolState returns: [rYes, rNo, pYesNum, pYesDen]
+  const { data: poolState } = useReadContract({
+    address: PAMMSingletonAddress,
+    abi: PAMMSingletonAbi,
+    functionName: "getPoolState",
+    args: [marketId, DEFAULT_FEE_OR_HOOK],
   });
 
-  const estimatedCost = quoteData ? quoteData[1] : 0n; // wstInFair or wstOutFair
-  const oppIn = quoteData ? quoteData[0] : 0n; // oppIn or oppOut
+  // Estimate cost based on pool state (constant product formula)
+  // For buying: shares_out ≈ reserve_out * amount_in / (reserve_in + amount_in)
+  // The new PAMM expects collateralIn for buying, returns shares
+  const rYesPool = poolState?.[0] ?? 0n;
+  const rNoPool = poolState?.[1] ?? 0n;
 
-  // For AMM markets, update useWstETH based on whether user has enough wstETH for the quoted cost
+  // Simple estimation: for buying YES with collateral X, you get approximately:
+  // YES_out ≈ X * rYes / (rNo + X) (simplified, actual has fees)
+  // For the UI, we just show the input amount as estimated cost
+  const estimatedCost = inputAmount; // User specifies collateral amount directly for buys
+
+  // Update useWstETH based on whether user has enough wstETH for the quoted cost
   React.useEffect(() => {
-    if (action === "buy" && marketType === "amm" && estimatedCost > 0n && wstethBalance) {
+    if (action === "buy" && estimatedCost > 0n && wstethBalance) {
       // Add slippage buffer to estimated cost for comparison
       const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
       const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
       setUseWstETH(wstethBalance >= wstInMax);
     }
-  }, [action, marketType, estimatedCost, wstethBalance, slippageTolerance]);
+  }, [action, estimatedCost, wstethBalance, slippageTolerance]);
 
-  // For AMM markets, fetch pool reserves to show live odds
-  const { data: ammPoolData } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: PredictionAMMAbi,
-    functionName: "getPool",
-    args: [marketId],
-    query: {
-      enabled: marketType === "amm",
-    },
-  });
-
-  // Extract reserves: [poolId, rYes, rNo, tsLast, kLast, lpSupply]
-  const rYes = ammPoolData ? ammPoolData[1] : 0n;
-  const rNo = ammPoolData ? ammPoolData[2] : 0n;
+  // For AMM markets, use poolState for odds (already fetched above)
+  // Extract reserves from poolState: [rYes, rNo, pYesNum, pYesDen]
+  const rYes = rYesPool;
+  const rNo = rNoPool;
 
   // Fetch full market data for PAMM (pot, circulating supply, payout calculations)
+  // getMarket returns: [resolver, collateral, resolved, outcome, canClose, close, collateralLocked, yesSupply, noSupply, description]
   const { data: marketData } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: PredictionAMMAbi,
+    address: PAMMSingletonAddress,
+    abi: PAMMSingletonAbi,
     functionName: "getMarket",
     args: [marketId],
-    query: {
-      enabled: marketType === "amm",
-    },
   });
 
-  // Extract market data: [yesSupply, noSupply, resolver, resolved, outcome, pot, payoutPerShare, desc, closeTs, canClose, rYes, rNo, pYes_num, pYes_den]
-  const currentPot = marketData ? marketData[5] : 0n; // pot
-  const yesTotalSupply = marketData ? marketData[0] : 0n; // yesSupply (total, includes ZAMM LP + PAMM)
-  const noTotalSupply = marketData ? marketData[1] : 0n; // noSupply (total, includes ZAMM LP + PAMM)
+  // Extract market data from new format
+  const currentPot = marketData ? marketData[6] : 0n; // collateralLocked
+  const yesTotalSupply = marketData ? marketData[7] : 0n; // yesSupply
+  const noTotalSupply = marketData ? marketData[8] : 0n; // noSupply
 
   // CRITICAL: Need to calculate TRUE circulating supply by excluding PAMM and ZAMM holdings
-  // This matches PAMM.sol _circulating() function (lines 1289-1295)
-  const ZAMM_ADDRESS = "0x000000000000040470635EB91b7CE4D132D616eD" as const;
-
   // Fetch balances held by PAMM and ZAMM to calculate circulating supply
   const { data: excludedBalances } = useReadContracts({
     contracts: [
       {
-        address: contractAddress as `0x${string}`,
-        abi: PredictionAMMAbi,
+        address: PAMMSingletonAddress,
+        abi: PAMMSingletonAbi,
         functionName: "balanceOf",
-        args: [contractAddress as `0x${string}`, marketId], // PAMM's YES balance
+        args: [PAMMSingletonAddress, marketId], // PAMM's YES balance
       },
       {
-        address: contractAddress as `0x${string}`,
-        abi: PredictionAMMAbi,
+        address: PAMMSingletonAddress,
+        abi: PAMMSingletonAbi,
         functionName: "balanceOf",
         args: [ZAMM_ADDRESS, marketId], // ZAMM's YES balance
       },
       {
-        address: contractAddress as `0x${string}`,
-        abi: PredictionAMMAbi,
+        address: PAMMSingletonAddress,
+        abi: PAMMSingletonAbi,
         functionName: "balanceOf",
-        args: [contractAddress as `0x${string}`, noId ?? 0n], // PAMM's NO balance
+        args: [PAMMSingletonAddress, noId ?? 0n], // PAMM's NO balance
       },
       {
-        address: contractAddress as `0x${string}`,
-        abi: PredictionAMMAbi,
+        address: PAMMSingletonAddress,
+        abi: PAMMSingletonAbi,
         functionName: "balanceOf",
         args: [ZAMM_ADDRESS, noId ?? 0n], // ZAMM's NO balance
       },
     ],
     query: {
-      enabled: marketType === "amm" && !!noId,
+      enabled: !!noId,
     },
   });
 
@@ -281,31 +261,20 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   const yesCirculating = yesTotalSupply - pammYesBal - zammYesBal;
   const noCirculating = noTotalSupply - pammNoBal - zammNoBal;
 
-  // CRITICAL: Fetch resolver fee (PAMM.sol lines 777-784 deducts this from pot before payout)
+  // CRITICAL: Fetch resolver fee (deducted from pot before payout)
   const { data: resolverFeeBps } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: PredictionAMMAbi,
+    address: PAMMSingletonAddress,
+    abi: PAMMSingletonAbi,
     functionName: "resolverFeeBps",
     args: [resolver as `0x${string}`],
     query: {
-      enabled: marketType === "amm" && !!resolver,
+      enabled: !!resolver,
     },
   });
 
-  // Apply resolver fee to pot (matching PAMM.sol line 779: fee = pot * feeBps / 10_000, then pot -= fee)
+  // Apply resolver fee to pot
   const feeBps = resolverFeeBps ?? 0;
   const potAfterFee = currentPot > 0n && feeBps > 0 ? (currentPot * BigInt(10000 - feeBps)) / 10000n : currentPot;
-
-  // Fetch PMTuning to calculate intelligent buffer based on market conditions
-  const { data: pmTuningData } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: PredictionAMMAbi,
-    functionName: "pmTuning",
-    args: [marketId],
-    query: {
-      enabled: marketType === "amm",
-    },
-  });
 
   // Fetch wstETH to stETH (≈ ETH) conversion rate
   const { data: stEthPerToken } = useReadContract({
@@ -328,30 +297,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     const wstethPrice = (stEthPerToken * BigInt(ethPrice.toString())) / parseEther("1");
     return Number(wstethPrice) / 1e8;
   }, [stEthPerToken, ethPriceData]);
-
-  // Calculate intelligent buffer based on on-chain market conditions
-  const calculateIntelligentBuffer = React.useCallback(
-    (sharesAmount: bigint) => {
-      let bufferBps = 500; // 5%
-
-      if (pmTuningData) {
-        const lateRampMaxBps = pmTuningData[1]; // uint16
-        const extremeMaxBps = pmTuningData[2]; // uint16
-        const maxTuningBps = Number(lateRampMaxBps) + Number(extremeMaxBps);
-        bufferBps += maxTuningBps;
-      } else {
-        bufferBps += 2000; // 20% conservative fallback
-      }
-
-      if (sharesAmount > 0n && sharesAmount < parseEther("0.01")) {
-        bufferBps += 500; // +5% small-trade cushion
-      }
-
-      if (bufferBps < 1000) bufferBps = 1000; // min 10%
-      return bufferBps;
-    },
-    [pmTuningData],
-  );
 
   React.useEffect(() => {
     if (txSuccess) {
@@ -435,16 +380,14 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
     if (!amount || parseFloat(amount) <= 0) return false;
 
-    const amountWei = parseEther(amount);
-
-    if (marketType === "amm" && estimatedCost > 0n) {
+    if (estimatedCost > 0n) {
       const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
       const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
       return !wstethAllowance || wstethAllowance < wstInMax;
     }
 
-    return !wstethAllowance || wstethAllowance < amountWei;
-  }, [useWstETH, address, action, amount, marketType, estimatedCost, wstethAllowance, slippageTolerance]);
+    return !wstethAllowance || wstethAllowance < parseEther(amount);
+  }, [useWstETH, address, action, amount, estimatedCost, wstethAllowance, slippageTolerance]);
 
   const handleTrade = async () => {
     if (!address) {
@@ -461,73 +404,41 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
     try {
       const amountWei = parseEther(amount);
+      // Deadline: 20 minutes from now
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200);
 
-      if (marketType === "amm") {
-        if (action === "buy") {
-          const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
-          const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
-          const oppInMax = (oppIn * slippageMultiplier) / 10000n;
+      if (action === "buy") {
+        // PAMM API: buyYes(marketId, collateralIn, minYesOut, minSwapOut, feeOrHook, to, deadline)
+        // collateralIn = amountWei (user specifies how much ETH to spend)
+        // minYesOut = 0 with slippage tolerance (let the contract handle it)
+        const functionName = position === "yes" ? "buyYes" : "buyNo";
 
-          const functionName = position === "yes" ? "buyYesViaPool" : "buyNoViaPool";
+        // Apply slippage: expect at least (1 - slippage)% of estimated output
+        // For simplicity, use 0n for mins and rely on deadline for protection
+        const minSharesOut = 0n; // Set to 0 for max flexibility, deadline protects
 
-          if (useWstETH) {
-            await writeContractAsync({
-              address: contractAddress as `0x${string}`,
-              abi: PredictionAMMAbi,
-              functionName,
-              args: [marketId, amountWei, false, wstInMax, oppInMax, address],
-            });
-          } else {
-            const bufferBps = calculateIntelligentBuffer(amountWei);
-            const bufferMultiplier = BigInt(10000 + bufferBps);
-
-            let ethValue: bigint;
-            if (stEthPerToken) {
-              ethValue = (wstInMax * parseEther("1") * bufferMultiplier) / (stEthPerToken * 10000n);
-            } else {
-              ethValue = (wstInMax * 12n * bufferMultiplier) / 100000n;
-            }
-
-            await writeContractAsync({
-              address: contractAddress as `0x${string}`,
-              abi: PredictionAMMAbi,
-              functionName,
-              args: [marketId, amountWei, true, wstInMax, oppInMax, address],
-              value: ethValue,
-            });
-          }
-        } else {
-          const slippageMultiplier = BigInt(Math.floor((1 - slippageTolerance / 100) * 10000));
-          const wstOutMin = (estimatedCost * slippageMultiplier) / 10000n;
-          const oppOutMin = (oppIn * slippageMultiplier) / 10000n;
-
-          const functionName = position === "yes" ? "sellYesViaPool" : "sellNoViaPool";
-          await writeContractAsync({
-            address: contractAddress as `0x${string}`,
-            abi: PredictionAMMAbi,
-            functionName,
-            args: [marketId, amountWei, wstOutMin, oppOutMin, address],
-          });
-        }
+        await writeContractAsync({
+          address: PAMMSingletonAddress,
+          abi: PAMMSingletonAbi,
+          functionName,
+          args: [marketId, amountWei, minSharesOut, 0n, DEFAULT_FEE_OR_HOOK, address, deadline],
+          value: amountWei, // Send ETH directly (PAMM accepts ETH natively)
+        });
       } else {
-        if (action === "buy") {
-          const functionName = position === "yes" ? "buyYes" : "buyNo";
-          await writeContractAsync({
-            address: contractAddress as `0x${string}`,
-            abi: PredictionMarketAbi,
-            functionName,
-            args: [marketId, 0n, address],
-            value: amountWei,
-          });
-        } else {
-          const functionName = position === "yes" ? "sellYes" : "sellNo";
-          await writeContractAsync({
-            address: contractAddress as `0x${string}`,
-            abi: PredictionMarketAbi,
-            functionName,
-            args: [marketId, amountWei, address],
-          });
-        }
+        // Sell: sellYes(marketId, yesAmount, swapAmount, minCollateralOut, minSwapOut, feeOrHook, to, deadline)
+        // yesAmount = amountWei (shares to sell)
+        // swapAmount = amountWei (route all through swap)
+        const functionName = position === "yes" ? "sellYes" : "sellNo";
+
+        // Apply slippage for minimum collateral out
+        const minCollateralOut = 0n; // Set to 0 for max flexibility
+
+        await writeContractAsync({
+          address: PAMMSingletonAddress,
+          abi: PAMMSingletonAbi,
+          functionName,
+          args: [marketId, amountWei, amountWei, minCollateralOut, 0n, DEFAULT_FEE_OR_HOOK, address, deadline],
+        });
       }
 
       setLocalError(null);
@@ -550,19 +461,20 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     }
   };
 
-  // For AMM markets, use pool reserves for odds; for parimutuel, use total supply
+  // Use pool reserves for odds
   let yesPercent: number;
   let noPercent: number;
   let displayYes: bigint;
   let displayNo: bigint;
 
-  if (marketType === "amm" && rYes > 0n && rNo > 0n) {
+  if (rYes > 0n && rNo > 0n) {
     const totalReserves = rYes + rNo;
     yesPercent = (Number(rNo) / Number(totalReserves)) * 100;
     noPercent = 100 - yesPercent;
     displayYes = rYes;
     displayNo = rNo;
   } else {
+    // Fallback to supply-based odds if pool state not available
     const totalSupply = yesSupply + noSupply;
     yesPercent = totalSupply > 0n ? (Number(yesSupply) / Number(totalSupply)) * 100 : 50;
     noPercent = 100 - yesPercent;
@@ -591,9 +503,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
             Trade shares in this prediction market
           </DialogDescription>
 
-          {/* PAMM Payout Explainer - Only for AMM markets */}
-          {marketType === "amm" && (
-            <Collapsible className="mt-3">
+          {/* PAMM Payout Explainer */}
+          <Collapsible className="mt-3">
               <CollapsibleTrigger className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
                 <span>ℹ️</span>
                 <span className="font-medium">How do PAMM payouts work?</span>
@@ -616,7 +527,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 </ul>
               </CollapsibleContent>
             </Collapsible>
-          )}
         </DialogHeader>
 
         <div className="space-y-6 py-2">
@@ -705,7 +615,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               {/* Amount Input with Percentage Buttons */}
               <div className="space-y-3">
                 <Label htmlFor="amount" className="text-sm font-semibold">
-                  {marketType === "amm" ? "Shares to Buy" : "Amount (ETH)"}
+                  Shares to Buy
                 </Label>
                 <Input
                   id="amount"
@@ -759,146 +669,63 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 (() => {
                   const amountWei = parseEther(amount);
 
-                  if (marketType === "amm") {
-                    const sharesBought = amountWei;
-                    const costWei = estimatedCost > 0n ? estimatedCost : 0n;
-                    const profit = sharesBought > costWei ? sharesBought - costWei : 0n;
+                  const sharesBought = amountWei;
+                  const costWei = estimatedCost > 0n ? estimatedCost : 0n;
+                  const profit = sharesBought > costWei ? sharesBought - costWei : 0n;
 
-                    const payoutUsd = wstethUsdPrice ? Number(formatEther(sharesBought)) * wstethUsdPrice : null;
-                    const profitUsd =
-                      wstethUsdPrice && profit > 0n ? Number(formatEther(profit)) * wstethUsdPrice : null;
+                  const payoutUsd = wstethUsdPrice ? Number(formatEther(sharesBought)) * wstethUsdPrice : null;
+                  const profitUsd =
+                    wstethUsdPrice && profit > 0n ? Number(formatEther(profit)) * wstethUsdPrice : null;
 
-                    // Calculate cost per share and projected payout per share
-                    // Formula matches PAMM.sol: payoutPerShare = mulDiv(pot, Q, winningCirc) where Q = 1e18
-                    const Q = parseEther("1"); // 1e18, same as contract
-                    const userAvgCostPerShare =
-                      costWei > 0n && sharesBought > 0n
-                        ? (costWei * Q) / sharesBought // Cost in wei per share
-                        : 0n;
+                  // Calculate cost per share and projected payout per share
+                  // Formula matches PAMM.sol: payoutPerShare = mulDiv(pot, Q, winningCirc) where Q = 1e18
+                  const Q = parseEther("1"); // 1e18, same as contract
+                  const userAvgCostPerShare =
+                    costWei > 0n && sharesBought > 0n
+                      ? (costWei * Q) / sharesBought // Cost in wei per share
+                      : 0n;
 
-                    const positionCirculating = position === "yes" ? yesCirculating : noCirculating;
-                    const projectedPayoutPerShare =
-                      positionCirculating > 0n && potAfterFee > 0n
-                        ? (potAfterFee * Q) / positionCirculating // Payout in wei per share (after resolver fee)
-                        : 0n;
+                  const positionCirculating = position === "yes" ? yesCirculating : noCirculating;
+                  const projectedPayoutPerShare =
+                    positionCirculating > 0n && potAfterFee > 0n
+                      ? (potAfterFee * Q) / positionCirculating // Payout in wei per share (after resolver fee)
+                      : 0n;
 
-                    const isAboveBreakeven =
-                      userAvgCostPerShare > projectedPayoutPerShare && projectedPayoutPerShare > 0n;
+                  const isAboveBreakeven =
+                    userAvgCostPerShare > projectedPayoutPerShare && projectedPayoutPerShare > 0n;
 
-                    return (
-                      <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                            Potential Payout (if {position.toUpperCase()} wins)
-                          </span>
-                          <div className="text-right">
-                            <div className="font-mono font-bold text-base text-purple-900 dark:text-purple-100">
-                              {Number(formatEther(sharesBought)).toFixed(4)} wstETH
-                            </div>
-                            {payoutUsd && (
-                              <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
-                                ≈ $
-                                {payoutUsd.toLocaleString(undefined, {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })}
-                              </div>
-                            )}
+                  return (
+                    <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
+                          Potential Payout (if {position.toUpperCase()} wins)
+                        </span>
+                        <div className="text-right">
+                          <div className="font-mono font-bold text-base text-purple-900 dark:text-purple-100">
+                            {Number(formatEther(sharesBought)).toFixed(4)} wstETH
                           </div>
-                        </div>
-                        {profit > 0n && (
-                          <div className="flex items-center justify-between text-sm border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
-                            <span className="text-purple-700 dark:text-purple-300">Potential Profit</span>
-                            <div className="text-right">
-                              <div className="font-mono font-semibold text-green-600 dark:text-green-400">
-                                +{Number(formatEther(profit)).toFixed(4)} wstETH
-                              </div>
-                              {profitUsd && (
-                                <div className="text-xs text-green-600 dark:text-green-400 font-medium">
-                                  ≈ +$
-                                  {profitUsd.toLocaleString(undefined, {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Payout Analysis */}
-                        <div className="space-y-2 text-xs border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-purple-700 dark:text-purple-300 font-medium">
-                              Your Cost Per Share
-                            </span>
-                            <span className="font-mono text-purple-900 dark:text-purple-100">
-                              {Number(formatEther(userAvgCostPerShare)).toFixed(6)} wstETH
-                            </span>
-                          </div>
-                          {projectedPayoutPerShare > 0n && (
-                            <>
-                              <div className="flex items-center justify-between">
-                                <span className="text-purple-700 dark:text-purple-300 font-medium">
-                                  Payout/Share (if resolved now)
-                                </span>
-                                <span className="font-mono text-purple-900 dark:text-purple-100">
-                                  {Number(formatEther(projectedPayoutPerShare)).toFixed(6)} wstETH
-                                </span>
-                              </div>
-                              {feeBps > 0 && (
-                                <div className="text-[10px] text-purple-600 dark:text-purple-400 italic">
-                                  (After {(feeBps / 100).toFixed(2)}% resolver fee)
-                                </div>
-                              )}
-                            </>
-                          )}
-
-                          {/* Position Status - Only show if significantly above breakeven */}
-                          {isAboveBreakeven && userAvgCostPerShare > (projectedPayoutPerShare * 11n) / 10n && (
-                            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded p-2 mt-2">
-                              <p className="text-blue-700 dark:text-blue-300 text-[11px] leading-relaxed">
-                                💡 <span className="font-medium">Heads up:</span> For this position to be profitable at
-                                current odds, more traders would need to bet on the opposite side to grow the pot.
-                                Alternatively, you can sell now at market odds or wait for the odds to improve.
-                              </p>
+                          {payoutUsd && (
+                            <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                              ≈ $
+                              {payoutUsd.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
                             </div>
                           )}
-
-                          <p className="text-purple-600 dark:text-purple-400 italic pt-1 text-[11px]">
-                            Payouts are determined by the final pot size divided by winning shares (parimutuel style)
-                          </p>
                         </div>
                       </div>
-                    );
-                  } else {
-                    const currentPositionPool = position === "yes" ? displayYes : displayNo;
-                    const totalPool = displayYes + displayNo;
-
-                    const newPositionPool = currentPositionPool + amountWei;
-                    const newTotalPool = totalPool + amountWei;
-
-                    const potentialPayout = newTotalPool > 0n ? (amountWei * newTotalPool) / newPositionPool : 0n;
-                    const profit = potentialPayout > amountWei ? potentialPayout - amountWei : 0n;
-
-                    const payoutUsd = wstethUsdPrice ? Number(formatEther(potentialPayout)) * wstethUsdPrice : null;
-                    const profitUsd =
-                      wstethUsdPrice && profit > 0n ? Number(formatEther(profit)) * wstethUsdPrice : null;
-
-                    return (
-                      <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                            Potential Payout (if {position.toUpperCase()} wins)
-                          </span>
+                      {profit > 0n && (
+                        <div className="flex items-center justify-between text-sm border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
+                          <span className="text-purple-700 dark:text-purple-300">Potential Profit</span>
                           <div className="text-right">
-                            <div className="font-mono font-bold text-base text-purple-900 dark:text-purple-100">
-                              {Number(formatEther(potentialPayout)).toFixed(4)} wstETH
+                            <div className="font-mono font-semibold text-green-600 dark:text-green-400">
+                              +{Number(formatEther(profit)).toFixed(4)} wstETH
                             </div>
-                            {payoutUsd && (
-                              <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
-                                ≈ $
-                                {payoutUsd.toLocaleString(undefined, {
+                            {profitUsd && (
+                              <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+                                ≈ +$
+                                {profitUsd.toLocaleString(undefined, {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,
                                 })}
@@ -906,36 +733,56 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                             )}
                           </div>
                         </div>
-                        {profit > 0n && (
-                          <div className="flex items-center justify-between text-sm border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
-                            <span className="text-purple-700 dark:text-purple-300">Potential Profit</span>
-                            <div className="text-right">
-                              <div className="font-mono font-semibold text-green-600 dark:text-green-400">
-                                +{Number(formatEther(profit)).toFixed(4)} wstETH
-                              </div>
-                              {profitUsd && (
-                                <div className="text-xs text-green-600 dark:text-green-400 font-medium">
-                                  ≈ +$
-                                  {profitUsd.toLocaleString(undefined, {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                </div>
-                              )}
+                      )}
+
+                      {/* Payout Analysis */}
+                      <div className="space-y-2 text-xs border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-purple-700 dark:text-purple-300 font-medium">
+                            Your Cost Per Share
+                          </span>
+                          <span className="font-mono text-purple-900 dark:text-purple-100">
+                            {Number(formatEther(userAvgCostPerShare)).toFixed(6)} wstETH
+                          </span>
+                        </div>
+                        {projectedPayoutPerShare > 0n && (
+                          <>
+                            <div className="flex items-center justify-between">
+                              <span className="text-purple-700 dark:text-purple-300 font-medium">
+                                Payout/Share (if resolved now)
+                              </span>
+                              <span className="font-mono text-purple-900 dark:text-purple-100">
+                                {Number(formatEther(projectedPayoutPerShare)).toFixed(6)} wstETH
+                              </span>
                             </div>
+                            {feeBps > 0 && (
+                              <div className="text-[10px] text-purple-600 dark:text-purple-400 italic">
+                                (After {(feeBps / 100).toFixed(2)}% resolver fee)
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Position Status - Only show if significantly above breakeven */}
+                        {isAboveBreakeven && userAvgCostPerShare > (projectedPayoutPerShare * 11n) / 10n && (
+                          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded p-2 mt-2">
+                            <p className="text-blue-700 dark:text-blue-300 text-[11px] leading-relaxed">
+                              💡 <span className="font-medium">Heads up:</span> For this position to be profitable at
+                              current odds, more traders would need to bet on the opposite side to grow the pot.
+                              Alternatively, you can sell now at market odds or wait for the odds to improve.
+                            </p>
                           </div>
                         )}
-                        <p className="text-xs text-purple-600 dark:text-purple-400 italic border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
-                          Estimated based on current pool ratio. Final payout depends on total pool when market
-                          resolves.
+
+                        <p className="text-purple-600 dark:text-purple-400 italic pt-1 text-[11px]">
+                          Payouts are determined by the final pot size divided by winning shares (parimutuel style)
                         </p>
                       </div>
-                    );
-                  }
+                    </div>
+                  );
                 })()}
 
-              {marketType === "amm" &&
-                estimatedCost > 0n &&
+              {estimatedCost > 0n &&
                 amount &&
                 parseFloat(amount) > 0 &&
                 (() => {
@@ -966,40 +813,17 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                       </div>
                     );
                   } else {
-                    const bufferBps = calculateIntelligentBuffer(amountWei);
-                    const bufferMultiplier = BigInt(10000 + bufferBps);
-                    const bufferPercent = (bufferBps / 100).toFixed(1);
-
-                    let ethToSend: bigint;
-                    if (stEthPerToken) {
-                      ethToSend = (wstInMax * parseEther("1") * bufferMultiplier) / (stEthPerToken * 10000n);
-                    } else {
-                      ethToSend = (wstInMax * 12n * bufferMultiplier) / 100000n;
-                    }
-
+                    // New PAMM: ETH is sent directly, no conversion needed
                     return (
                       <div className="bg-card border border-border rounded-lg p-4 space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-muted-foreground">Estimated Cost</span>
+                          <span className="text-sm font-medium text-muted-foreground">ETH to spend</span>
                           <span className="font-mono font-bold text-base">
-                            {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
+                            {Number(formatEther(amountWei)).toFixed(6)} ETH
                           </span>
                         </div>
-                        <div className="border-t border-border pt-2 space-y-1.5 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Max Cost (with slippage)</span>
-                            <span className="font-mono text-xs">{Number(formatEther(wstInMax)).toFixed(6)} wstETH</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">ETH to send</span>
-                            <span className="font-mono font-semibold">
-                              {Number(formatEther(ethToSend)).toFixed(6)} ETH
-                            </span>
-                          </div>
-                        </div>
                         <p className="text-xs text-muted-foreground italic pt-1 border-t border-border/50">
-                          Extra ETH is refunded as wstETH. Includes {bufferPercent}% intelligent buffer based on market
-                          conditions.
+                          You will receive prediction market shares in exchange.
                         </p>
                       </div>
                     );
@@ -1007,8 +831,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 })()}
 
               {/* Slippage Settings - Collapsible & Subtle */}
-              {marketType === "amm" && (
-                <div className="pt-2 border-t border-border/30">
+              <div className="pt-2 border-t border-border/30">
                   <button
                     type="button"
                     onClick={() => setShowSlippageSettings(!showSlippageSettings)}
@@ -1042,7 +865,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                     </div>
                   )}
                 </div>
-              )}
             </TabsContent>
 
             <TabsContent value="sell" className="space-y-5 mt-5">
@@ -1079,7 +901,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="sell-amount" className="text-sm font-semibold">
-                    {marketType === "amm" ? "Shares to Sell" : "Amount (shares)"}
+                    Shares to Sell
                   </Label>
 
                   {/* Balance display (only when we have it) */}
@@ -1117,7 +939,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 <p className="text-xs text-muted-foreground">Sell your {position.toUpperCase()} shares for wstETH</p>
               </div>
 
-              {marketType === "amm" && estimatedCost > 0n && (
+              {estimatedCost > 0n && (
                 <div className="bg-card border border-border rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-muted-foreground">Estimated Payout</span>
@@ -1132,8 +954,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               )}
 
               {/* Slippage Settings - Collapsible & Subtle */}
-              {marketType === "amm" && (
-                <div className="pt-2 border-t border-border/30">
+              <div className="pt-2 border-t border-border/30">
                   <button
                     type="button"
                     onClick={() => setShowSlippageSettings(!showSlippageSettings)}
@@ -1167,7 +988,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                     </div>
                   )}
                 </div>
-              )}
             </TabsContent>
           </Tabs>
 

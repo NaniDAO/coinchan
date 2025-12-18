@@ -7,16 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, memo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useTheme } from "@/lib/theme";
 
 interface PredictionMarketOddsChartProps {
@@ -48,11 +39,7 @@ function priceToYesProbability(price: number, yesIsId0: boolean): number {
   }
 }
 
-const PredictionMarketOddsChart = ({
-  poolId,
-  yesIsId0,
-  defaultTimeRange = "1w",
-}: PredictionMarketOddsChartProps) => {
+const PredictionMarketOddsChart = ({ poolId, yesIsId0, defaultTimeRange = "1w" }: PredictionMarketOddsChartProps) => {
   const { t } = useTranslation();
   const [chartError, setChartError] = useState<string | null>(null);
 
@@ -128,7 +115,7 @@ const PredictionMarketOddsChart = ({
               "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
               timeRange.activeButton === "24h"
                 ? "bg-background text-foreground shadow-sm font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             {t("coin.24h")}
@@ -139,7 +126,7 @@ const PredictionMarketOddsChart = ({
               "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
               timeRange.activeButton === "1w"
                 ? "bg-background text-foreground shadow-sm font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             {t("coin.7d")}
@@ -150,7 +137,7 @@ const PredictionMarketOddsChart = ({
               "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
               timeRange.activeButton === "1m"
                 ? "bg-background text-foreground shadow-sm font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             {t("coin.30d")}
@@ -161,7 +148,7 @@ const PredictionMarketOddsChart = ({
               "text-xs px-3 py-1.5 rounded-lg transition-all duration-200",
               timeRange.activeButton === "all"
                 ? "bg-background text-foreground shadow-sm font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             {t("coin.all")}
@@ -175,7 +162,7 @@ const PredictionMarketOddsChart = ({
             <span className="text-muted-foreground">YES %</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-0.5 bg-muted-foreground/50" style={{ borderTop: '2px dashed' }} />
+            <div className="w-3 h-0.5 bg-muted-foreground/50" style={{ borderTop: "2px dashed" }} />
             <span className="text-muted-foreground">50%</span>
           </div>
         </div>
@@ -192,16 +179,24 @@ const PredictionMarketOddsChart = ({
           </div>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <LoadingLogo />
-            <p className="text-sm text-muted-foreground animate-pulse mt-3">
-              Loading odds history...
-            </p>
+            <p className="text-sm text-muted-foreground animate-pulse mt-3">Loading odds history...</p>
           </div>
         </div>
       ) : chartError ? (
         <div className="flex flex-col items-center justify-center h-[400px] space-y-4">
           <div className="text-center space-y-2">
-            <svg className="w-12 h-12 mx-auto text-red-500 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-12 h-12 mx-auto text-red-500 opacity-50"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <p className="text-red-500 font-medium">Chart data unavailable</p>
             <p className="text-sm text-muted-foreground">{chartError}</p>
@@ -245,7 +240,7 @@ const OddsChart = ({ priceData, yesIsId0 }: OddsChartProps) => {
     });
 
     const sorted = Array.from(uniqueData.values()).sort(
-      (a, b) => Number.parseInt(a.timestamp) - Number.parseInt(b.timestamp)
+      (a, b) => Number.parseInt(a.timestamp) - Number.parseInt(b.timestamp),
     );
 
     return sorted
@@ -284,9 +279,7 @@ const OddsChart = ({ priceData, yesIsId0 }: OddsChartProps) => {
 
   if (chartData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-        No odds history available
-      </div>
+      <div className="flex items-center justify-center h-[400px] text-muted-foreground">No odds history available</div>
     );
   }
 
@@ -349,7 +342,10 @@ const OddsChart = ({ priceData, yesIsId0 }: OddsChartProps) => {
             }}
           />
 
-          <Tooltip content={<OddsTooltip />} cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1, strokeDasharray: "4 4" }} />
+          <Tooltip
+            content={<OddsTooltip />}
+            cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1, strokeDasharray: "4 4" }}
+          />
 
           <Area
             type="monotone"

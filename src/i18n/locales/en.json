@@ -1090,10 +1090,19 @@
     "loading_orders": "Syncing orderbook state...",
     "refresh": "Refresh",
     "view_on_explorer": "View on Explorer",
-    "no_filtered_orders": "No filtered orders found",
+    "no_filtered_orders": "No orders match your filters",
+    "try_adjusting_filters": "Try adjusting your filters or search criteria",
     "ownership": "Ownership",
     "error_fetching": "Error fetching orders: {message}",
-    "cancel_failed": "Failed to cancel order"
+    "cancel_failed": "Failed to cancel order",
+    "search_by_address": "Search by maker address...",
+    "search": "Search",
+    "filters": "Filters",
+    "options": "Options",
+    "hide_expired": "Hide Expired",
+    "type": "Type",
+    "regular": "Regular",
+    "prediction_market": "Prediction Market"
   },
   "coinNani": {
     "morning": "Good morning!",
@@ -1281,7 +1290,11 @@
     "resolving": "Resolving...",
     "transaction_confirmed": "Transaction confirmed!",
     "waiting_for_closing": "Waiting for Closing Time",
-    "market_closes_at": "Market will automatically close at {{time}}"
+    "market_closes_at": "Market will automatically close at {{time}}",
+    "condition_ready": "Condition Ready to Resolve",
+    "condition_pending": "Condition Not Yet Met",
+    "condition_true_outcome_yes": "Current outcome: YES",
+    "condition_false_outcome_no": "Current outcome: NO"
   },
   "lockup": {
     "mode": "Lockup Mode",

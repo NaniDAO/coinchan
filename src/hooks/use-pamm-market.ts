@@ -54,7 +54,11 @@ export function usePAMMMarket(pool: Pool | null): {
   const marketId = yesNoIds?.marketId ?? null;
 
   // Fetch market data from PAMM contract
-  const { data: contractData, isLoading, error } = useReadContracts({
+  const {
+    data: contractData,
+    isLoading,
+    error,
+  } = useReadContracts({
     contracts: [
       // getMarket returns full market data
       {
@@ -111,17 +115,13 @@ export function usePAMMMarket(pool: Pool | null): {
   const tradingOpen = contractData?.[1]?.result ?? false;
 
   // Calculate probabilities from pool reserves
-  const rYes = pool?.reserve0 && pool?.reserve1
-    ? (yesNoIds.yesIsId0 ? BigInt(pool.reserve0) : BigInt(pool.reserve1))
-    : null;
-  const rNo = pool?.reserve0 && pool?.reserve1
-    ? (yesNoIds.yesIsId0 ? BigInt(pool.reserve1) : BigInt(pool.reserve0))
-    : null;
+  const rYes =
+    pool?.reserve0 && pool?.reserve1 ? (yesNoIds.yesIsId0 ? BigInt(pool.reserve0) : BigInt(pool.reserve1)) : null;
+  const rNo =
+    pool?.reserve0 && pool?.reserve1 ? (yesNoIds.yesIsId0 ? BigInt(pool.reserve1) : BigInt(pool.reserve0)) : null;
 
   const { yesPercent, noPercent } =
-    rYes !== null && rNo !== null
-      ? calculateYesProbability(rYes, rNo)
-      : { yesPercent: 50, noPercent: 50 };
+    rYes !== null && rNo !== null ? calculateYesProbability(rYes, rNo) : { yesPercent: 50, noPercent: 50 };
 
   // Extract market data from getMarket response
   // Returns: [resolver, collateral, resolved, outcome, canClose, close, collateralLocked, yesSupply, noSupply, description]

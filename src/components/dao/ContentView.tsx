@@ -10,79 +10,73 @@ import { MembershipView } from "./MembershipView";
 import type { ViewMode } from "./VoidView";
 
 interface ContentViewProps {
-    mode: ViewMode;
-    onBack: () => void;
+  mode: ViewMode;
+  onBack: () => void;
 }
 
 export const ContentView = ({ mode, onBack }: ContentViewProps) => {
-    const getContent = () => {
-        switch (mode) {
-            case "proposals":
-                return { title: "PROPOSALS", Component: ProposalList };
-            case "voting":
-                return { title: "VOTING POWER", Component: VotingPower };
-            case "stats":
-                return { title: "STATISTICS", Component: DAOStats };
-            case "join":
-                return { title: "JOIN DAO", Component: JoinDAO };
-            case "create":
-                return { title: "CREATE PROPOSAL", Component: CreateProposal };
-            case "treasury":
-                return { title: "TREASURY", Component: TreasuryView };
-            case "governance":
-                return { title: "GOVERNANCE", Component: GovernanceInfo };
-            case "membership":
-                return { title: "MEMBERSHIP", Component: MembershipView };
-            default:
-                return null;
-        }
-    };
+  const getContent = () => {
+    switch (mode) {
+      case "proposals":
+        return { title: "PROPOSALS", Component: ProposalList };
+      case "voting":
+        return { title: "VOTING POWER", Component: VotingPower };
+      case "stats":
+        return { title: "STATISTICS", Component: DAOStats };
+      case "join":
+        return { title: "JOIN DAO", Component: JoinDAO };
+      case "create":
+        return { title: "CREATE PROPOSAL", Component: CreateProposal };
+      case "treasury":
+        return { title: "TREASURY", Component: TreasuryView };
+      case "governance":
+        return { title: "GOVERNANCE", Component: GovernanceInfo };
+      case "membership":
+        return { title: "MEMBERSHIP", Component: MembershipView };
+      default:
+        return null;
+    }
+  };
 
-    const content = getContent();
-    if (!content) return null;
+  const content = getContent();
+  if (!content) return null;
 
-    const { title, Component } = content;
+  const { title, Component } = content;
 
-    return (
-        <motion.div
-            className="w-full max-w-5xl h-full flex flex-col"
-            initial={false}
-            animate={{ opacity: 1, y: 0 }}
+  return (
+    <motion.div className="w-full max-w-5xl h-full flex flex-col" initial={false} animate={{ opacity: 1, y: 0 }}>
+      {/* Header - Fixed */}
+      <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-6 flex-shrink-0">
+        <motion.button
+          onClick={onBack}
+          className="px-3 py-1.5 sm:px-4 sm:py-2 border border-white/30 hover:border-white/60 bg-black/40 backdrop-blur-sm font-mono text-xs sm:text-sm transition-all"
+          whileHover={{ x: -4 }}
         >
-            {/* Header - Fixed */}
-            <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-6 flex-shrink-0">
-                <motion.button
-                    onClick={onBack}
-                    className="px-3 py-1.5 sm:px-4 sm:py-2 border border-white/30 hover:border-white/60 bg-black/40 backdrop-blur-sm font-mono text-xs sm:text-sm transition-all"
-                    whileHover={{ x: -4 }}
-                >
-                    ← RETURN
-                </motion.button>
-                <div className="border border-white/30 hover:border-white/60 bg-black/40 font-mono text-xs sm:text-sm tracking-wider px-3 py-1.5 sm:px-4 sm:py-2">
-                    {title}
-                </div>
-            </div>
+          ← RETURN
+        </motion.button>
+        <div className="border border-white/30 hover:border-white/60 bg-black/40 font-mono text-xs sm:text-sm tracking-wider px-3 py-1.5 sm:px-4 sm:py-2">
+          {title}
+        </div>
+      </div>
 
-            {/* Content Panel - Scrollable */}
-            <div
-                className="border border-white/20 bg-black/60 backdrop-blur-md p-4 sm:p-8 cyberspace-content overflow-y-auto flex-1 max-h-[calc(100vh-180px)] sm:max-h-[calc(100vh-200px)]"
-                style={{
-                    scrollBehavior: "smooth",
-                    boxShadow: "0 0 30px rgba(255, 255, 255, 0.05)",
-                }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow =
-                        "0 0 40px rgba(255, 255, 255, 0.1)";
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow =
-                        "0 0 30px rgba(255, 255, 255, 0.05)";
-                }}
-            >
-                <Component />
-            </div>
+      {/* Content Panel - Scrollable */}
+      <div
+        className="border border-white/20 bg-black/60 backdrop-blur-md p-4 sm:p-8 cyberspace-content overflow-y-auto flex-1 max-h-[calc(100vh-180px)] sm:max-h-[calc(100vh-200px)]"
+        style={{
+          scrollBehavior: "smooth",
+          boxShadow: "0 0 30px rgba(255, 255, 255, 0.05)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.boxShadow = "0 0 40px rgba(255, 255, 255, 0.1)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.boxShadow = "0 0 30px rgba(255, 255, 255, 0.05)";
+        }}
+      >
+        <Component />
+      </div>
 
-            <style>{`
+      <style>{`
         /* Hexagon clip path for navigation nodes */
         .clip-hexagon {
           clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
@@ -198,6 +192,6 @@ export const ContentView = ({ mode, onBack }: ContentViewProps) => {
           background: rgba(255, 255, 255, 0.5);
         }
       `}</style>
-        </motion.div>
-    );
+    </motion.div>
+  );
 };

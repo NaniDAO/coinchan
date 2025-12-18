@@ -7,16 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useTheme } from "@/lib/theme";
 
 interface PriceChartProps {
@@ -302,10 +293,10 @@ const CustomTooltip = ({ active, payload, showUsd }: any) => {
     return (
       <div className="bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg px-3 py-2 shadow-lg">
         <p className="text-xs text-muted-foreground mb-1">
-          {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </p>
         <p className="text-sm font-semibold">
-          {formatPriceValue(data.price)} {showUsd ? 'USD' : 'ETH'}
+          {formatPriceValue(data.price)} {showUsd ? "USD" : "ETH"}
         </p>
       </div>
     );
@@ -315,7 +306,7 @@ const CustomTooltip = ({ active, payload, showUsd }: any) => {
 
 // Format price with proper decimal handling
 const formatPriceValue = (value: number): string => {
-  if (value === 0) return '0';
+  if (value === 0) return "0";
 
   // For very small numbers, use scientific notation
   if (value < 0.000001) {
@@ -361,7 +352,7 @@ const TVPriceChart: React.FC<{
     });
 
     const sorted = Array.from(uniqueData.values()).sort(
-      (a, b) => Number.parseInt(a.timestamp) - Number.parseInt(b.timestamp)
+      (a, b) => Number.parseInt(a.timestamp) - Number.parseInt(b.timestamp),
     );
 
     // Convert to chart format
@@ -438,22 +429,13 @@ const TVPriceChart: React.FC<{
   const strokeWidth = isDark ? 2 : 2;
 
   if (chartData.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-        {t("chart.no_data")}
-      </div>
-    );
+    return <div className="flex items-center justify-center h-[400px] text-muted-foreground">{t("chart.no_data")}</div>;
   }
 
   return (
-    <div
-      className="flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none h-full w-full"
-    >
+    <div className="flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none h-full w-full">
       <ResponsiveContainer width="100%" height={400}>
-        <AreaChart
-          data={chartData}
-          margin={{ top: 12, right: 12, bottom: 0, left: 0 }}
-        >
+        <AreaChart data={chartData} margin={{ top: 12, right: 12, bottom: 0, left: 0 }}>
           <defs>
             <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={chartColor} stopOpacity={gradientStartOpacity} />
@@ -461,39 +443,34 @@ const TVPriceChart: React.FC<{
             </linearGradient>
           </defs>
 
-          <CartesianGrid
-            strokeDasharray="14 10"
-            stroke={gridColor}
-            strokeWidth={0.5}
-            vertical={false}
-          />
+          <CartesianGrid strokeDasharray="14 10" stroke={gridColor} strokeWidth={0.5} vertical={false} />
 
           <XAxis
             dataKey="timestamp"
             type="number"
-            domain={['dataMin', 'dataMax']}
+            domain={["dataMin", "dataMax"]}
             tickFormatter={(timestamp) => {
               const date = new Date(timestamp * 1000);
-              return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+              return date.toLocaleDateString([], { month: "short", day: "numeric" });
             }}
             stroke={textColor}
             tickLine={false}
             axisLine={false}
             dy={10}
-            style={{ fontSize: '11px' }}
+            style={{ fontSize: "11px" }}
             minTickGap={50}
           />
 
           <YAxis
             dataKey="price"
             type="number"
-            domain={['auto', 'auto']}
+            domain={["auto", "auto"]}
             tickFormatter={formatPriceValue}
             stroke={textColor}
             tickLine={false}
             axisLine={false}
             dx={-10}
-            style={{ fontSize: '11px' }}
+            style={{ fontSize: "11px" }}
             width={80}
           />
 
@@ -507,7 +484,7 @@ const TVPriceChart: React.FC<{
 
           <Tooltip
             content={<CustomTooltip showUsd={showUsd} />}
-            cursor={{ stroke: 'hsl(var(--border))', strokeWidth: 1, strokeDasharray: '4 4' }}
+            cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1, strokeDasharray: "4 4" }}
           />
 
           <Area

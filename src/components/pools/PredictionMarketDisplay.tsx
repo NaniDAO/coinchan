@@ -12,10 +12,7 @@ interface PredictionMarketDisplayProps {
 /**
  * Displays prediction market odds in a Polymarket-style format
  */
-export function PredictionMarketDisplay({
-  marketData,
-  className,
-}: PredictionMarketDisplayProps) {
+export function PredictionMarketDisplay({ marketData, className }: PredictionMarketDisplayProps) {
   const {
     description,
     yesPercent,
@@ -64,14 +61,10 @@ export function PredictionMarketDisplay({
             "gap-1",
             outcome
               ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
-              : "border-rose-500 text-rose-600 dark:text-rose-400"
+              : "border-rose-500 text-rose-600 dark:text-rose-400",
           )}
         >
-          {outcome ? (
-            <CheckCircle2 className="w-3 h-3" />
-          ) : (
-            <XCircle className="w-3 h-3" />
-          )}
+          {outcome ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
           {outcome ? "YES Won" : "NO Won"}
         </Badge>
       );
@@ -109,9 +102,7 @@ export function PredictionMarketDisplay({
         <div className="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 border border-purple-200 dark:border-purple-800">
           <h3 className="font-semibold text-lg text-foreground">{description}</h3>
           {closeTimestamp !== null && closeTimestamp > 0n && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Resolves: {formatCloseDate(closeTimestamp)}
-            </p>
+            <p className="text-sm text-muted-foreground mt-1">Resolves: {formatCloseDate(closeTimestamp)}</p>
           )}
         </div>
       )}
@@ -126,7 +117,7 @@ export function PredictionMarketDisplay({
               ? "bg-emerald-100 dark:bg-emerald-950/40 border-emerald-400"
               : resolved
                 ? "bg-muted/30 border-muted opacity-50"
-                : "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border-emerald-300 dark:border-emerald-700"
+                : "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border-emerald-300 dark:border-emerald-700",
           )}
         >
           {resolved && outcome && (
@@ -134,9 +125,7 @@ export function PredictionMarketDisplay({
               <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
           )}
-          <div className="text-sm font-medium text-emerald-700 dark:text-emerald-300 mb-1">
-            YES
-          </div>
+          <div className="text-sm font-medium text-emerald-700 dark:text-emerald-300 mb-1">YES</div>
           <div className="text-4xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
             {yesPercent.toFixed(1)}%
           </div>
@@ -153,7 +142,7 @@ export function PredictionMarketDisplay({
               ? "bg-rose-100 dark:bg-rose-950/40 border-rose-400"
               : resolved
                 ? "bg-muted/30 border-muted opacity-50"
-                : "bg-gradient-to-br from-rose-50 to-rose-100 dark:from-rose-950/30 dark:to-rose-900/30 border-rose-300 dark:border-rose-700"
+                : "bg-gradient-to-br from-rose-50 to-rose-100 dark:from-rose-950/30 dark:to-rose-900/30 border-rose-300 dark:border-rose-700",
           )}
         >
           {resolved && !outcome && (
@@ -161,9 +150,7 @@ export function PredictionMarketDisplay({
               <CheckCircle2 className="w-5 h-5 text-rose-600 dark:text-rose-400" />
             </div>
           )}
-          <div className="text-sm font-medium text-rose-700 dark:text-rose-300 mb-1">
-            NO
-          </div>
+          <div className="text-sm font-medium text-rose-700 dark:text-rose-300 mb-1">NO</div>
           <div className="text-4xl font-bold text-rose-600 dark:text-rose-400 tabular-nums">
             {noPercent.toFixed(1)}%
           </div>
@@ -183,7 +170,7 @@ export function PredictionMarketDisplay({
                 ? "bg-emerald-500"
                 : resolved
                   ? "bg-muted"
-                  : "bg-gradient-to-r from-emerald-400 to-emerald-500"
+                  : "bg-gradient-to-r from-emerald-400 to-emerald-500",
             )}
             style={{ width: `${yesPercent}%` }}
           />
@@ -194,7 +181,7 @@ export function PredictionMarketDisplay({
                 ? "bg-rose-500"
                 : resolved
                   ? "bg-muted"
-                  : "bg-gradient-to-r from-rose-400 to-rose-500"
+                  : "bg-gradient-to-r from-rose-400 to-rose-500",
             )}
             style={{ width: `${noPercent}%` }}
           />
@@ -240,17 +227,13 @@ export function PredictionMarketOddsCompact({
         <div
           className={cn(
             "w-3 h-3 rounded-full",
-            resolved && outcome
-              ? "bg-emerald-500 ring-2 ring-emerald-300"
-              : "bg-emerald-500"
+            resolved && outcome ? "bg-emerald-500 ring-2 ring-emerald-300" : "bg-emerald-500",
           )}
         />
         <span
           className={cn(
             "font-bold text-lg tabular-nums",
-            resolved && !outcome
-              ? "text-muted-foreground"
-              : "text-emerald-600 dark:text-emerald-400"
+            resolved && !outcome ? "text-muted-foreground" : "text-emerald-600 dark:text-emerald-400",
           )}
         >
           {yesPercent.toFixed(1)}%
@@ -262,17 +245,13 @@ export function PredictionMarketOddsCompact({
         <div
           className={cn(
             "w-3 h-3 rounded-full",
-            resolved && !outcome
-              ? "bg-rose-500 ring-2 ring-rose-300"
-              : "bg-rose-500"
+            resolved && !outcome ? "bg-rose-500 ring-2 ring-rose-300" : "bg-rose-500",
           )}
         />
         <span
           className={cn(
             "font-bold text-lg tabular-nums",
-            resolved && outcome
-              ? "text-muted-foreground"
-              : "text-rose-600 dark:text-rose-400"
+            resolved && outcome ? "text-muted-foreground" : "text-rose-600 dark:text-rose-400",
           )}
         >
           {noPercent.toFixed(1)}%

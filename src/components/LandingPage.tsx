@@ -144,25 +144,54 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         </div>
       </div>
 
-      {/* MegaETH Prediction Markets */}
+      {/* Prediction Markets */}
       <div className="mb-4">
         <div className="text-lg mb-2 font-bold">{t("landing.predictions")}:</div>
         <div className="space-y-0 text-xs">
           <div className="w-fit text-lg">
             <button
               type="button"
-              onClick={() => navigate({ to: "/mega" })}
+              onClick={() => navigate({ to: "/predict" })}
+              className="flex flex-row items-center hover:underline cursor-pointer"
+            >
+              <span className="text-muted-foreground">├── </span>
+              <span className="font-bold">Onchain Events</span>
+              <span className="text-muted-foreground text-xs ml-1">(View all)</span>
+            </button>
+          </div>
+          <div className="w-fit text-lg">
+            <a
+              href="https://pnkpm.eth.limo/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-row items-center hover:underline cursor-pointer"
+            >
+              <span className="text-muted-foreground">├── </span>
+              <svg className="w-5 h-5 mr-1" viewBox="0 0 100 100">
+                <rect fill="#09090b" width="100" height="100" rx="12" />
+                <text x="50" y="55" fontFamily="system-ui,sans-serif" fontSize="16" fontWeight="600" fill="#ec4899" textAnchor="middle">Pnk</text>
+                <text x="50" y="72" fontFamily="system-ui,sans-serif" fontSize="14" fontWeight="600" fill="#3b82f6" textAnchor="middle">PM</text>
+              </svg>
+              <span className="font-bold">PnkPM</span>
+              <span className="text-muted-foreground text-xs ml-1">(PAMM Market)</span>
+            </a>
+          </div>
+          <div className="w-fit text-lg">
+            <a
+              href="https://gaspm.eth.limo/"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex flex-row items-center hover:underline cursor-pointer"
             >
               <span className="text-muted-foreground">└── </span>
-              <img
-                src="https://content.wrappr.wtf/ipfs/bafkreiefdha6ms7w3pdbrgdmsdwny373psbdq5t7oaaoryt3hh7pi7ndmy"
-                alt="MegaETH"
-                className="w-4 h-4 mr-2 rounded-full"
-              />
-              <span className="font-bold">MegaETH Fundraise</span>
-              <span className="text-muted-foreground text-xs ml-1">(6 markets)</span>
-            </button>
+              <svg className="w-5 h-5 mr-1" viewBox="0 0 100 100">
+                <rect fill="#09090b" width="100" height="100" rx="12" />
+                <text x="50" y="55" fontFamily="system-ui,sans-serif" fontSize="16" fontWeight="600" fill="#22c55e" textAnchor="middle">Gas</text>
+                <text x="50" y="72" fontFamily="system-ui,sans-serif" fontSize="14" fontWeight="600" fill="#3b82f6" textAnchor="middle">PM</text>
+              </svg>
+              <span className="font-bold">GasPM</span>
+              <span className="text-muted-foreground text-xs ml-1">(PAMM Market)</span>
+            </a>
           </div>
         </div>
       </div>
