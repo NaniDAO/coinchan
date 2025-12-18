@@ -26,13 +26,15 @@ export const useDAOVotingPower = ({ address }: { address?: Address }) => {
 
   const { data, isLoading } = useReadContract({
     address: sharesAddress,
-    abi: [{
-      inputs: [{ internalType: "address", name: "account", type: "address" }],
-      name: "getVotes",
-      outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-      stateMutability: "view",
-      type: "function",
-    }],
+    abi: [
+      {
+        inputs: [{ internalType: "address", name: "account", type: "address" }],
+        name: "getVotes",
+        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+      },
+    ],
     functionName: "getVotes",
     args: address ? [address] : undefined,
     query: {
@@ -55,13 +57,15 @@ export const useDAOShareBalance = ({ address }: { address?: Address }) => {
 
   const { data, isLoading } = useReadContract({
     address: sharesAddress,
-    abi: [{
-      inputs: [{ internalType: "address", name: "", type: "address" }],
-      name: "balanceOf",
-      outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-      stateMutability: "view",
-      type: "function",
-    }],
+    abi: [
+      {
+        inputs: [{ internalType: "address", name: "", type: "address" }],
+        name: "balanceOf",
+        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+      },
+    ],
     functionName: "balanceOf",
     args: address ? [address] : undefined,
     query: {
@@ -84,13 +88,15 @@ export const useDAODelegate = ({ address }: { address?: Address }) => {
 
   const { data } = useReadContract({
     address: sharesAddress,
-    abi: [{
-      inputs: [{ internalType: "address", name: "account", type: "address" }],
-      name: "delegates",
-      outputs: [{ internalType: "address", name: "", type: "address" }],
-      stateMutability: "view",
-      type: "function",
-    }],
+    abi: [
+      {
+        inputs: [{ internalType: "address", name: "account", type: "address" }],
+        name: "delegates",
+        outputs: [{ internalType: "address", name: "", type: "address" }],
+        stateMutability: "view",
+        type: "function",
+      },
+    ],
     functionName: "delegates",
     args: address ? [address] : undefined,
     query: {

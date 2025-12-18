@@ -1228,8 +1228,17 @@
     "refresh": "刷新",
     "view_on_explorer": "在浏览器中查看",
     "no_filtered_orders": "没有符合筛选条件的订单",
+    "try_adjusting_filters": "尝试调整筛选条件或搜索条件",
     "error_fetching": "获取订单错误：{message}",
-    "cancel_failed": "取消订单失败"
+    "cancel_failed": "取消订单失败",
+    "search_by_address": "按挂单者地址搜索...",
+    "search": "搜索",
+    "filters": "筛选",
+    "options": "选项",
+    "hide_expired": "隐藏已过期",
+    "type": "类型",
+    "regular": "常规",
+    "prediction_market": "预测市场"
   },
   "coinNani": {
     "morning": "早上好！",
@@ -1669,7 +1678,11 @@
     "resolving": "解决中...",
     "transaction_confirmed": "交易已确认！",
     "waiting_for_closing": "等待截止时间",
-    "market_closes_at": "市场将在 {{time}} 自动关闭"
+    "market_closes_at": "市场将在 {{time}} 自动关闭",
+    "condition_ready": "条件已满足，可以解决",
+    "condition_pending": "条件尚未满足",
+    "condition_true_outcome_yes": "当前结果: YES",
+    "condition_false_outcome_no": "当前结果: NO"
   },
   "recommendations": {
     "title": "AI 推荐",

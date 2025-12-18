@@ -19,37 +19,23 @@ export const DAOStats = () => {
       ) : (
         <div className="space-y-4">
           <div>
-            <div className="text-xs text-muted-foreground mb-1">
-              {t("dao.total_proposals")}
-            </div>
+            <div className="text-xs text-muted-foreground mb-1">{t("dao.total_proposals")}</div>
             <div className="text-2xl font-bold font-mono">{proposalCount}</div>
           </div>
 
           <div>
-            <div className="text-xs text-muted-foreground mb-1">
-              {t("dao.total_shares")}
-            </div>
-            <div className="text-2xl font-bold font-mono">
-              {formatUnits(totalSupply, 18)}
-            </div>
+            <div className="text-xs text-muted-foreground mb-1">{t("dao.total_shares")}</div>
+            <div className="text-2xl font-bold font-mono">{formatUnits(totalSupply, 18)}</div>
           </div>
 
           <div>
-            <div className="text-xs text-muted-foreground mb-1">
-              {t("dao.quorum_requirement")}
-            </div>
-            <div className="text-2xl font-bold font-mono">
-              {(quorumBps / 100).toFixed(1)}%
-            </div>
+            <div className="text-xs text-muted-foreground mb-1">{t("dao.quorum_requirement")}</div>
+            <div className="text-2xl font-bold font-mono">{(quorumBps / 100).toFixed(1)}%</div>
           </div>
 
           <div>
-            <div className="text-xs text-muted-foreground mb-1">
-              {t("dao.proposal_threshold")}
-            </div>
-            <div className="text-2xl font-bold font-mono">
-              {formatUnits(proposalThreshold, 18)}
-            </div>
+            <div className="text-xs text-muted-foreground mb-1">{t("dao.proposal_threshold")}</div>
+            <div className="text-2xl font-bold font-mono">{formatUnits(proposalThreshold, 18)}</div>
           </div>
         </div>
       )}

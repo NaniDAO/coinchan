@@ -3,10 +3,13 @@ import { z } from "zod";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useEnsAddress } from "wagmi";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { parseEther, isAddress } from "viem";
+import { isAddress } from "viem";
 import { normalize } from "viem/ens";
-import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
-import { PredictionAMMAddress, PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
+import {
+  PAMMSingletonAddress,
+  PAMMSingletonAbi,
+  ETH_COLLATERAL,
+} from "@/constants/PAMMSingleton";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,11 +30,9 @@ const schema = z.object({
   resolver: z.string().min(1, "Resolver address or ENS name is required"),
   closingTime: z.string().min(1, "Closing time is required"),
   canAccelerateClosing: z.boolean(),
-  marketType: z.enum(["parimutuel", "amm"]),
 });
 
 type FormData = z.infer<typeof schema>;
-//type MarketType = "parimutuel" | "amm";
 
 interface CreateMarketFormProps {
   onMarketCreated?: () => void;
@@ -59,7 +60,6 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
     resolver: "",
     closingTime: getDefaultClosingTime(),
     canAccelerateClosing: false,
-    marketType: "parimutuel",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -110,7 +110,6 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
         resolver: account || "",
         closingTime: getDefaultClosingTime(),
         canAccelerateClosing: false,
-        marketType: "parimutuel",
       });
       setImageBuffer(null);
       setImagePreviewUrl("");
@@ -293,34 +292,20 @@ ${lines
 
       toast.info("Creating market…");
 
-      if (parsed.marketType === "parimutuel") {
-        // Pari-mutuel market (existing PredictionMarket contract)
-        await writeContractAsync({
-          address: PredictionMarketAddress as `0x${string}`,
-          abi: PredictionMarketAbi,
-          functionName: "createMarket",
-          args: [tokenUri, resolverAddress as `0x${string}`, BigInt(closingTimestamp), parsed.canAccelerateClosing],
-        });
-      } else {
-        // AMM-based market (PredictionAMM contract) with sensible default seeding
-        // Seed with 10 YES tokens and 10 NO tokens for 50/50 starting probability with tighter spreads
-        const seedYes = parseEther("10");
-        const seedNo = parseEther("10");
-
-        await writeContractAsync({
-          address: PredictionAMMAddress as `0x${string}`,
-          abi: PredictionAMMAbi,
-          functionName: "createMarket",
-          args: [
-            tokenUri,
-            resolverAddress as `0x${string}`,
-            BigInt(closingTimestamp),
-            parsed.canAccelerateClosing,
-            seedYes,
-            seedNo,
-          ],
-        });
-      }
+      // Create PAMM market
+      // createMarket(description, resolver, collateral, close, canClose)
+      await writeContractAsync({
+        address: PAMMSingletonAddress,
+        abi: PAMMSingletonAbi,
+        functionName: "createMarket",
+        args: [
+          tokenUri,
+          resolverAddress as `0x${string}`,
+          ETH_COLLATERAL, // Use ETH as collateral
+          BigInt(closingTimestamp),
+          parsed.canAccelerateClosing,
+        ],
+      });
 
       toast.success("Market creation transaction submitted");
     } catch (err: any) {
@@ -392,73 +377,15 @@ ${lines
             {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}
           </div>
 
-          <div className="grid gap-2">
-            <Label>{t("predict.market_type")}</Label>
-            <div className="flex flex-col gap-3">
-              <div
-                className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                  form.marketType === "parimutuel"
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                }`}
-                onClick={() => setForm((p) => ({ ...p, marketType: "parimutuel" }))}
-              >
-                <div className="flex items-start gap-2">
-                  <input
-                    type="radio"
-                    name="marketType"
-                    checked={form.marketType === "parimutuel"}
-                    onChange={() => setForm((p) => ({ ...p, marketType: "parimutuel" }))}
-                    className="mt-1"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1">
-                      <span className="font-semibold">{t("predict.parimutuel")}</span>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p>{t("predict.parimutuel_description")}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">{t("predict.parimutuel_summary")}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                  form.marketType === "amm" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                }`}
-                onClick={() => setForm((p) => ({ ...p, marketType: "amm" }))}
-              >
-                <div className="flex items-start gap-2">
-                  <input
-                    type="radio"
-                    name="marketType"
-                    checked={form.marketType === "amm"}
-                    onChange={() => setForm((p) => ({ ...p, marketType: "amm" }))}
-                    className="mt-1"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1">
-                      <span className="font-semibold">{t("predict.live_bets_amm")}</span>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p>{t("predict.amm_description")}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">{t("predict.amm_summary")}</p>
-                  </div>
-                </div>
-              </div>
+          {/* PAMM Market Info */}
+          <div className="border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-medium text-sm">
+              <span>📊</span>
+              <span>PAMM Market</span>
             </div>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              Markets use pool-based payouts where winners share the pot proportionally based on their shares.
+            </p>
           </div>
 
           <div className="grid gap-2">

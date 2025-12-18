@@ -374,9 +374,6 @@ export const CreateCoinWizard: React.FC = () => {
           <div className="mb-4">
             <Heading level={3}>Create Token</Heading>
             <p className="text-sm text-secondary-foreground">Set your token details, then deploy.</p>
-            <Link to="/ico" className="text-sm text-primary underline hover:no-underline">
-              Prefer LP-mined fair launch? Try /ico
-            </Link>
           </div>
 
           <div>

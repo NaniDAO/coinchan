@@ -18,9 +18,7 @@ export const Route = createFileRoute("/embed/pool/$poolId" as any)({
   component: EmbedPoolChart,
   validateSearch: (search: Record<string, unknown>): EmbedSearchParams => ({
     theme: search.theme === "light" || search.theme === "dark" ? search.theme : undefined,
-    range: ["24h", "1w", "1m", "all"].includes(search.range as string)
-      ? (search.range as TimeRange)
-      : undefined,
+    range: ["24h", "1w", "1m", "all"].includes(search.range as string) ? (search.range as TimeRange) : undefined,
   }),
 });
 
@@ -67,11 +65,7 @@ function EmbedPoolChart() {
   if (isPredictionMarket && pammData) {
     return (
       <div className="h-screen w-full bg-background p-4">
-        <PredictionMarketOddsChart
-          poolId={poolId}
-          yesIsId0={pammData.yesIsId0}
-          defaultTimeRange={range || "1w"}
-        />
+        <PredictionMarketOddsChart poolId={poolId} yesIsId0={pammData.yesIsId0} defaultTimeRange={range || "1w"} />
       </div>
     );
   }

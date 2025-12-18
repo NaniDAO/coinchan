@@ -13,16 +13,12 @@ import { Route as WlfiRouteImport } from './routes/wlfi'
 import { Route as UserRouteImport } from './routes/user'
 import { Route as TradeRouteImport } from './routes/trade'
 import { Route as SwapRouteImport } from './routes/swap'
-import { Route as StakeRouteImport } from './routes/stake'
 import { Route as SendRouteImport } from './routes/send'
-import { Route as RaiseRouteImport } from './routes/raise'
 import { Route as PredictRouteImport } from './routes/predict'
 import { Route as PositionsRouteImport } from './routes/positions'
 import { Route as PmRouteImport } from './routes/pm'
-import { Route as MegaRouteImport } from './routes/mega'
 import { Route as LimitRouteImport } from './routes/limit'
 import { Route as JpycRouteImport } from './routes/jpyc'
-import { Route as IcoRouteImport } from './routes/ico'
 import { Route as FarmRouteImport } from './routes/farm'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as EnsRouteImport } from './routes/ens'
@@ -64,19 +60,9 @@ const SwapRoute = SwapRouteImport.update({
   path: '/swap',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StakeRoute = StakeRouteImport.update({
-  id: '/stake',
-  path: '/stake',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SendRoute = SendRouteImport.update({
   id: '/send',
   path: '/send',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RaiseRoute = RaiseRouteImport.update({
-  id: '/raise',
-  path: '/raise',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PredictRoute = PredictRouteImport.update({
@@ -94,11 +80,6 @@ const PmRoute = PmRouteImport.update({
   path: '/pm',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MegaRoute = MegaRouteImport.update({
-  id: '/mega',
-  path: '/mega',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LimitRoute = LimitRouteImport.update({
   id: '/limit',
   path: '/limit',
@@ -107,11 +88,6 @@ const LimitRoute = LimitRouteImport.update({
 const JpycRoute = JpycRouteImport.update({
   id: '/jpyc',
   path: '/jpyc',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IcoRoute = IcoRouteImport.update({
-  id: '/ico',
-  path: '/ico',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FarmRoute = FarmRouteImport.update({
@@ -225,16 +201,12 @@ export interface FileRoutesByFullPath {
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
   '/farm': typeof FarmRouteWithChildren
-  '/ico': typeof IcoRoute
   '/jpyc': typeof JpycRoute
   '/limit': typeof LimitRoute
-  '/mega': typeof MegaRoute
   '/pm': typeof PmRoute
   '/positions': typeof PositionsRouteWithChildren
   '/predict': typeof PredictRouteWithChildren
-  '/raise': typeof RaiseRoute
   '/send': typeof SendRoute
-  '/stake': typeof StakeRoute
   '/swap': typeof SwapRoute
   '/trade': typeof TradeRoute
   '/user': typeof UserRoute
@@ -260,15 +232,11 @@ export interface FileRoutesByTo {
   '/dao': typeof DaoRoute
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
-  '/ico': typeof IcoRoute
   '/jpyc': typeof JpycRoute
   '/limit': typeof LimitRoute
-  '/mega': typeof MegaRoute
   '/pm': typeof PmRoute
   '/predict': typeof PredictRouteWithChildren
-  '/raise': typeof RaiseRoute
   '/send': typeof SendRoute
-  '/stake': typeof StakeRoute
   '/swap': typeof SwapRoute
   '/trade': typeof TradeRoute
   '/user': typeof UserRoute
@@ -296,16 +264,12 @@ export interface FileRoutesById {
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
   '/farm': typeof FarmRouteWithChildren
-  '/ico': typeof IcoRoute
   '/jpyc': typeof JpycRoute
   '/limit': typeof LimitRoute
-  '/mega': typeof MegaRoute
   '/pm': typeof PmRoute
   '/positions': typeof PositionsRouteWithChildren
   '/predict': typeof PredictRouteWithChildren
-  '/raise': typeof RaiseRoute
   '/send': typeof SendRoute
-  '/stake': typeof StakeRoute
   '/swap': typeof SwapRoute
   '/trade': typeof TradeRoute
   '/user': typeof UserRoute
@@ -334,16 +298,12 @@ export interface FileRouteTypes {
     | '/ens'
     | '/explore'
     | '/farm'
-    | '/ico'
     | '/jpyc'
     | '/limit'
-    | '/mega'
     | '/pm'
     | '/positions'
     | '/predict'
-    | '/raise'
     | '/send'
-    | '/stake'
     | '/swap'
     | '/trade'
     | '/user'
@@ -369,15 +329,11 @@ export interface FileRouteTypes {
     | '/dao'
     | '/ens'
     | '/explore'
-    | '/ico'
     | '/jpyc'
     | '/limit'
-    | '/mega'
     | '/pm'
     | '/predict'
-    | '/raise'
     | '/send'
-    | '/stake'
     | '/swap'
     | '/trade'
     | '/user'
@@ -404,16 +360,12 @@ export interface FileRouteTypes {
     | '/ens'
     | '/explore'
     | '/farm'
-    | '/ico'
     | '/jpyc'
     | '/limit'
-    | '/mega'
     | '/pm'
     | '/positions'
     | '/predict'
-    | '/raise'
     | '/send'
-    | '/stake'
     | '/swap'
     | '/trade'
     | '/user'
@@ -441,16 +393,12 @@ export interface RootRouteChildren {
   EnsRoute: typeof EnsRoute
   ExploreRoute: typeof ExploreRouteWithChildren
   FarmRoute: typeof FarmRouteWithChildren
-  IcoRoute: typeof IcoRoute
   JpycRoute: typeof JpycRoute
   LimitRoute: typeof LimitRoute
-  MegaRoute: typeof MegaRoute
   PmRoute: typeof PmRoute
   PositionsRoute: typeof PositionsRouteWithChildren
   PredictRoute: typeof PredictRouteWithChildren
-  RaiseRoute: typeof RaiseRoute
   SendRoute: typeof SendRoute
-  StakeRoute: typeof StakeRoute
   SwapRoute: typeof SwapRoute
   TradeRoute: typeof TradeRoute
   UserRoute: typeof UserRoute
@@ -490,25 +438,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SwapRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/stake': {
-      id: '/stake'
-      path: '/stake'
-      fullPath: '/stake'
-      preLoaderRoute: typeof StakeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/send': {
       id: '/send'
       path: '/send'
       fullPath: '/send'
       preLoaderRoute: typeof SendRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/raise': {
-      id: '/raise'
-      path: '/raise'
-      fullPath: '/raise'
-      preLoaderRoute: typeof RaiseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/predict': {
@@ -532,13 +466,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PmRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/mega': {
-      id: '/mega'
-      path: '/mega'
-      fullPath: '/mega'
-      preLoaderRoute: typeof MegaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/limit': {
       id: '/limit'
       path: '/limit'
@@ -551,13 +478,6 @@ declare module '@tanstack/react-router' {
       path: '/jpyc'
       fullPath: '/jpyc'
       preLoaderRoute: typeof JpycRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ico': {
-      id: '/ico'
-      path: '/ico'
-      fullPath: '/ico'
-      preLoaderRoute: typeof IcoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/farm': {
@@ -766,16 +686,12 @@ const rootRouteChildren: RootRouteChildren = {
   EnsRoute: EnsRoute,
   ExploreRoute: ExploreRouteWithChildren,
   FarmRoute: FarmRouteWithChildren,
-  IcoRoute: IcoRoute,
   JpycRoute: JpycRoute,
   LimitRoute: LimitRoute,
-  MegaRoute: MegaRoute,
   PmRoute: PmRoute,
   PositionsRoute: PositionsRouteWithChildren,
   PredictRoute: PredictRouteWithChildren,
-  RaiseRoute: RaiseRoute,
   SendRoute: SendRoute,
-  StakeRoute: StakeRoute,
   SwapRoute: SwapRoute,
   TradeRoute: TradeRoute,
   UserRoute: UserRoute,
