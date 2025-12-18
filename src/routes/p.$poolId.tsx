@@ -1,13 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useGetPool, type Pool } from "@/hooks/use-get-pool";
 import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
+import { usePAMMMarket, type PAMMMarketData } from "@/hooks/use-pamm-market";
 import PoolPriceChart from "@/components/PoolPriceChart";
+import PredictionMarketOddsChart from "@/components/pools/PredictionMarketOddsChart";
+import { PredictionMarketDisplay, PredictionMarketOddsCompact } from "@/components/pools/PredictionMarketDisplay";
+import { PoolActivityPanel } from "@/components/pools/PoolActivityPanel";
 import { PoolTokenImage } from "@/components/PoolTokenImage";
 import { formatImageURL } from "@/hooks/metadata";
 import { Skeleton } from "@/components/ui/skeleton";
 import { bpsToPct } from "@/lib/pools";
 import { formatEther } from "viem";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, TrendingUp } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +29,10 @@ function PoolPage() {
 
   const pool = cookbookPool || zammPool;
   const isLoading = cookbookLoading && zammLoading;
+
+  // Check if this is a PAMM prediction market pool
+  const { data: pammData } = usePAMMMarket(pool ?? null);
+  const isPredictionMarket = pammData?.isPAMMPool && pammData?.marketId !== null;
 
   if (isLoading) {
     return <PoolPageSkeleton />;
@@ -45,6 +53,80 @@ function PoolPage() {
     );
   }
 
+  // Render prediction market layout if this is a PAMM pool
+  if (isPredictionMarket && pammData) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Link to="/explore/pools" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+          <ArrowLeft className="w-4 h-4" />
+          Back to pools
+        </Link>
+
+        <PredictionMarketHeader pool={pool} pammData={pammData} />
+
+        {/* Prediction Market Odds Display */}
+        <div className="mt-6 border rounded-lg p-6 bg-card">
+          <PredictionMarketDisplay marketData={pammData} />
+        </div>
+
+        {/* Prediction Market Odds History Chart */}
+        <div className="mt-6 border rounded-lg p-4 bg-card">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-4 h-4 text-purple-500" />
+            <h3 className="font-medium">Odds History</h3>
+            <span className="text-xs text-muted-foreground ml-auto">
+              YES probability over time
+            </span>
+          </div>
+          <PredictionMarketOddsChart
+            poolId={poolId}
+            yesIsId0={pammData.yesIsId0}
+            defaultTimeRange="1w"
+          />
+        </div>
+
+        {/* Pool Info */}
+        <PredictionMarketPoolInfo pool={pool} pammData={pammData} />
+
+        {/* Activity Panel */}
+        <PoolActivityPanel pool={pool} pammData={pammData} className="mt-6" />
+
+        {/* Action Buttons */}
+        <div className="mt-6 flex gap-3 flex-wrap">
+          <Link
+            to="/predict"
+            className={cn(buttonVariants({ variant: "default" }), "bg-purple-600 hover:bg-purple-700")}
+          >
+            Trade on Predict
+          </Link>
+          <Link
+            to="/positions/create"
+            search={{
+              tokenA: pool.token0 && pool.coin0?.id ? `${pool.token0}:${pool.coin0.id}` : undefined,
+              tokenB: pool.token1 && pool.coin1?.id ? `${pool.token1}:${pool.coin1.id}` : undefined,
+              fee: String(pool.swapFee),
+              protocol: pool.source === "ZAMM" ? "ZAMMV0" : "ZAMMV1",
+            } as any}
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            Add Liquidity
+          </Link>
+          <Link
+            to="/swap"
+            search={{
+              sellToken: pool.token0 && pool.coin0?.id ? `${pool.token0}:${pool.coin0.id}` : undefined,
+              buyToken: pool.token1 && pool.coin1?.id ? `${pool.token1}:${pool.coin1.id}` : undefined,
+            }}
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            Swap YES/NO
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Default pool layout for non-prediction market pools
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <Link to="/explore/pools" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
@@ -64,6 +146,9 @@ function PoolPage() {
       </div>
 
       <PoolInfo pool={pool} ethUsdPrice={ethUsdPrice} />
+
+      {/* Activity Panel */}
+      <PoolActivityPanel pool={pool} className="mt-6" />
 
       <div className="mt-6 flex gap-3">
         <Link
@@ -89,6 +174,94 @@ function PoolPage() {
           Swap
         </Link>
       </div>
+    </div>
+  );
+}
+
+function PredictionMarketHeader({ pool, pammData }: { pool: Pool; pammData: PAMMMarketData }) {
+  return (
+    <div className="flex items-start gap-4">
+      {/* Prediction Market Icon */}
+      <div className="relative w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
+        <span className="text-2xl">🎯</span>
+      </div>
+      <div className="flex-1">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-2xl font-bold">Prediction Market</h1>
+          <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+            PAMM Pool
+          </span>
+          <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
+            #{pool.id}
+          </span>
+        </div>
+        {/* Compact Odds Display in Header */}
+        <div className="mt-2">
+          <PredictionMarketOddsCompact
+            yesPercent={pammData.yesPercent}
+            noPercent={pammData.noPercent}
+            resolved={pammData.resolved}
+            outcome={pammData.outcome}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PredictionMarketPoolInfo({ pool, pammData }: { pool: Pool; pammData: PAMMMarketData }) {
+  const reserve0 = pool.reserve0 ? Number(formatEther(BigInt(pool.reserve0))) : null;
+  const reserve1 = pool.reserve1 ? Number(formatEther(BigInt(pool.reserve1))) : null;
+  const totalLiquidity = (reserve0 || 0) + (reserve1 || 0);
+
+  const feeDisplay = pool.swapFee
+    ? `${Number(pool.swapFee).toLocaleString()} bps (${bpsToPct(String(pool.swapFee))})`
+    : "—";
+
+  const formatCollateral = (value: bigint | null) => {
+    if (!value) return "—";
+    const num = Number(formatEther(value));
+    if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(2)}K`;
+    return num.toFixed(4);
+  };
+
+  return (
+    <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+      <InfoCard
+        label="YES Reserves"
+        value={pammData.rYes !== null ? formatNumber(Number(formatEther(pammData.rYes))) : "—"}
+        subValue={pammData.yesIsId0 ? "Token 0" : "Token 1"}
+      />
+      <InfoCard
+        label="NO Reserves"
+        value={pammData.rNo !== null ? formatNumber(Number(formatEther(pammData.rNo))) : "—"}
+        subValue={pammData.yesIsId0 ? "Token 1" : "Token 0"}
+      />
+      <InfoCard
+        label="Total Liquidity"
+        value={formatNumber(totalLiquidity)}
+      />
+      <InfoCard
+        label="Swap Fee"
+        value={feeDisplay}
+      />
+      <InfoCard
+        label="Collateral Locked"
+        value={formatCollateral(pammData.collateralLocked)}
+      />
+      <InfoCard
+        label="YES Supply"
+        value={pammData.yesSupply !== null ? formatCollateral(pammData.yesSupply) : "—"}
+      />
+      <InfoCard
+        label="NO Supply"
+        value={pammData.noSupply !== null ? formatCollateral(pammData.noSupply) : "—"}
+      />
+      <InfoCard
+        label="Market Status"
+        value={pammData.resolved ? (pammData.outcome ? "YES Won" : "NO Won") : pammData.tradingOpen ? "Open" : "Closed"}
+      />
     </div>
   );
 }
