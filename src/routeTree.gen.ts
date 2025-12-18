@@ -42,6 +42,7 @@ import { Route as ExplorePoolsRouteImport } from './routes/explore/pools'
 import { Route as ExploreOrdersRouteImport } from './routes/explore/orders'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 import { Route as PredictMarketTypeMarketIdRouteImport } from './routes/predict.$marketType.$marketId'
+import { Route as EmbedPoolPoolIdRouteImport } from './routes/embed/pool.$poolId'
 
 const WlfiRoute = WlfiRouteImport.update({
   id: '/wlfi',
@@ -209,6 +210,11 @@ const PredictMarketTypeMarketIdRoute =
     path: '/$marketType/$marketId',
     getParentRoute: () => PredictRoute,
   } as any)
+const EmbedPoolPoolIdRoute = EmbedPoolPoolIdRouteImport.update({
+  id: '/embed/pool/$poolId',
+  path: '/embed/pool/$poolId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -243,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
+  '/embed/pool/$poolId': typeof EmbedPoolPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRoutesByTo {
@@ -276,6 +283,7 @@ export interface FileRoutesByTo {
   '/positions/create': typeof PositionsCreateRoute
   '/farm': typeof FarmIndexRoute
   '/positions': typeof PositionsIndexRoute
+  '/embed/pool/$poolId': typeof EmbedPoolPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRoutesById {
@@ -312,6 +320,7 @@ export interface FileRoutesById {
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
+  '/embed/pool/$poolId': typeof EmbedPoolPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRouteTypes {
@@ -349,6 +358,7 @@ export interface FileRouteTypes {
     | '/positions/create'
     | '/farm/'
     | '/positions/'
+    | '/embed/pool/$poolId'
     | '/predict/$marketType/$marketId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -382,6 +392,7 @@ export interface FileRouteTypes {
     | '/positions/create'
     | '/farm'
     | '/positions'
+    | '/embed/pool/$poolId'
     | '/predict/$marketType/$marketId'
   id:
     | '__root__'
@@ -417,6 +428,7 @@ export interface FileRouteTypes {
     | '/positions/create'
     | '/farm/'
     | '/positions/'
+    | '/embed/pool/$poolId'
     | '/predict/$marketType/$marketId'
   fileRoutesById: FileRoutesById
 }
@@ -445,6 +457,7 @@ export interface RootRouteChildren {
   WlfiRoute: typeof WlfiRoute
   CCoinIdRoute: typeof CCoinIdRoute
   PPoolIdRoute: typeof PPoolIdRoute
+  EmbedPoolPoolIdRoute: typeof EmbedPoolPoolIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -680,6 +693,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PredictMarketTypeMarketIdRouteImport
       parentRoute: typeof PredictRoute
     }
+    '/embed/pool/$poolId': {
+      id: '/embed/pool/$poolId'
+      path: '/embed/pool/$poolId'
+      fullPath: '/embed/pool/$poolId'
+      preLoaderRoute: typeof EmbedPoolPoolIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -762,6 +782,7 @@ const rootRouteChildren: RootRouteChildren = {
   WlfiRoute: WlfiRoute,
   CCoinIdRoute: CCoinIdRoute,
   PPoolIdRoute: PPoolIdRoute,
+  EmbedPoolPoolIdRoute: EmbedPoolPoolIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
