@@ -575,7 +575,7 @@ export default function DAICOWizard() {
         tribAmt: parseEther(formState.tribAmt),
         saleSupply: parseUnits(formState.saleSupply, 18),
         forAmt: parseUnits(formState.forAmt, 18),
-        deadline: BigInt(formState.deadline),
+        deadline: Number(formState.deadline),
         sellLoot: formState.sellLoot,
         lpBps: formState.enableAutoLP ? parseInt(formState.lpBps) : 0,
         maxSlipBps: formState.enableAutoLP ? parseInt(formState.maxSlipBps) : 100,
@@ -599,11 +599,8 @@ export default function DAICOWizard() {
       // Determine which function to call
       const hasPassiveIncome =
         formState.enablePassiveIncome && formState.opsAddress;
-      const functionName = hasPassiveIncome
-        ? "summonDAICOWithTap"
-        : "summonDAICO";
 
-      const args = [
+      const baseArgs = [
         summonConfig,
         formState.orgName,
         formState.orgSymbol,
@@ -617,15 +614,21 @@ export default function DAICOWizard() {
         formState.sharesLocked,
         formState.lootLocked,
         daicoConfig,
-        ...(hasPassiveIncome ? [tapConfig] : []),
-      ];
+      ] as const;
 
-      const hash = await writeContractAsync({
-        address: DaicoAddress,
-        abi: DaicoAbi,
-        functionName,
-        args,
-      });
+      const hash = hasPassiveIncome
+        ? await writeContractAsync({
+            address: DaicoAddress,
+            abi: DaicoAbi,
+            functionName: "summonDAICOWithTap",
+            args: [...baseArgs, tapConfig],
+          })
+        : await writeContractAsync({
+            address: DaicoAddress,
+            abi: DaicoAbi,
+            functionName: "summonDAICO",
+            args: baseArgs,
+          });
 
       setTxHash(hash);
       toast.success("DAICO summoning transaction submitted!");
