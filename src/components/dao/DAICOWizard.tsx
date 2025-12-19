@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import type React from "react";
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
 import { DaicoAbi, DaicoAddress } from "@/constants/DAICO";
+import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
 import { parseUnits, parseEther, Address } from "viem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -145,9 +146,9 @@ const defaultFormState: DAICOFormState = {
   ragequittable: true,
 
   tribTkn: "0x0000000000000000000000000000000000000000" as Address, // ETH
-  tribAmt: "1", // 1 ETH
+  tribAmt: "0.0001", // Price per token in ETH
   saleSupply: "1000000", // 1M tokens for sale
-  forAmt: "1000000", // 1M tokens for 1 ETH
+  forAmt: "1", // 1 token (tribAmt is the price per token)
   deadline: "0",
   sellLoot: false,
 
@@ -410,6 +411,7 @@ export default function DAICOWizard() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
+  const { data: ethUsdPrice } = useEthUsdPrice();
   const { writeContractAsync, isPending: isWritePending } = useWriteContract();
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
   const { isLoading: isTxLoading, isSuccess: isTxSuccess } =
@@ -800,38 +802,35 @@ export default function DAICOWizard() {
             </div>
             <Card className="p-6 space-y-4 shadow-sm">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="tribAmt">Price per batch (ETH)</Label>
-                <Input
-                  id="tribAmt"
-                  type="number"
-                  step="0.001"
-                  placeholder="1"
-                  value={formState.tribAmt}
-                  onChange={(e) => updateField("tribAmt", e.target.value)}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  How much ETH buyers pay per batch
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="forAmt">Tokens per batch</Label>
-                <Input
-                  id="forAmt"
-                  type="number"
-                  placeholder="1000000"
-                  value={formState.forAmt}
-                  onChange={(e) => updateField("forAmt", e.target.value)}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  How many tokens buyers get per batch
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="tokenPrice">Price per token (ETH)</Label>
+              <Input
+                id="tokenPrice"
+                type="text"
+                inputMode="decimal"
+                placeholder="0.0001"
+                value={formState.tribAmt}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  // Allow empty, numbers, and decimals
+                  if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                    updateField("forAmt", "1");
+                    updateField("tribAmt", val);
+                  }
+                }}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                How much ETH each token costs
+              </p>
             </div>
+
+            {/* Price in USD */}
+            {formState.tribAmt && parseFloat(formState.tribAmt) > 0 && ethUsdPrice ? (
+              <p className="text-xs text-muted-foreground -mt-1">
+                ≈ ${(parseFloat(formState.tribAmt) * ethUsdPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} per token
+              </p>
+            ) : null}
 
             <div className="space-y-2">
               <Label htmlFor="saleSupply">Total sale supply</Label>
@@ -847,6 +846,30 @@ export default function DAICOWizard() {
                 Total tokens allocated for the sale
               </p>
             </div>
+
+            {/* Total raise summary */}
+            {formState.tribAmt && formState.saleSupply &&
+             parseFloat(formState.tribAmt) > 0 && parseFloat(formState.saleSupply) > 0 && (() => {
+              const pricePerToken = parseFloat(formState.tribAmt);
+              const totalRaiseEth = parseFloat(formState.saleSupply) * pricePerToken;
+              const totalRaiseUsd = ethUsdPrice ? totalRaiseEth * ethUsdPrice : 0;
+
+              return (
+                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                  <p className="text-sm text-center">
+                    <span className="text-muted-foreground">If sold out, you'll raise </span>
+                    <span className="font-bold text-primary">
+                      {totalRaiseEth.toLocaleString(undefined, { maximumFractionDigits: 4 })} ETH
+                    </span>
+                    {ethUsdPrice ? (
+                      <span className="text-muted-foreground">
+                        {" "}(${totalRaiseUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })})
+                      </span>
+                    ) : null}
+                  </p>
+                </div>
+              );
+            })()}
 
             <div className="flex items-center space-x-2">
               <Switch
