@@ -262,7 +262,7 @@ export const Route = createRootRoute({
 
             {/* Desktop Right Side */}
             <div className="hidden md:flex items-center gap-2.5 flex-shrink-0">
-              <Link to="/create">
+              <Link to="/daico">
                 <Button variant="outline" size="sm">
                   {t("common.launch", "Launch")}
                 </Button>
@@ -273,7 +273,7 @@ export const Route = createRootRoute({
 
             {/* Mobile Right Side */}
             <div className="flex md:hidden items-center gap-2 flex-shrink-0">
-              <Link to="/create">
+              <Link to="/daico">
                 <Button variant="outline" size="sm" className="text-xs px-2">
                   {t("navigation.create", "Create")}
                 </Button>
