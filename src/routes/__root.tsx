@@ -40,8 +40,9 @@ export const Route = createRootRoute({
     const [isExploreOpen, setIsExploreOpen] = useState(false);
     const [isFarmOpen, setIsFarmOpen] = useState(false);
     const isDao = matchRoute({ to: "/dao" });
+    const isEmbed = location.pathname.startsWith("/embed");
 
-    if (isDao) {
+    if (isDao || isEmbed) {
       return <Outlet />;
     }
 

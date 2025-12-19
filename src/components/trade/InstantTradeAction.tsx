@@ -28,10 +28,6 @@ import { encodeTokenQ, parseTokenQ, findTokenFlexible, isCanonicalTokenQ } from 
  * URL token helpers
  * ---------------------------------------------------------------- */
 
-function isAddress(str?: string): str is Address {
-  return !!str && /^0x[a-fA-F0-9]{40}$/.test(str);
-}
-
 /**
  * Resolve a URL token query against a loaded tokenlist.
  * Falls back to `minimalFromTokenQ` when no match yet.
@@ -53,17 +49,10 @@ function resolveFromUrl(tokens: TokenMetadata[] | undefined, q?: string): Partia
         standard: "ERC6909",
       };
     } else if (parsed.kind === "addr") {
-      if (isAddress(parsed.address)) {
-        return {
-          address: parsed.address,
-          standard: "ERC20",
-        };
-      } else {
-        return {
-          address: parsed.address,
-          standard: "ERC20",
-        };
-      }
+      return {
+        address: parsed.address,
+        standard: "ERC20",
+      };
     }
   }
   return undefined;
@@ -553,7 +542,7 @@ export const InstantTradeAction = forwardRef<
         return;
       }
 
-      console.log("Built plan sucessfully:", plan);
+      console.log("Built plan successfully:", plan);
 
       const { calls, value, targets } = plan;
 

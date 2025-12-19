@@ -460,7 +460,7 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
                     navigate({
                       to: "/p/$poolId",
                       params: { poolId: pool.poolId },
-                    });
+                    } as any);
                   }}
                 >
                   {row.getVisibleCells().map((cell) => (

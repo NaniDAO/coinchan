@@ -1,5 +1,5 @@
 import { SwapModeTab } from "@/components/swap/SwapModeTab";
-import { LimitSwapAction } from "@/components/swap//LimitSwapAction";
+import { LimitSwapAction } from "@/components/swap/LimitSwapAction";
 import { InstantTradeAction } from "../trade/InstantTradeAction";
 import { useLocation } from "@tanstack/react-router";
 import { forwardRef } from "react";

@@ -13,16 +13,12 @@ import { Route as WlfiRouteImport } from './routes/wlfi'
 import { Route as UserRouteImport } from './routes/user'
 import { Route as TradeRouteImport } from './routes/trade'
 import { Route as SwapRouteImport } from './routes/swap'
-import { Route as StakeRouteImport } from './routes/stake'
 import { Route as SendRouteImport } from './routes/send'
-import { Route as RaiseRouteImport } from './routes/raise'
 import { Route as PredictRouteImport } from './routes/predict'
 import { Route as PositionsRouteImport } from './routes/positions'
 import { Route as PmRouteImport } from './routes/pm'
-import { Route as MegaRouteImport } from './routes/mega'
 import { Route as LimitRouteImport } from './routes/limit'
 import { Route as JpycRouteImport } from './routes/jpyc'
-import { Route as IcoRouteImport } from './routes/ico'
 import { Route as FarmRouteImport } from './routes/farm'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as EnsRouteImport } from './routes/ens'
@@ -35,6 +31,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PositionsIndexRouteImport } from './routes/positions/index'
 import { Route as FarmIndexRouteImport } from './routes/farm/index'
 import { Route as PositionsCreateRouteImport } from './routes/positions/create'
+import { Route as PPoolIdRouteImport } from './routes/p.$poolId'
 import { Route as FarmCreateRouteImport } from './routes/farm/create'
 import { Route as ExploreTokensRouteImport } from './routes/explore/tokens'
 import { Route as ExploreTokenRouteImport } from './routes/explore/token'
@@ -42,6 +39,7 @@ import { Route as ExplorePoolsRouteImport } from './routes/explore/pools'
 import { Route as ExploreOrdersRouteImport } from './routes/explore/orders'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 import { Route as PredictMarketTypeMarketIdRouteImport } from './routes/predict.$marketType.$marketId'
+import { Route as EmbedPoolPoolIdRouteImport } from './routes/embed/pool.$poolId'
 
 const WlfiRoute = WlfiRouteImport.update({
   id: '/wlfi',
@@ -63,19 +61,9 @@ const SwapRoute = SwapRouteImport.update({
   path: '/swap',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StakeRoute = StakeRouteImport.update({
-  id: '/stake',
-  path: '/stake',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SendRoute = SendRouteImport.update({
   id: '/send',
   path: '/send',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RaiseRoute = RaiseRouteImport.update({
-  id: '/raise',
-  path: '/raise',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PredictRoute = PredictRouteImport.update({
@@ -93,11 +81,6 @@ const PmRoute = PmRouteImport.update({
   path: '/pm',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MegaRoute = MegaRouteImport.update({
-  id: '/mega',
-  path: '/mega',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LimitRoute = LimitRouteImport.update({
   id: '/limit',
   path: '/limit',
@@ -106,11 +89,6 @@ const LimitRoute = LimitRouteImport.update({
 const JpycRoute = JpycRouteImport.update({
   id: '/jpyc',
   path: '/jpyc',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IcoRoute = IcoRouteImport.update({
-  id: '/ico',
-  path: '/ico',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FarmRoute = FarmRouteImport.update({
@@ -173,6 +151,11 @@ const PositionsCreateRoute = PositionsCreateRouteImport.update({
   path: '/create',
   getParentRoute: () => PositionsRoute,
 } as any)
+const PPoolIdRoute = PPoolIdRouteImport.update({
+  id: '/p/$poolId',
+  path: '/p/$poolId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FarmCreateRoute = FarmCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -209,6 +192,11 @@ const PredictMarketTypeMarketIdRoute =
     path: '/$marketType/$marketId',
     getParentRoute: () => PredictRoute,
   } as any)
+const EmbedPoolPoolIdRoute = EmbedPoolPoolIdRouteImport.update({
+  id: '/embed/pool/$poolId',
+  path: '/embed/pool/$poolId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -220,16 +208,12 @@ export interface FileRoutesByFullPath {
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
   '/farm': typeof FarmRouteWithChildren
-  '/ico': typeof IcoRoute
   '/jpyc': typeof JpycRoute
   '/limit': typeof LimitRoute
-  '/mega': typeof MegaRoute
   '/pm': typeof PmRoute
   '/positions': typeof PositionsRouteWithChildren
   '/predict': typeof PredictRouteWithChildren
-  '/raise': typeof RaiseRoute
   '/send': typeof SendRoute
-  '/stake': typeof StakeRoute
   '/swap': typeof SwapRoute
   '/trade': typeof TradeRoute
   '/user': typeof UserRoute
@@ -240,9 +224,11 @@ export interface FileRoutesByFullPath {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
+  '/p/$poolId': typeof PPoolIdRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
+  '/embed/pool/$poolId': typeof EmbedPoolPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRoutesByTo {
@@ -254,15 +240,11 @@ export interface FileRoutesByTo {
   '/dao': typeof DaoRoute
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
-  '/ico': typeof IcoRoute
   '/jpyc': typeof JpycRoute
   '/limit': typeof LimitRoute
-  '/mega': typeof MegaRoute
   '/pm': typeof PmRoute
   '/predict': typeof PredictRouteWithChildren
-  '/raise': typeof RaiseRoute
   '/send': typeof SendRoute
-  '/stake': typeof StakeRoute
   '/swap': typeof SwapRoute
   '/trade': typeof TradeRoute
   '/user': typeof UserRoute
@@ -273,9 +255,11 @@ export interface FileRoutesByTo {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
+  '/p/$poolId': typeof PPoolIdRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm': typeof FarmIndexRoute
   '/positions': typeof PositionsIndexRoute
+  '/embed/pool/$poolId': typeof EmbedPoolPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRoutesById {
@@ -289,16 +273,12 @@ export interface FileRoutesById {
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
   '/farm': typeof FarmRouteWithChildren
-  '/ico': typeof IcoRoute
   '/jpyc': typeof JpycRoute
   '/limit': typeof LimitRoute
-  '/mega': typeof MegaRoute
   '/pm': typeof PmRoute
   '/positions': typeof PositionsRouteWithChildren
   '/predict': typeof PredictRouteWithChildren
-  '/raise': typeof RaiseRoute
   '/send': typeof SendRoute
-  '/stake': typeof StakeRoute
   '/swap': typeof SwapRoute
   '/trade': typeof TradeRoute
   '/user': typeof UserRoute
@@ -309,9 +289,11 @@ export interface FileRoutesById {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
+  '/p/$poolId': typeof PPoolIdRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
+  '/embed/pool/$poolId': typeof EmbedPoolPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRouteTypes {
@@ -326,16 +308,12 @@ export interface FileRouteTypes {
     | '/ens'
     | '/explore'
     | '/farm'
-    | '/ico'
     | '/jpyc'
     | '/limit'
-    | '/mega'
     | '/pm'
     | '/positions'
     | '/predict'
-    | '/raise'
     | '/send'
-    | '/stake'
     | '/swap'
     | '/trade'
     | '/user'
@@ -346,9 +324,11 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
+    | '/p/$poolId'
     | '/positions/create'
     | '/farm/'
     | '/positions/'
+    | '/embed/pool/$poolId'
     | '/predict/$marketType/$marketId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -360,15 +340,11 @@ export interface FileRouteTypes {
     | '/dao'
     | '/ens'
     | '/explore'
-    | '/ico'
     | '/jpyc'
     | '/limit'
-    | '/mega'
     | '/pm'
     | '/predict'
-    | '/raise'
     | '/send'
-    | '/stake'
     | '/swap'
     | '/trade'
     | '/user'
@@ -379,9 +355,11 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
+    | '/p/$poolId'
     | '/positions/create'
     | '/farm'
     | '/positions'
+    | '/embed/pool/$poolId'
     | '/predict/$marketType/$marketId'
   id:
     | '__root__'
@@ -394,16 +372,12 @@ export interface FileRouteTypes {
     | '/ens'
     | '/explore'
     | '/farm'
-    | '/ico'
     | '/jpyc'
     | '/limit'
-    | '/mega'
     | '/pm'
     | '/positions'
     | '/predict'
-    | '/raise'
     | '/send'
-    | '/stake'
     | '/swap'
     | '/trade'
     | '/user'
@@ -414,9 +388,11 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
+    | '/p/$poolId'
     | '/positions/create'
     | '/farm/'
     | '/positions/'
+    | '/embed/pool/$poolId'
     | '/predict/$marketType/$marketId'
   fileRoutesById: FileRoutesById
 }
@@ -430,21 +406,19 @@ export interface RootRouteChildren {
   EnsRoute: typeof EnsRoute
   ExploreRoute: typeof ExploreRouteWithChildren
   FarmRoute: typeof FarmRouteWithChildren
-  IcoRoute: typeof IcoRoute
   JpycRoute: typeof JpycRoute
   LimitRoute: typeof LimitRoute
-  MegaRoute: typeof MegaRoute
   PmRoute: typeof PmRoute
   PositionsRoute: typeof PositionsRouteWithChildren
   PredictRoute: typeof PredictRouteWithChildren
-  RaiseRoute: typeof RaiseRoute
   SendRoute: typeof SendRoute
-  StakeRoute: typeof StakeRoute
   SwapRoute: typeof SwapRoute
   TradeRoute: typeof TradeRoute
   UserRoute: typeof UserRoute
   WlfiRoute: typeof WlfiRoute
   CCoinIdRoute: typeof CCoinIdRoute
+  PPoolIdRoute: typeof PPoolIdRoute
+  EmbedPoolPoolIdRoute: typeof EmbedPoolPoolIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -477,25 +451,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SwapRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/stake': {
-      id: '/stake'
-      path: '/stake'
-      fullPath: '/stake'
-      preLoaderRoute: typeof StakeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/send': {
       id: '/send'
       path: '/send'
       fullPath: '/send'
       preLoaderRoute: typeof SendRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/raise': {
-      id: '/raise'
-      path: '/raise'
-      fullPath: '/raise'
-      preLoaderRoute: typeof RaiseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/predict': {
@@ -519,13 +479,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PmRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/mega': {
-      id: '/mega'
-      path: '/mega'
-      fullPath: '/mega'
-      preLoaderRoute: typeof MegaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/limit': {
       id: '/limit'
       path: '/limit'
@@ -538,13 +491,6 @@ declare module '@tanstack/react-router' {
       path: '/jpyc'
       fullPath: '/jpyc'
       preLoaderRoute: typeof JpycRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ico': {
-      id: '/ico'
-      path: '/ico'
-      fullPath: '/ico'
-      preLoaderRoute: typeof IcoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/farm': {
@@ -631,6 +577,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PositionsCreateRouteImport
       parentRoute: typeof PositionsRoute
     }
+    '/p/$poolId': {
+      id: '/p/$poolId'
+      path: '/p/$poolId'
+      fullPath: '/p/$poolId'
+      preLoaderRoute: typeof PPoolIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/farm/create': {
       id: '/farm/create'
       path: '/create'
@@ -679,6 +632,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/predict/$marketType/$marketId'
       preLoaderRoute: typeof PredictMarketTypeMarketIdRouteImport
       parentRoute: typeof PredictRoute
+    }
+    '/embed/pool/$poolId': {
+      id: '/embed/pool/$poolId'
+      path: '/embed/pool/$poolId'
+      fullPath: '/embed/pool/$poolId'
+      preLoaderRoute: typeof EmbedPoolPoolIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -747,21 +707,19 @@ const rootRouteChildren: RootRouteChildren = {
   EnsRoute: EnsRoute,
   ExploreRoute: ExploreRouteWithChildren,
   FarmRoute: FarmRouteWithChildren,
-  IcoRoute: IcoRoute,
   JpycRoute: JpycRoute,
   LimitRoute: LimitRoute,
-  MegaRoute: MegaRoute,
   PmRoute: PmRoute,
   PositionsRoute: PositionsRouteWithChildren,
   PredictRoute: PredictRouteWithChildren,
-  RaiseRoute: RaiseRoute,
   SendRoute: SendRoute,
-  StakeRoute: StakeRoute,
   SwapRoute: SwapRoute,
   TradeRoute: TradeRoute,
   UserRoute: UserRoute,
   WlfiRoute: WlfiRoute,
   CCoinIdRoute: CCoinIdRoute,
+  PPoolIdRoute: PPoolIdRoute,
+  EmbedPoolPoolIdRoute: EmbedPoolPoolIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

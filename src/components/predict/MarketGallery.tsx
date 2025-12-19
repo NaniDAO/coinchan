@@ -1,30 +1,40 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useReadContract, useReadContracts, useAccount } from "wagmi";
-import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
-import { PredictionAMMAddress, PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
+import {
+  PAMMSingletonAddress,
+  PAMMSingletonAbi,
+  decodeMarketState,
+  DEFAULT_FEE_OR_HOOK,
+} from "@/constants/PAMMSingleton";
 import { MarketCard } from "./MarketCard";
-import { MegaSaleMarketCard } from "./MegaSaleMarketCard";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Search, X, TrendingUp, Clock, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  isTrustedResolver,
-  isPerpetualOracleResolver,
-  MEGASALE_PM_RESOLVER_ADDRESS,
+  isResolverSingleton,
+  getMarketCategory,
+  CATEGORY_INFO,
+  type MarketCategory,
 } from "@/constants/TrustedResolvers";
 
 interface MarketGalleryProps {
   refreshKey?: number;
 }
 
+// Category-based filtering for onchain event markets
 type MarketFilter =
   | "all"
-  | "contract"
-  | "multi"
-  | "curated"
-  | "community"
+  | "governance" // DAO voting & proposals
+  | "price" // Asset prices
+  | "balance" // Token/NFT holdings
+  | "network" // Gas & network metrics
+  | "supply" // Token supply
+  | "protocol" // Protocol events
+  | "random" // Games
+  | "custom" // User-created
+  | "oracle" // All Resolver singleton markets (gold badge)
   | "closed"
   | "resolved"
   | "positions"
@@ -33,7 +43,7 @@ type SortOption = "newest" | "pot" | "activity" | "closing";
 
 export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const [start] = useState(0);
-  const [filter, setFilter] = useState<MarketFilter>("contract");
+  const [filter, setFilter] = useState<MarketFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
@@ -60,14 +70,14 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetch Pari-Mutuel markets with real-time updates
+  // Fetch PAMM markets with real-time updates
   const {
-    data: marketsData,
-    isLoading: isLoadingPM,
-    refetch: refetchPM,
+    data: pammMarketsData,
+    isLoading: isLoadingPAMM,
+    refetch: refetchPAMM,
   } = useReadContract({
-    address: PredictionMarketAddress as `0x${string}`,
-    abi: PredictionMarketAbi,
+    address: PAMMSingletonAddress,
+    abi: PAMMSingletonAbi,
     functionName: "getMarkets",
     args: [BigInt(start), BigInt(count)],
     query: {
@@ -75,160 +85,98 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     },
   });
 
-  // Fetch AMM markets with real-time updates
-  const {
-    data: ammMarketsData,
-    isLoading: isLoadingAMM,
-    refetch: refetchAMM,
-  } = useReadContract({
-    address: PredictionAMMAddress as `0x${string}`,
-    abi: PredictionAMMAbi,
-    functionName: "getMarkets",
-    args: [BigInt(start), BigInt(count)],
-    query: {
-      refetchInterval: 15000, // Poll every 15 seconds for real-time updates
-    },
-  });
-
-  // Get user positions for Pari-Mutuel if connected
-  const { data: userMarketsData, refetch: refetchUserDataPM } = useReadContract({
-    address: PredictionMarketAddress as `0x${string}`,
-    abi: PredictionMarketAbi,
-    functionName: "getUserMarkets",
+  // Get user positions for PAMM if connected
+  const { data: userPammPositionsData, refetch: refetchUserDataPAMM } = useReadContract({
+    address: PAMMSingletonAddress,
+    abi: PAMMSingletonAbi,
+    functionName: "getUserPositions",
     args: address ? [address, BigInt(start), BigInt(count)] : undefined,
     query: {
       enabled: !!address,
     },
   });
 
-  // Get user positions for AMM if connected
-  const { data: userAmmMarketsData, refetch: refetchUserDataAMM } = useReadContract({
-    address: PredictionAMMAddress as `0x${string}`,
-    abi: PredictionAMMAbi,
-    functionName: "getUserMarkets",
-    args: address ? [address, BigInt(start), BigInt(count)] : undefined,
-    query: {
-      enabled: !!address,
-    },
-  });
-
-  // Batch read trading status for Pari-Mutuel markets
-  const marketIds = marketsData?.[0] || [];
-  const { data: tradingOpenData, isLoading: isLoadingPMTrading } = useReadContracts({
-    contracts: marketIds.map((marketId) => ({
-      address: PredictionMarketAddress as `0x${string}`,
-      abi: PredictionMarketAbi,
+  // Batch read trading status for PAMM markets
+  const pammMarketIds = pammMarketsData?.[0] || [];
+  type TradingOpenResult = { result?: boolean; status: string };
+  const { data: pammTradingOpenDataRaw, isLoading: isLoadingPAMMTrading } = useReadContracts({
+    contracts: pammMarketIds.map((marketId) => ({
+      address: PAMMSingletonAddress,
+      abi: PAMMSingletonAbi,
       functionName: "tradingOpen",
       args: [marketId],
     })),
     query: {
-      enabled: marketIds.length > 0,
+      enabled: pammMarketIds.length > 0,
     },
   });
+  const pammTradingOpenData = pammTradingOpenDataRaw as TradingOpenResult[] | undefined;
 
-  // Batch read trading status for AMM markets
-  const ammMarketIds = ammMarketsData?.[0] || [];
-  const { data: ammTradingOpenData, isLoading: isLoadingAMMTrading } = useReadContracts({
-    contracts: ammMarketIds.map((marketId) => ({
-      address: PredictionAMMAddress as `0x${string}`,
-      abi: PredictionAMMAbi,
-      functionName: "tradingOpen",
-      args: [marketId],
+  // Batch read pool state for PAMM markets to get reserves for odds calculation
+  type PoolStateResult = { result?: readonly [bigint, bigint, bigint, bigint]; status: string };
+  const { data: pammPoolStatesRaw, isLoading: isLoadingPAMMPools } = useReadContracts({
+    contracts: pammMarketIds.map((marketId) => ({
+      address: PAMMSingletonAddress,
+      abi: PAMMSingletonAbi,
+      functionName: "getPoolState",
+      args: [marketId, DEFAULT_FEE_OR_HOOK],
     })),
     query: {
-      enabled: ammMarketIds.length > 0,
+      enabled: pammMarketIds.length > 0,
     },
   });
+  const pammPoolStates = pammPoolStatesRaw as PoolStateResult[] | undefined;
 
-  const isLoading = isLoadingPM || isLoadingAMM || isLoadingPMTrading || isLoadingAMMTrading;
+  const isLoading = isLoadingPAMM || isLoadingPAMMTrading || isLoadingPAMMPools;
 
   useEffect(() => {
     if (refreshKey !== undefined) {
-      refetchPM();
-      refetchAMM();
+      refetchPAMM();
       if (address) {
-        refetchUserDataPM();
-        refetchUserDataAMM();
+        refetchUserDataPAMM();
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
-  const hasPMMarkets = Boolean(marketsData && marketsData[0] && marketsData[0].length > 0);
-  const hasAMMMarkets = Boolean(ammMarketsData && ammMarketsData[0] && ammMarketsData[0].length > 0);
+  const hasPAMMMarkets = Boolean(pammMarketsData && pammMarketsData[0] && pammMarketsData[0].length > 0);
 
-  // Parse Pari-Mutuel markets (memoized to ensure consistent hook calls)
-  const pmMarkets = useMemo(
+  // Parse PAMM markets - new format with packed states
+  // getMarkets returns: marketIds[], resolvers[], collaterals[], states[], closes[], collateralAmounts[], yesSupplies[], noSupplies[], descs[], next
+  const pammMarkets = useMemo(
     () =>
-      hasPMMarkets
+      hasPAMMMarkets
         ? {
-            marketIdsArray: marketsData![0],
-            yesSupplies: marketsData![1],
-            noSupplies: marketsData![2],
-            resolvers: marketsData![3],
-            resolved: marketsData![4],
-            outcome: marketsData![5],
-            pot: marketsData![6],
-            payoutPerShare: marketsData![7],
-            descs: marketsData![8],
-            next: marketsData![9],
+            marketIdsArray: pammMarketsData![0],
+            resolvers: pammMarketsData![1],
+            collaterals: pammMarketsData![2],
+            states: pammMarketsData![3], // uint8[] - packed (resolved, outcome, canClose)
+            closes: pammMarketsData![4],
+            collateralAmounts: pammMarketsData![5], // pot equivalent
+            yesSupplies: pammMarketsData![6],
+            noSupplies: pammMarketsData![7],
+            descs: pammMarketsData![8],
+            next: pammMarketsData![9],
           }
         : null,
-    [hasPMMarkets, marketsData],
+    [hasPAMMMarkets, pammMarketsData],
   );
 
-  // Parse AMM markets - note the AMM contract returns more fields
-  const ammMarkets = useMemo(
+  // getUserPositions returns: marketIds[], noIds[], collaterals[], yesBalances[], noBalances[], claimables[], isResolved[], isOpen[], next
+  const userPammPositions = useMemo(
     () =>
-      hasAMMMarkets
+      userPammPositionsData
         ? {
-            marketIdsArray: ammMarketsData![0],
-            yesSupplies: ammMarketsData![1],
-            noSupplies: ammMarketsData![2],
-            resolvers: ammMarketsData![3],
-            resolved: ammMarketsData![4],
-            outcome: ammMarketsData![5],
-            pot: ammMarketsData![6],
-            payoutPerShare: ammMarketsData![7],
-            descs: ammMarketsData![8],
-            closes: ammMarketsData![9],
-            canCloses: ammMarketsData![10],
-            rYesArr: ammMarketsData![11],
-            rNoArr: ammMarketsData![12],
-            pYesNumArr: ammMarketsData![13],
-            pYesDenArr: ammMarketsData![14],
-            next: ammMarketsData![15],
+            marketIds: userPammPositionsData[0],
+            yesBalances: userPammPositionsData[3],
+            noBalances: userPammPositionsData[4],
+            claimables: userPammPositionsData[5],
           }
         : null,
-    [hasAMMMarkets, ammMarketsData],
+    [userPammPositionsData],
   );
 
-  // Extract user positions data for both types
-  const userPositions = useMemo(
-    () =>
-      userMarketsData
-        ? {
-            yesBalances: userMarketsData[2],
-            noBalances: userMarketsData[3],
-            claimables: userMarketsData[4],
-          }
-        : null,
-    [userMarketsData],
-  );
-
-  const userAmmPositions = useMemo(
-    () =>
-      userAmmMarketsData
-        ? {
-            yesBalances: userAmmMarketsData[2],
-            noBalances: userAmmMarketsData[3],
-            claimables: userAmmMarketsData[4],
-          }
-        : null,
-    [userAmmMarketsData],
-  );
-
-  // Combine markets from both contracts (memoized to ensure consistent hook calls)
+  // Build markets array from PAMM data
   const allMarkets = useMemo(() => {
     const markets: Array<{
       marketId: bigint;
@@ -244,62 +192,72 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
       userNoBalance: bigint;
       userClaimable: bigint;
       tradingOpen: boolean;
-      marketType: "parimutuel" | "amm";
       contractAddress: `0x${string}`;
       rYes?: bigint;
       rNo?: bigint;
+      category: MarketCategory; // Market category for filtering
+      isOracleMarket: boolean; // True if uses Resolver singleton (gold badge)
     }> = [];
 
-    // Add Pari-Mutuel markets
-    if (pmMarkets) {
-      pmMarkets.marketIdsArray.forEach((marketId, idx) => {
-        markets.push({
-          marketId,
-          yesSupply: pmMarkets.yesSupplies[idx],
-          noSupply: pmMarkets.noSupplies[idx],
-          resolver: pmMarkets.resolvers[idx],
-          resolved: pmMarkets.resolved[idx],
-          outcome: pmMarkets.outcome[idx],
-          pot: pmMarkets.pot[idx],
-          payoutPerShare: pmMarkets.payoutPerShare[idx],
-          description: pmMarkets.descs[idx],
-          userYesBalance: userPositions?.yesBalances[idx] || 0n,
-          userNoBalance: userPositions?.noBalances[idx] || 0n,
-          userClaimable: userPositions?.claimables[idx] || 0n,
-          tradingOpen: Boolean(tradingOpenData?.[idx]?.result ?? true),
-          marketType: "parimutuel",
-          contractAddress: PredictionMarketAddress as `0x${string}`,
-        });
-      });
-    }
+    // Add PAMM markets
+    if (pammMarkets) {
+      pammMarkets.marketIdsArray.forEach((marketId: bigint, idx: number) => {
+        // Decode packed state: (resolved ? 1 : 0) | (outcome ? 2 : 0) | (canClose ? 4 : 0)
+        const state = decodeMarketState(pammMarkets.states[idx]);
 
-    // Add AMM markets
-    if (ammMarkets) {
-      ammMarkets.marketIdsArray.forEach((marketId, idx) => {
+        // Get pool reserves from separate getPoolState call
+        // getPoolState returns: [rYes, rNo, pYesNum, pYesDen]
+        const poolState = pammPoolStates?.[idx]?.result;
+
+        // Find user position for this market (getUserPositions returns by index, need to match by marketId)
+        let userYesBal = 0n;
+        let userNoBal = 0n;
+        let userClaim = 0n;
+        if (userPammPositions) {
+          const userIdx = userPammPositions.marketIds.findIndex((id: bigint) => id === marketId);
+          if (userIdx >= 0) {
+            userYesBal = userPammPositions.yesBalances[userIdx] || 0n;
+            userNoBal = userPammPositions.noBalances[userIdx] || 0n;
+            userClaim = userPammPositions.claimables[userIdx] || 0n;
+          }
+        }
+
+        const resolverAddr = pammMarkets.resolvers[idx];
+        const desc = pammMarkets.descs[idx];
+
         markets.push({
           marketId,
-          yesSupply: ammMarkets.yesSupplies[idx],
-          noSupply: ammMarkets.noSupplies[idx],
-          resolver: ammMarkets.resolvers[idx],
-          resolved: ammMarkets.resolved[idx],
-          outcome: ammMarkets.outcome[idx],
-          pot: ammMarkets.pot[idx],
-          payoutPerShare: ammMarkets.payoutPerShare[idx],
-          description: ammMarkets.descs[idx],
-          userYesBalance: userAmmPositions?.yesBalances[idx] || 0n,
-          userNoBalance: userAmmPositions?.noBalances[idx] || 0n,
-          userClaimable: userAmmPositions?.claimables[idx] || 0n,
-          tradingOpen: Boolean(ammTradingOpenData?.[idx]?.result ?? true),
-          marketType: "amm",
-          contractAddress: PredictionAMMAddress as `0x${string}`,
-          rYes: ammMarkets.rYesArr[idx],
-          rNo: ammMarkets.rNoArr[idx],
+          yesSupply: pammMarkets.yesSupplies[idx],
+          noSupply: pammMarkets.noSupplies[idx],
+          resolver: resolverAddr,
+          resolved: state.resolved,
+          outcome: state.outcome,
+          pot: pammMarkets.collateralAmounts[idx],
+          payoutPerShare: 0n, // Calculated on-the-fly in the new contract
+          description: desc,
+          userYesBalance: userYesBal,
+          userNoBalance: userNoBal,
+          userClaimable: userClaim,
+          tradingOpen: Boolean(pammTradingOpenData?.[idx]?.result ?? true),
+          contractAddress: PAMMSingletonAddress,
+          rYes: poolState?.[0],
+          rNo: poolState?.[1],
+          category: getMarketCategory(resolverAddr, desc),
+          isOracleMarket: isResolverSingleton(resolverAddr),
         });
       });
     }
 
     return markets;
-  }, [pmMarkets, ammMarkets, userPositions, userAmmPositions, tradingOpenData, ammTradingOpenData]);
+  }, [
+    pammMarkets,
+    userPammPositions,
+    // Use BigInt-safe serialization to avoid deep type instantiation
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    pammTradingOpenData?.map(d => d.result?.toString()).join(','),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    pammPoolStates?.map(d => d.result?.map(v => v?.toString()).join('-')).join(','),
+  ]);
 
   // Excluded resolver addresses
   const excludedResolvers = useMemo(
@@ -359,17 +317,31 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
 
   // Calculate accurate counts based on non-dust markets
   const activeMarkets = nonDustMarkets.filter((m) => m.tradingOpen && !m.resolved);
-  const multiCount = activeMarkets.filter(
-    (m) => m.resolver.toLowerCase() === MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase(),
-  ).length;
-  const contractCount = activeMarkets.filter(
-    (m) =>
-      isPerpetualOracleResolver(m.resolver) && m.resolver.toLowerCase() !== MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase(),
-  ).length;
-  const curatedCount = activeMarkets.filter(
-    (m) => isTrustedResolver(m.resolver) && !isPerpetualOracleResolver(m.resolver),
-  ).length;
-  const communityCount = activeMarkets.filter((m) => !isTrustedResolver(m.resolver)).length;
+
+  // Category counts for active markets
+  const categoryCounts = useMemo(() => {
+    const counts: Record<MarketCategory | "oracle", number> = {
+      governance: 0,
+      price: 0,
+      balance: 0,
+      network: 0,
+      supply: 0,
+      protocol: 0,
+      random: 0,
+      custom: 0,
+      oracle: 0,
+    };
+
+    activeMarkets.forEach((m) => {
+      counts[m.category]++;
+      if (m.isOracleMarket) {
+        counts.oracle++;
+      }
+    });
+
+    return counts;
+  }, [activeMarkets]);
+
   const closedCount = nonDustMarkets.filter((m) => !m.tradingOpen && !m.resolved).length;
   const resolvedCount = nonDustMarkets.filter((m) => m.resolved).length;
   const positionsCount = nonDustMarkets.filter((m) => m.userYesBalance > 0n || m.userNoBalance > 0n).length;
@@ -387,34 +359,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   // Filter markets based on selected filter and search query (memoized for performance)
   const filteredMarkets = useMemo(() => {
     let markets = nonDustMarkets.filter((market) => {
+      // Status filters
       if (filter === "all") {
-        return true;
-      }
-      if (filter === "contract") {
-        return (
-          market.tradingOpen &&
-          !market.resolved &&
-          isPerpetualOracleResolver(market.resolver) &&
-          market.resolver.toLowerCase() !== MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase()
-        );
-      }
-      if (filter === "multi") {
-        return (
-          market.tradingOpen &&
-          !market.resolved &&
-          market.resolver.toLowerCase() === MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase()
-        );
-      }
-      if (filter === "curated") {
-        return (
-          market.tradingOpen &&
-          !market.resolved &&
-          isTrustedResolver(market.resolver) &&
-          !isPerpetualOracleResolver(market.resolver)
-        );
-      }
-      if (filter === "community") {
-        return market.tradingOpen && !market.resolved && !isTrustedResolver(market.resolver);
+        return market.tradingOpen && !market.resolved; // Show all active
       }
       if (filter === "closed") {
         return !market.tradingOpen && !market.resolved;
@@ -428,6 +375,27 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
       if (filter === "favorites") {
         return favorites.has(market.marketId.toString());
       }
+
+      // Oracle filter (Resolver singleton - gold badge markets)
+      if (filter === "oracle") {
+        return market.tradingOpen && !market.resolved && market.isOracleMarket;
+      }
+
+      // Category filters (only show active markets in category)
+      const categoryFilters: MarketCategory[] = [
+        "governance",
+        "price",
+        "balance",
+        "network",
+        "supply",
+        "protocol",
+        "random",
+        "custom",
+      ];
+      if (categoryFilters.includes(filter as MarketCategory)) {
+        return market.tradingOpen && !market.resolved && market.category === filter;
+      }
+
       return true;
     });
 
@@ -467,10 +435,8 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     return sorted;
   }, [nonDustMarkets, filter, debouncedSearchQuery, sortBy, favorites]);
 
-  // Calculate total markets count (before exclusions, just PM + AMM)
-  const totalPMMarkets = hasPMMarkets ? marketsData![0].length : 0;
-  const totalAMMMarkets = hasAMMMarkets ? ammMarketsData![0].length : 0;
-  const totalMarketsCount = totalPMMarkets + totalAMMMarkets;
+  // Calculate total markets count
+  const totalMarketsCount = hasPAMMMarkets ? pammMarketsData![0].length : 0;
 
   // Skeleton loader component
   const MarketCardSkeleton = () => (
@@ -507,7 +473,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   }
 
   // Handle empty state
-  if (!hasPMMarkets && !hasAMMMarkets) {
+  if (!hasPAMMMarkets) {
     return (
       <div className="text-center py-12 text-muted-foreground">No prediction markets yet. Create the first one!</div>
     );
@@ -518,11 +484,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
       {/* Total Markets Count Header */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <div>
-          <span className="font-semibold text-foreground">{totalMarketsCount}</span> total markets
-          <span className="hidden sm:inline">
-            {" "}
-            ({totalPMMarkets} Parimutuel, {totalAMMMarkets} AMM)
-          </span>
+          <span className="font-semibold text-foreground">{totalMarketsCount}</span> PAMM markets
         </div>
         {nonDustMarkets.length < visibleMarkets.length && (
           <div className="text-xs opacity-75">
@@ -601,57 +563,124 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
 
       <Tabs value={filter} onValueChange={(v) => setFilter(v as MarketFilter)}>
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <TabsList className="inline-flex w-auto min-w-full">
+          <TabsList className="inline-flex w-auto min-w-full gap-1">
+            {/* All Active Markets */}
+            <TabsTrigger value="all" className="whitespace-nowrap">
+              <span className="hidden sm:inline">All ({activeMarkets.length})</span>
+              <span className="sm:hidden">All</span>
+            </TabsTrigger>
+
+            {/* Oracle Markets (Resolver Singleton - Gold Badge) */}
+            {categoryCounts.oracle > 0 && (
+              <TabsTrigger value="oracle" className="whitespace-nowrap">
+                <span className="flex items-center gap-1">
+                  <span className="text-amber-500">*</span>
+                  <span className="hidden sm:inline">Oracle ({categoryCounts.oracle})</span>
+                  <span className="sm:hidden">Oracle</span>
+                </span>
+              </TabsTrigger>
+            )}
+
+            {/* Category Tabs - Only show if category has markets */}
+            {categoryCounts.price > 0 && (
+              <TabsTrigger value="price" className="whitespace-nowrap">
+                <span className="flex items-center gap-1">
+                  <span>{CATEGORY_INFO.price.icon}</span>
+                  <span className="hidden sm:inline">{CATEGORY_INFO.price.label} ({categoryCounts.price})</span>
+                  <span className="sm:hidden">{CATEGORY_INFO.price.label}</span>
+                </span>
+              </TabsTrigger>
+            )}
+            {categoryCounts.governance > 0 && (
+              <TabsTrigger value="governance" className="whitespace-nowrap">
+                <span className="flex items-center gap-1">
+                  <span>{CATEGORY_INFO.governance.icon}</span>
+                  <span className="hidden sm:inline">{CATEGORY_INFO.governance.label} ({categoryCounts.governance})</span>
+                  <span className="sm:hidden">{CATEGORY_INFO.governance.label}</span>
+                </span>
+              </TabsTrigger>
+            )}
+            {categoryCounts.balance > 0 && (
+              <TabsTrigger value="balance" className="whitespace-nowrap">
+                <span className="flex items-center gap-1">
+                  <span>{CATEGORY_INFO.balance.icon}</span>
+                  <span className="hidden sm:inline">{CATEGORY_INFO.balance.label} ({categoryCounts.balance})</span>
+                  <span className="sm:hidden">{CATEGORY_INFO.balance.label}</span>
+                </span>
+              </TabsTrigger>
+            )}
+            {categoryCounts.network > 0 && (
+              <TabsTrigger value="network" className="whitespace-nowrap">
+                <span className="flex items-center gap-1">
+                  <span>{CATEGORY_INFO.network.icon}</span>
+                  <span className="hidden sm:inline">{CATEGORY_INFO.network.label} ({categoryCounts.network})</span>
+                  <span className="sm:hidden">{CATEGORY_INFO.network.label}</span>
+                </span>
+              </TabsTrigger>
+            )}
+            {categoryCounts.supply > 0 && (
+              <TabsTrigger value="supply" className="whitespace-nowrap">
+                <span className="flex items-center gap-1">
+                  <span>{CATEGORY_INFO.supply.icon}</span>
+                  <span className="hidden sm:inline">{CATEGORY_INFO.supply.label} ({categoryCounts.supply})</span>
+                  <span className="sm:hidden">{CATEGORY_INFO.supply.label}</span>
+                </span>
+              </TabsTrigger>
+            )}
+            {categoryCounts.protocol > 0 && (
+              <TabsTrigger value="protocol" className="whitespace-nowrap">
+                <span className="flex items-center gap-1">
+                  <span>{CATEGORY_INFO.protocol.icon}</span>
+                  <span className="hidden sm:inline">{CATEGORY_INFO.protocol.label} ({categoryCounts.protocol})</span>
+                  <span className="sm:hidden">{CATEGORY_INFO.protocol.label}</span>
+                </span>
+              </TabsTrigger>
+            )}
+            {categoryCounts.random > 0 && (
+              <TabsTrigger value="random" className="whitespace-nowrap">
+                <span className="flex items-center gap-1">
+                  <span>{CATEGORY_INFO.random.icon}</span>
+                  <span className="hidden sm:inline">{CATEGORY_INFO.random.label} ({categoryCounts.random})</span>
+                  <span className="sm:hidden">{CATEGORY_INFO.random.label}</span>
+                </span>
+              </TabsTrigger>
+            )}
+            {categoryCounts.custom > 0 && (
+              <TabsTrigger value="custom" className="whitespace-nowrap">
+                <span className="flex items-center gap-1">
+                  <span>{CATEGORY_INFO.custom.icon}</span>
+                  <span className="hidden sm:inline">{CATEGORY_INFO.custom.label} ({categoryCounts.custom})</span>
+                  <span className="sm:hidden">{CATEGORY_INFO.custom.label}</span>
+                </span>
+              </TabsTrigger>
+            )}
+
+            {/* Separator */}
+            <div className="w-px h-6 bg-border mx-1 self-center" />
+
+            {/* Status filters */}
             {favoritesCount > 0 && (
               <TabsTrigger value="favorites" className="whitespace-nowrap">
                 <span className="hidden sm:inline">Favorites ({favoritesCount})</span>
-                <span className="sm:hidden">Favorites</span>
+                <span className="sm:hidden">Favs</span>
               </TabsTrigger>
             )}
-            {multiCount > 0 && (
-              <TabsTrigger value="multi" className="whitespace-nowrap">
-                <span className="hidden sm:inline">Multi ({multiCount})</span>
-                <span className="sm:hidden">Multi</span>
-              </TabsTrigger>
-            )}
-            {contractCount > 0 && (
-              <TabsTrigger value="contract" className="whitespace-nowrap">
-                <span className="hidden sm:inline">Contract ({contractCount})</span>
-                <span className="sm:hidden">Contract</span>
-              </TabsTrigger>
-            )}
-            {curatedCount > 0 && (
-              <TabsTrigger value="curated" className="whitespace-nowrap">
-                <span className="hidden sm:inline">Curated ({curatedCount})</span>
-                <span className="sm:hidden">Curated</span>
-              </TabsTrigger>
-            )}
-            {communityCount > 0 && (
-              <TabsTrigger value="community" className="whitespace-nowrap">
-                <span className="hidden sm:inline">Community ({communityCount})</span>
-                <span className="sm:hidden">Community</span>
+            {address && positionsCount > 0 && (
+              <TabsTrigger value="positions" className="whitespace-nowrap">
+                <span className="hidden sm:inline">My Positions ({positionsCount})</span>
+                <span className="sm:hidden">Mine</span>
               </TabsTrigger>
             )}
             {closedCount > 0 && (
-              <TabsTrigger value="closed" className="whitespace-nowrap">
+              <TabsTrigger value="closed" className="whitespace-nowrap text-muted-foreground">
                 <span className="hidden sm:inline">Closed ({closedCount})</span>
                 <span className="sm:hidden">Closed</span>
               </TabsTrigger>
             )}
             {resolvedCount > 0 && (
-              <TabsTrigger value="resolved" className="whitespace-nowrap">
+              <TabsTrigger value="resolved" className="whitespace-nowrap text-muted-foreground">
                 <span className="hidden sm:inline">Resolved ({resolvedCount})</span>
-                <span className="sm:hidden">Resolved</span>
-              </TabsTrigger>
-            )}
-            <TabsTrigger value="all" className="whitespace-nowrap">
-              <span className="hidden sm:inline">All ({nonDustMarkets.length})</span>
-              <span className="sm:hidden">All</span>
-            </TabsTrigger>
-            {address && positionsCount > 0 && (
-              <TabsTrigger value="positions" className="whitespace-nowrap">
-                <span className="hidden sm:inline">My Positions ({positionsCount})</span>
-                <span className="sm:hidden">Mine</span>
+                <span className="sm:hidden">Done</span>
               </TabsTrigger>
             )}
           </TabsList>
@@ -674,38 +703,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
             </div>
           ) : (
             <div className="space-y-5">
-              {/* MegaSale Markets - Special Card (only in multi and all tabs) */}
-              {(filter === "multi" || filter === "all") &&
-                (() => {
-                  const megaSaleMarkets = filteredMarkets.filter(
-                    (m) => m.resolver.toLowerCase() === MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase(),
-                  );
-
-                  if (megaSaleMarkets.length > 0) {
-                    return (
-                      <div className="mb-5">
-                        <MegaSaleMarketCard
-                          markets={megaSaleMarkets}
-                          onTradeSuccess={() => {
-                            refetchPM();
-                            refetchAMM();
-                            if (address) {
-                              refetchUserDataPM();
-                              refetchUserDataAMM();
-                            }
-                          }}
-                        />
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-
-              {/* Regular Markets Grid */}
+              {/* Markets Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in duration-300">
-                {filteredMarkets
-                  .filter((m) => m.resolver.toLowerCase() !== MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase())
-                  .map((market) => (
+                {filteredMarkets.map((market) => (
                     <MarketCard
                       key={`${market.contractAddress}-${market.marketId.toString()}`}
                       marketId={market.marketId}
@@ -720,16 +720,15 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
                       userYesBalance={market.userYesBalance}
                       userNoBalance={market.userNoBalance}
                       userClaimable={market.userClaimable}
-                      marketType={market.marketType}
                       contractAddress={market.contractAddress}
                       rYes={market.rYes}
                       rNo={market.rNo}
+                      category={market.category}
+                      isOracleMarket={market.isOracleMarket}
                       onClaimSuccess={() => {
-                        refetchPM();
-                        refetchAMM();
+                        refetchPAMM();
                         if (address) {
-                          refetchUserDataPM();
-                          refetchUserDataAMM();
+                          refetchUserDataPAMM();
                         }
                       }}
                     />

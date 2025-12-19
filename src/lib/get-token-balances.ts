@@ -2,7 +2,7 @@ import { erc20Abi, isAddressEqual, zeroAddress, type Address, type PublicClient 
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import type { Token, TokenMetadata } from "@/lib/pools";
-import { PredictionAMMAbi, PredictionAMMAddress } from "@/constants/PredictionMarketAMM";
+import { PAMMSingletonAbi, PAMMSingletonAddress } from "@/constants/PAMMSingleton";
 
 type WithId = Token | TokenMetadata;
 
@@ -65,12 +65,12 @@ export async function getTokenBalances(opts: {
           args: [owner, t.id] as const,
         },
       });
-    } else if (isAddressEqual(asAddr, PredictionAMMAddress)) {
+    } else if (isAddressEqual(asAddr, PAMMSingletonAddress)) {
       pmmCalls.push({
         token: t,
         contract: {
-          address: PredictionAMMAddress,
-          abi: PredictionAMMAbi,
+          address: PAMMSingletonAddress,
+          abi: PAMMSingletonAbi,
           functionName: "balanceOf",
           args: [owner, t.id] as const,
         },

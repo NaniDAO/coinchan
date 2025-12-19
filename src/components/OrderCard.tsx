@@ -1,15 +1,19 @@
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { PMRouterAbi, PMRouterAddress } from "@/constants/PMRouter";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useOperatorStatus } from "@/hooks/use-operator-status";
 import { ETH_TOKEN } from "@/lib/coins";
 import { handleWalletError } from "@/lib/errors";
-import { ArrowRight, Clock, ExternalLink, Loader2, User } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowRight, Clock, ExternalLink, Loader2, TrendingUp, User } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { encodeFunctionData, formatUnits, parseUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { useAccount, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
+
+// PAMM contract address for detecting PM shares
+const PAMMAddress = "0x000000000044bfe6c2BBFeD8862973E0612f07C0";
 import type { Order } from "./OrdersPage";
 import { TokenImage } from "./TokenImage";
 import { Badge } from "./ui/badge";
@@ -27,10 +31,32 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
   const { t } = useTranslation();
   const { address } = useAccount();
   const { tokens } = useAllCoins();
+
+  // Parse token IDs early so we can pass to hooks
+  const tokenInId = order?.idIn && order.idIn !== "0" ? BigInt(order.idIn) : null;
+  const tokenOutId = order?.idOut && order.idOut !== "0" ? BigInt(order.idOut) : null;
+
+  // Detect PM order early for operator checks
+  const isPMOrder = order?.maker?.toLowerCase() === PMRouterAddress.toLowerCase();
+  const isPMBuyOrder = isPMOrder && order?.tokenOut?.toLowerCase() === PAMMAddress.toLowerCase();
+  const isPMSellOrder = isPMOrder && !isPMBuyOrder;
+
+  // For PM BUY orders: taker provides shares (tokenOut), need PAMM approval for PMRouter
+  // For PM SELL orders: taker provides collateral, handled separately (ERC20 approval)
+  // For regular orders: taker provides tokenOut, need Coins approval for Cookbook
+  const operatorToCheck = isPMOrder ? PMRouterAddress : CookbookAddress;
+  // For PM BUY: check tokenOut (shares) approval; for PM SELL: skip (handled in fill); for regular: tokenOut
+  const tokenIdForOperator = isPMSellOrder ? undefined : tokenOutId;
+  // For PM BUY orders, we need to check PAMM operator status, not Coins/Cookbook
+  const contractOverride = isPMBuyOrder ? (PAMMAddress as `0x${string}`) : undefined;
+
   const { data: isOperator, refetch: refetchOperatorStatus } = useOperatorStatus({
     address,
-    operator: CookbookAddress,
+    operator: operatorToCheck,
+    tokenId: tokenIdForOperator ?? undefined,
+    contractOverride,
   });
+
   const [fillAmount, setFillAmount] = useState("");
   const [txError, setTxError] = useState<string | null>(null);
   const [cancelTxError, setCancelTxError] = useState<string | null>(null);
@@ -46,13 +72,9 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
     chainId: mainnet.id,
   });
 
-  if (!order?.idIn || !order?.idOut || !order?.deadline || !order?.amtIn || !order?.amtOut || !order?.deadline) {
+  if (!order?.idIn || !order?.idOut || !order?.deadline || !order?.amtIn || !order?.amtOut) {
     return null;
   }
-
-  // Parse order data
-  const tokenInId = order?.idIn && order.idIn === "0" ? null : BigInt(order.idIn);
-  const tokenOutId = order?.idOut && order.idOut === "0" ? null : BigInt(order.idOut);
 
   const tokenIn = tokenInId === null ? ETH_TOKEN : tokens.find((t) => t.id === tokenInId);
   const tokenOut = tokenOutId === null ? ETH_TOKEN : tokens.find((t) => t.id === tokenOutId);
@@ -111,50 +133,139 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
         value?: bigint;
       }> = [];
 
-      // For ETH orders, send ETH value
-      const value = tokenOutId === null ? fillAmountBigInt : 0n;
+      if (isPMOrder) {
+        // PM Order fill via PMRouter
+        // PMRouter.fillOrder(orderHash, sharesToFill, to)
+        // sharesToFill is the amount of shares to trade
+        // For BUY orders (maker buying shares): taker provides shares, receives collateral
+        // For SELL orders (maker selling shares): taker provides collateral, receives shares
 
-      // If filling with tokens (not ETH), may need operator approval
-      // Skip setOperator for cookbook coins since they don't require approval
-      if (tokenOutId !== null && isOperator === false && tokenOut?.source !== "COOKBOOK") {
-        // Check if we need to set operator approval
-        // This would require checking current approval status
-        // For now, we'll include it as it's safer
-        const approvalData = encodeFunctionData({
-          abi: CoinsAbi,
-          functionName: "setOperator",
-          args: [CookbookAddress, true],
+        let sharesToFill: bigint;
+        let value = 0n;
+
+        if (isPMBuyOrder) {
+          // BUY order: taker sells shares to maker
+          // fillAmountBigInt is the shares amount (tokenOut for ZAMM = shares)
+          sharesToFill = fillAmountBigInt;
+
+          // Taker provides PAMM shares, need PAMM.setOperator approval for PMRouter
+          if (isOperator === false) {
+            const approvalData = encodeFunctionData({
+              abi: [
+                {
+                  inputs: [
+                    { name: "operator", type: "address" },
+                    { name: "approved", type: "bool" },
+                  ],
+                  name: "setOperator",
+                  outputs: [{ name: "", type: "bool" }],
+                  stateMutability: "nonpayable",
+                  type: "function",
+                },
+              ],
+              functionName: "setOperator",
+              args: [PMRouterAddress, true],
+            });
+            calls.push({
+              to: PAMMAddress as `0x${string}`,
+              data: approvalData,
+            });
+          }
+        } else {
+          // SELL order: taker buys shares from maker
+          // tokenIn is shares, tokenOut is collateral
+          // fillAmountBigInt is collateral amount
+          // Calculate shares from the order ratio: shares = collateral * order.shares / order.collateral
+          const orderShares = amtIn; // shares (tokenIn)
+          const orderCollateral = amtOut; // collateral (tokenOut)
+          sharesToFill = (fillAmountBigInt * orderShares) / orderCollateral;
+
+          // Check if collateral is ETH (address(0)) or ERC20
+          const isETHCollateral = order.tokenOut?.toLowerCase() === "0x0000000000000000000000000000000000000000";
+
+          if (isETHCollateral) {
+            // ETH collateral - send ETH value
+            value = fillAmountBigInt;
+          } else {
+            // ERC20 collateral - need approve for PMRouter
+            const approvalData = encodeFunctionData({
+              abi: [
+                {
+                  inputs: [
+                    { name: "spender", type: "address" },
+                    { name: "amount", type: "uint256" },
+                  ],
+                  name: "approve",
+                  outputs: [{ name: "", type: "bool" }],
+                  stateMutability: "nonpayable",
+                  type: "function",
+                },
+              ],
+              functionName: "approve",
+              args: [PMRouterAddress, fillAmountBigInt],
+            });
+            calls.push({
+              to: order.tokenOut as `0x${string}`,
+              data: approvalData,
+            });
+          }
+        }
+
+        const fillOrderData = encodeFunctionData({
+          abi: PMRouterAbi,
+          functionName: "fillOrder",
+          args: [order.id as `0x${string}`, sharesToFill, address],
         });
 
         calls.push({
-          to: CoinsAddress,
-          data: approvalData,
+          to: PMRouterAddress,
+          data: fillOrderData,
+          value,
+        });
+      } else {
+        // Regular order fill via Cookbook
+        // For ETH orders, send ETH value
+        const value = tokenOutId === null ? fillAmountBigInt : 0n;
+
+        // If filling with tokens (not ETH), may need operator approval
+        // Skip setOperator for cookbook coins since they don't require approval
+        if (tokenOutId !== null && isOperator === false && tokenOut?.source !== "COOKBOOK") {
+          const approvalData = encodeFunctionData({
+            abi: CoinsAbi,
+            functionName: "setOperator",
+            args: [CookbookAddress, true],
+          });
+
+          calls.push({
+            to: CoinsAddress,
+            data: approvalData,
+          });
+        }
+
+        // Encode fillOrder call
+        const fillOrderData = encodeFunctionData({
+          abi: CookbookAbi,
+          functionName: "fillOrder",
+          args: [
+            order.maker as `0x${string}`,
+            order.tokenIn as `0x${string}`,
+            BigInt(order?.idIn),
+            BigInt(order?.amtIn),
+            order.tokenOut as `0x${string}`,
+            BigInt(order?.idOut),
+            BigInt(order?.amtOut),
+            BigInt(order?.deadline),
+            order.partialFill,
+            fillAmountBigInt,
+          ],
+        });
+
+        calls.push({
+          to: CookbookAddress,
+          data: fillOrderData,
+          value,
         });
       }
-
-      // Encode fillOrder call
-      const fillOrderData = encodeFunctionData({
-        abi: CookbookAbi,
-        functionName: "fillOrder",
-        args: [
-          order.maker as `0x${string}`,
-          order.tokenIn as `0x${string}`,
-          BigInt(order?.idIn),
-          BigInt(order?.amtIn),
-          order.tokenOut as `0x${string}`,
-          BigInt(order?.idOut),
-          BigInt(order?.amtOut),
-          BigInt(order?.deadline),
-          order.partialFill,
-          fillAmountBigInt,
-        ],
-      });
-
-      calls.push({
-        to: CookbookAddress,
-        data: fillOrderData,
-        value,
-      });
 
       // Execute calls sequentially
       // Note: This sequential execution logic seems complex.
@@ -257,29 +368,33 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
     }
   };
 
-  // Handle successful transaction
-  if (isSuccess && txHash) {
-    setTimeout(() => {
-      setTxHash(undefined);
-      setFillAmount("");
-      onOrderFilled();
-    }, 2000);
-  }
+  // Handle successful fill transaction
+  useEffect(() => {
+    if (isSuccess && txHash) {
+      const timer = setTimeout(() => {
+        setTxHash(undefined);
+        setFillAmount("");
+        onOrderFilled();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isSuccess, txHash, onOrderFilled]);
 
   // Handle successful cancel transaction
-  if (isCancelSuccess && cancelTxHash) {
-    setTimeout(() => {
-      setCancelTxHash(undefined);
-      onOrderFilled(); // This will refresh the orders list
-    }, 2000);
-  }
+  useEffect(() => {
+    if (isCancelSuccess && cancelTxHash) {
+      const timer = setTimeout(() => {
+        setCancelTxHash(undefined);
+        onOrderFilled();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isCancelSuccess, cancelTxHash, onOrderFilled]);
 
   return (
     <Card className="border border-primary/20 hover:border-primary/40 transition-colors">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          {" "}
-          {/* Added flex-wrap and gap for mobile */}
           <div className="flex items-center gap-2">
             <Badge
               variant={order.status === "ACTIVE" ? "default" : "secondary"}
@@ -291,6 +406,12 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
             >
               {t(`orders.${order.status.toLowerCase()}`)}
             </Badge>
+            {isPMOrder && (
+              <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/30">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                {t("orders.prediction_market")}
+              </Badge>
+            )}
             {isExpired && (
               <Badge variant="destructive" className="bg-red-500/20 text-red-600 border-red-500/30">
                 {t("orders.expired")}
@@ -474,7 +595,10 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
         {/* Changed flex direction to column on mobile, row on medium screens */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0 text-xs text-muted-foreground border-t border-primary/10 pt-3">
           <span>
-            {t("orders.created_at")}: {new Date(Number(order.createdAt)).toLocaleDateString()}
+            {t("orders.created_at")}:{" "}
+            {new Date(
+              Number(order.createdAt) > 1e12 ? Number(order.createdAt) : Number(order.createdAt) * 1000,
+            ).toLocaleDateString()}
           </span>
           <a
             href={`https://etherscan.io/tx/${order.txHash}`}
