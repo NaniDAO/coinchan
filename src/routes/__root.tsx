@@ -251,7 +251,7 @@ export const Route = createRootRoute({
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/stake" className={itemClasses}>
+                      <Link to="/farm" className={itemClasses}>
                         <TrendingUp className="h-4 w-4" />
                         <span>{t("common.stake", "Stake")}</span>
                       </Link>
@@ -343,7 +343,7 @@ export const Route = createRootRoute({
                       label: t("common.coins"),
                     },
                     {
-                      to: "/stake",
+                      to: "/farm",
                       label: `📈 ${t("common.stake", "Stake")}`,
                     },
                     {
