@@ -1,4 +1,4 @@
-import { keccak256, encodePacked } from "viem";
+import { keccak256, encodePacked, encodeAbiParameters, parseAbiParameters } from "viem";
 
 // PAMM V1 Singleton - ERC6909 prediction market shares
 export const PAMMSingletonAddress = "0x000000000044bfe6c2BBFeD8862973E0612f07C0" as const;
@@ -820,3 +820,59 @@ export function isETHCollateral(collateral: string): boolean {
 
 // Legacy alias for backwards compatibility
 export const PAMMAbi = PAMMSingletonAbi;
+
+/**
+ * Computes the pool ID for a PAMM market on ZAMM V0
+ * Pool ID = keccak256(abi.encode(id0, id1, token0, token1, feeOrHook))
+ * Where id0/id1 are ordered (smaller first) and both tokens are PAMM singleton
+ *
+ * @param marketId The YES token id (the market id)
+ * @param feeOrHook Optional fee tier (defaults to 30 bps)
+ * @returns The pool ID as a bigint
+ */
+export function computePAMMPoolId(marketId: bigint, feeOrHook: bigint = DEFAULT_FEE_OR_HOOK): bigint {
+  const noId = deriveNoId(marketId);
+
+  // Order IDs: smaller first (matching ZAMM pool key ordering)
+  const id0 = marketId < noId ? marketId : noId;
+  const id1 = marketId < noId ? noId : marketId;
+
+  // Compute pool ID matching GasPM.html and ZAMM V0 encoding
+  // Note: Using uint256 for feeOrHook to match the frontend poolId calculation
+  return BigInt(
+    keccak256(
+      encodeAbiParameters(
+        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook"),
+        [id0, id1, PAMMSingletonAddress, PAMMSingletonAddress, feeOrHook],
+      ),
+    ),
+  );
+}
+
+/**
+ * Computes the pool ID for a PAMM market given both YES and NO token IDs
+ * Use this when you already have both IDs (e.g., from indexer data)
+ *
+ * @param yesId The YES token id
+ * @param noId The NO token id
+ * @param feeOrHook Optional fee tier (defaults to 30 bps)
+ * @returns The pool ID as a bigint
+ */
+export function computePAMMPoolIdFromIds(
+  yesId: bigint,
+  noId: bigint,
+  feeOrHook: bigint = DEFAULT_FEE_OR_HOOK,
+): bigint {
+  // Order IDs: smaller first (matching ZAMM pool key ordering)
+  const id0 = yesId < noId ? yesId : noId;
+  const id1 = yesId < noId ? noId : yesId;
+
+  return BigInt(
+    keccak256(
+      encodeAbiParameters(
+        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook"),
+        [id0, id1, PAMMSingletonAddress, PAMMSingletonAddress, feeOrHook],
+      ),
+    ),
+  );
+}

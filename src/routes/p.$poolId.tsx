@@ -33,10 +33,11 @@ function PoolPage() {
   const isLoading = cookbookLoading && zammLoading;
 
   // Check if this is a PAMM prediction market pool
-  const { data: pammData } = usePAMMMarket(pool ?? null);
+  const { data: pammData, isLoading: pammLoading } = usePAMMMarket(pool ?? null);
   const isPredictionMarket = pammData?.isPAMMPool && pammData?.marketId !== null;
 
-  if (isLoading) {
+  // Show loading while pool data or PAMM discovery is in progress
+  if (isLoading || (pammData?.isPAMMPool && pammLoading)) {
     return <PoolPageSkeleton />;
   }
 

@@ -6,6 +6,7 @@ import {
   calculateYesProbability,
 } from "@/constants/PAMMSingleton";
 import type { Pool } from "./use-get-pool";
+import { usePAMMMarketDiscovery } from "./use-pamm-market-discovery";
 
 export interface PAMMMarketData {
   isPAMMPool: boolean;
@@ -40,18 +41,55 @@ export function usePAMMMarket(pool: Pool | null): {
   isLoading: boolean;
   error: Error | null;
 } {
-  // Check if this is a PAMM pool (both tokens are the PAMM singleton)
-  const isPAMMPool =
-    pool?.token0?.toLowerCase() === PAMMSingletonAddress.toLowerCase() &&
-    pool?.token1?.toLowerCase() === PAMMSingletonAddress.toLowerCase();
+  // Get token addresses - try multiple sources
+  // Priority: pool.token0 > pool.coin0?.token
+  const token0Address = pool?.token0 || pool?.coin0?.token || null;
+  const token1Address = pool?.token1 || pool?.coin1?.token || null;
 
-  // Parse token IDs
-  const id0 = pool?.coin0Id ? BigInt(pool.coin0Id) : null;
-  const id1 = pool?.coin1Id ? BigInt(pool.coin1Id) : null;
+  // Check if this is a PAMM pool based on token addresses
+  const isPAMMPoolByTokens =
+    token0Address?.toLowerCase() === PAMMSingletonAddress.toLowerCase() &&
+    token1Address?.toLowerCase() === PAMMSingletonAddress.toLowerCase();
+
+  // Parse token IDs - try coin0Id first, then fallback to coin0?.id
+  // Skip coin0Id if it's "0" (invalid for PAMM markets)
+  const id0 =
+    pool?.coin0Id && pool.coin0Id !== "0"
+      ? BigInt(pool.coin0Id)
+      : pool?.coin0?.id
+        ? BigInt(pool.coin0.id)
+        : null;
+  const id1 =
+    pool?.coin1Id && pool.coin1Id !== "0"
+      ? BigInt(pool.coin1Id)
+      : pool?.coin1?.id
+        ? BigInt(pool.coin1.id)
+        : null;
 
   // Identify which ID is YES (marketId) and which is NO (noId)
   const yesNoIds = id0 !== null && id1 !== null ? identifyYesNoIds(id0, id1) : null;
-  const marketId = yesNoIds?.marketId ?? null;
+
+  // If indexer data is incomplete (no token addresses or no coin IDs), try discovery
+  // Discovery will check if this pool ID matches any PAMM market
+  const indexerDataComplete = isPAMMPoolByTokens && yesNoIds !== null;
+  const needsDiscovery = pool !== null && !indexerDataComplete;
+
+  const {
+    marketId: discoveredMarketId,
+    noId: discoveredNoId,
+    yesIsId0: discoveredYesIsId0,
+    isLoading: discoveryLoading,
+  } = usePAMMMarketDiscovery(pool?.id ?? null, needsDiscovery);
+
+  // A pool is a PAMM pool if:
+  // 1. Token addresses match PAMM singleton, OR
+  // 2. Discovery found a matching PAMM market
+  const isPAMMPool = isPAMMPoolByTokens || discoveredMarketId !== null;
+
+  // Use discovered data if indexer data is not available
+  const marketId = yesNoIds?.marketId ?? discoveredMarketId;
+  const noId = yesNoIds?.noId ?? discoveredNoId;
+  const yesIsId0 = yesNoIds?.yesIsId0 ?? discoveredYesIsId0;
 
   // Fetch market data from PAMM contract
   const {
@@ -80,8 +118,37 @@ export function usePAMMMarket(pool: Pool | null): {
     },
   });
 
-  // Process results
-  if (!isPAMMPool || !yesNoIds || !marketId) {
+  // Process results - if still discovering, show loading
+  if (discoveryLoading) {
+    return {
+      data: {
+        isPAMMPool: true,
+        marketId: null,
+        noId: null,
+        yesIsId0: false,
+        description: null,
+        resolver: null,
+        collateral: null,
+        resolved: false,
+        outcome: false,
+        canClose: false,
+        closeTimestamp: null,
+        collateralLocked: null,
+        yesSupply: null,
+        noSupply: null,
+        tradingOpen: false,
+        yesPercent: 50,
+        noPercent: 50,
+        rYes: null,
+        rNo: null,
+      },
+      isLoading: true,
+      error: null,
+    };
+  }
+
+  // If not a PAMM pool, or couldn't find market after discovery
+  if (!isPAMMPool || !marketId) {
     return {
       data: isPAMMPool
         ? {
@@ -116,9 +183,9 @@ export function usePAMMMarket(pool: Pool | null): {
 
   // Calculate probabilities from pool reserves
   const rYes =
-    pool?.reserve0 && pool?.reserve1 ? (yesNoIds.yesIsId0 ? BigInt(pool.reserve0) : BigInt(pool.reserve1)) : null;
+    pool?.reserve0 && pool?.reserve1 ? (yesIsId0 ? BigInt(pool.reserve0) : BigInt(pool.reserve1)) : null;
   const rNo =
-    pool?.reserve0 && pool?.reserve1 ? (yesNoIds.yesIsId0 ? BigInt(pool.reserve1) : BigInt(pool.reserve0)) : null;
+    pool?.reserve0 && pool?.reserve1 ? (yesIsId0 ? BigInt(pool.reserve1) : BigInt(pool.reserve0)) : null;
 
   const { yesPercent, noPercent } =
     rYes !== null && rNo !== null ? calculateYesProbability(rYes, rNo) : { yesPercent: 50, noPercent: 50 };
@@ -128,8 +195,8 @@ export function usePAMMMarket(pool: Pool | null): {
   const result: PAMMMarketData = {
     isPAMMPool: true,
     marketId,
-    noId: yesNoIds.noId,
-    yesIsId0: yesNoIds.yesIsId0,
+    noId,
+    yesIsId0,
     description: marketData ? (marketData[9] as string) : null,
     resolver: marketData ? (marketData[0] as string) : null,
     collateral: marketData ? (marketData[1] as string) : null,
