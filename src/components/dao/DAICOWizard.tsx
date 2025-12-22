@@ -31,6 +31,7 @@ import {
   Hash,
   Globe,
   FileText,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,111 @@ const DEFAULT_SUMMON_CONFIG = {
   sharesImpl: "0x71E9b38d301b5A58cb998C1295045FE276Acf600" as Address,
   lootImpl: "0x6f1f2aF76a3aDD953277e9F369242697C87bc6A5" as Address,
 };
+
+// DAICO Templates
+interface DAICOTemplate {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ElementType;
+  config: Partial<DAICOFormState>;
+}
+
+const DAICO_TEMPLATES: DAICOTemplate[] = [
+  {
+    id: "buterin",
+    name: "Buterin",
+    description: "Tap + governance. All holders vote. Tap releases funds automatically to ops.",
+    icon: TrendingUp,
+    config: {
+      tribAmt: "0.00001", // 0.01 ETH per 1M tokens
+      saleSupply: "1000000000", // 1B tokens
+      forAmt: "1",
+      quorumBps: "1000", // 10%
+      ragequittable: true,
+      sellLoot: false,
+      enablePassiveIncome: true,
+      ratePerSec: "0.000634259", // ≈ 0.0548 ETH/day
+      tapAllowance: "10", // 100% of raise
+      sharesLocked: false,
+      lootLocked: false,
+    },
+  },
+  {
+    id: "club",
+    name: "Club",
+    description: "Vote on spends. Community governance with member proposals.",
+    icon: Users,
+    config: {
+      tribAmt: "0.0001",
+      saleSupply: "1000000",
+      forAmt: "1",
+      quorumBps: "5000", // 50%
+      ragequittable: true,
+      sellLoot: false,
+      enablePassiveIncome: false,
+      sharesLocked: false,
+      lootLocked: false,
+    },
+  },
+  {
+    id: "builder",
+    name: "Builder",
+    description: "Builder controls. Centralized operations with optional community oversight.",
+    icon: Shield,
+    config: {
+      tribAmt: "0.0001",
+      saleSupply: "1000000",
+      forAmt: "1",
+      quorumBps: "2000", // 20% lower threshold
+      ragequittable: false,
+      sellLoot: true, // Sell loot (non-voting)
+      enablePassiveIncome: true,
+      ratePerSec: "0.001",
+      tapAllowance: "5",
+      sharesLocked: true, // Lock shares
+      lootLocked: false,
+    },
+  },
+  {
+    id: "ungovern",
+    name: "Ungovern",
+    description: "Tap + ragequit. Minimal governance, holders can exit anytime.",
+    icon: Droplet,
+    config: {
+      tribAmt: "0.0001",
+      saleSupply: "1000000",
+      forAmt: "1",
+      quorumBps: "3000", // 30%
+      ragequittable: true,
+      sellLoot: false,
+      enablePassiveIncome: true,
+      ratePerSec: "0.001",
+      tapAllowance: "10",
+      sharesLocked: false,
+      lootLocked: false,
+    },
+  },
+  {
+    id: "custom",
+    name: "Custom",
+    description: "Start from scratch and configure all settings manually.",
+    icon: Sparkles,
+    config: {
+      tribAmt: "0.0001",
+      saleSupply: "1000000",
+      forAmt: "1",
+      quorumBps: "5000",
+      ragequittable: true,
+      sellLoot: false,
+      enablePassiveIncome: false,
+      enableAutoLP: false,
+      enableInitialMembers: false,
+      sharesLocked: false,
+      lootLocked: false,
+    },
+  },
+];
 
 // Feature info for hover cards
 const FEATURE_INFO = {
@@ -494,6 +600,14 @@ export default function DAICOWizard() {
     }));
   };
 
+  const applyTemplate = (template: DAICOTemplate) => {
+    setFormState((prev) => ({
+      ...prev,
+      ...template.config,
+    }));
+    toast.success(`Applied ${template.name} template`);
+  };
+
   // Validation function
   const validateForm = (): string | null => {
     if (!formState.orgName.trim()) return "Organization name is required";
@@ -726,6 +840,41 @@ export default function DAICOWizard() {
             title={FEATURE_INFO.autoLP.title}
             description={FEATURE_INFO.autoLP.description}
           />
+        </div>
+      </div>
+
+      {/* Template Selector */}
+      <div className="mb-8">
+        <div className="text-center mb-6">
+          <h2 className="text-xl font-semibold mb-2">Choose a Template</h2>
+          <p className="text-sm text-muted-foreground">
+            Start with a preset configuration or build from scratch
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {DAICO_TEMPLATES.map((template) => {
+            const Icon = template.icon;
+            return (
+              <Card
+                key={template.id}
+                className="p-6 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 group"
+                onClick={() => applyTemplate(template)}
+              >
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <Icon className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">{template.name}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {template.description}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
