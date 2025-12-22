@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertCircle,
   CheckCircle,
@@ -25,6 +26,11 @@ import {
   Calendar,
   DollarSign,
   Info,
+  Twitter,
+  MessageCircle,
+  Hash,
+  Globe,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -108,8 +114,15 @@ interface DAICOFormState {
   orgName: string;
   orgSymbol: string;
   orgURI: string;
+  description: string;
   quorumBps: string; // basis points (e.g., 5000 = 50%)
   ragequittable: boolean;
+
+  // Social media and external links
+  twitter: string;
+  telegram: string;
+  farcaster: string;
+  website: string;
 
   // Sale configuration
   tribTkn: Address; // Payment token (address(0) for ETH)
@@ -142,8 +155,14 @@ const defaultFormState: DAICOFormState = {
   orgName: "",
   orgSymbol: "",
   orgURI: "",
+  description: "",
   quorumBps: "5000", // 50% default
   ragequittable: true,
+
+  twitter: "",
+  telegram: "",
+  farcaster: "",
+  website: "",
 
   tribTkn: "0x0000000000000000000000000000000000000000" as Address, // ETH
   tribAmt: "0.0001", // Price per token in ETH
@@ -227,6 +246,13 @@ function DAICOPreview({ formState, imagePreview }: { formState: DAICOFormState; 
             </div>
           </div>
         </div>
+        {formState.description && (
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+              {formState.description}
+            </p>
+          </div>
+        )}
       </Card>
 
       {/* Sale Details */}
@@ -410,6 +436,7 @@ export default function DAICOWizard() {
   const [isUploading, setIsUploading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [whitepaperFile, setWhitepaperFile] = useState<File | null>(null);
 
   const { data: ethUsdPrice } = useEthUsdPrice();
   const { writeContractAsync, isPending: isWritePending } = useWriteContract();
@@ -540,13 +567,39 @@ export default function DAICOWizard() {
         });
       }
 
+      // Upload whitepaper to IPFS (if provided)
+      let whitepaperUri: string | undefined;
+      if (whitepaperFile) {
+        const whitepaperBuffer = await whitepaperFile.arrayBuffer();
+        const fileName = `${formState.orgName.replace(/\s+/g, "_")}_whitepaper.pdf`;
+        whitepaperUri = await pinImageToPinata(whitepaperBuffer, fileName, {
+          keyvalues: {
+            orgName: formState.orgName,
+            orgSymbol: formState.orgSymbol,
+            type: "whitepaper",
+          },
+        });
+      }
+
       // Upload metadata to IPFS
-      const metadata = {
+      const metadata: Record<string, unknown> = {
         name: formState.orgName,
         symbol: formState.orgSymbol,
-        description: `DAICO for ${formState.orgName}`,
+        description: formState.description || `DAICO for ${formState.orgName}`,
         ...(imageUri && { image: imageUri }),
+        ...(whitepaperUri && { whitepaper: whitepaperUri }),
       };
+
+      // Add social links if provided
+      const socialLinks: Record<string, string> = {};
+      if (formState.website) socialLinks.website = formState.website;
+      if (formState.twitter) socialLinks.twitter = formState.twitter;
+      if (formState.telegram) socialLinks.telegram = formState.telegram;
+      if (formState.farcaster) socialLinks.farcaster = formState.farcaster;
+
+      if (Object.keys(socialLinks).length > 0) {
+        metadata.links = socialLinks;
+      }
 
       const ipfsHash = await pinJsonToPinata(metadata);
       const uri = `ipfs://${ipfsHash}`;
@@ -725,6 +778,126 @@ export default function DAICOWizard() {
                 />
                 <p className="text-xs text-muted-foreground">
                   Token symbol (e.g., TKN, DAO, SHARE)
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Describe your DAO's mission, goals, and what makes it unique..."
+                value={formState.description}
+                onChange={(e) => updateField("description", e.target.value)}
+                rows={4}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Help potential members understand your project
+              </p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-muted-foreground" />
+                <Label className="text-sm font-semibold">Social Links & Resources</Label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="website" className="flex items-center gap-2">
+                    <Globe className="w-3.5 h-3.5" />
+                    Website
+                  </Label>
+                  <Input
+                    id="website"
+                    type="url"
+                    placeholder="https://example.com"
+                    value={formState.website}
+                    onChange={(e) => updateField("website", e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="twitter" className="flex items-center gap-2">
+                    <Twitter className="w-3.5 h-3.5" />
+                    Twitter
+                  </Label>
+                  <Input
+                    id="twitter"
+                    placeholder="@yourproject or https://twitter.com/yourproject"
+                    value={formState.twitter}
+                    onChange={(e) => updateField("twitter", e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="telegram" className="flex items-center gap-2">
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    Telegram
+                  </Label>
+                  <Input
+                    id="telegram"
+                    placeholder="https://t.me/yourgroup"
+                    value={formState.telegram}
+                    onChange={(e) => updateField("telegram", e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="farcaster" className="flex items-center gap-2">
+                    <Hash className="w-3.5 h-3.5" />
+                    Farcaster
+                  </Label>
+                  <Input
+                    id="farcaster"
+                    placeholder="@username or https://warpcast.com/username"
+                    value={formState.farcaster}
+                    onChange={(e) => updateField("farcaster", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="whitepaper" className="flex items-center gap-2">
+                  <FileText className="w-3.5 h-3.5" />
+                  Whitepaper (Optional)
+                </Label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    id="whitepaper"
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      setWhitepaperFile(file || null);
+                    }}
+                    className="cursor-pointer"
+                  />
+                  {whitepaperFile && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setWhitepaperFile(null);
+                        const input = document.getElementById("whitepaper") as HTMLInputElement;
+                        if (input) input.value = "";
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                {whitepaperFile && (
+                  <p className="text-xs text-muted-foreground">
+                    {whitepaperFile.name} ({(whitepaperFile.size / 1024).toFixed(1)} KB)
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Upload a PDF document with your project details (will be pinned to IPFS)
                 </p>
               </div>
             </div>
