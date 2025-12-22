@@ -23,6 +23,7 @@ import { Route as FarmRouteImport } from './routes/farm'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as EnsRouteImport } from './routes/ens'
 import { Route as DaoRouteImport } from './routes/dao'
+import { Route as DaicoRouteImport } from './routes/daico'
 import { Route as CultRouteImport } from './routes/cult'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as AboutRouteImport } from './routes/about'
@@ -108,6 +109,11 @@ const EnsRoute = EnsRouteImport.update({
 const DaoRoute = DaoRouteImport.update({
   id: '/dao',
   path: '/dao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DaicoRoute = DaicoRouteImport.update({
+  id: '/daico',
+  path: '/daico',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CultRoute = CultRouteImport.update({
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/create': typeof CreateRoute
   '/cult': typeof CultRoute
+  '/daico': typeof DaicoRoute
   '/dao': typeof DaoRoute
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/create': typeof CreateRoute
   '/cult': typeof CultRoute
+  '/daico': typeof DaicoRoute
   '/dao': typeof DaoRoute
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
@@ -260,6 +268,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/create': typeof CreateRoute
   '/cult': typeof CultRoute
+  '/daico': typeof DaicoRoute
   '/dao': typeof DaoRoute
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
@@ -294,6 +303,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/create'
     | '/cult'
+    | '/daico'
     | '/dao'
     | '/ens'
     | '/explore'
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/create'
     | '/cult'
+    | '/daico'
     | '/dao'
     | '/ens'
     | '/explore'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/create'
     | '/cult'
+    | '/daico'
     | '/dao'
     | '/ens'
     | '/explore'
@@ -389,6 +401,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   CreateRoute: typeof CreateRoute
   CultRoute: typeof CultRoute
+  DaicoRoute: typeof DaicoRoute
   DaoRoute: typeof DaoRoute
   EnsRoute: typeof EnsRoute
   ExploreRoute: typeof ExploreRouteWithChildren
@@ -506,6 +519,13 @@ declare module '@tanstack/react-router' {
       path: '/dao'
       fullPath: '/dao'
       preLoaderRoute: typeof DaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/daico': {
+      id: '/daico'
+      path: '/daico'
+      fullPath: '/daico'
+      preLoaderRoute: typeof DaicoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cult': {
@@ -682,6 +702,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   CreateRoute: CreateRoute,
   CultRoute: CultRoute,
+  DaicoRoute: DaicoRoute,
   DaoRoute: DaoRoute,
   EnsRoute: EnsRoute,
   ExploreRoute: ExploreRouteWithChildren,

@@ -16,6 +16,7 @@ import {
   Rocket,
   Coins as CoinsIcon,
   Logs,
+  TrendingUp,
   Sparkles,
 } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
@@ -249,6 +250,12 @@ export const Route = createRootRoute({
                         <span>{t("navigation.create", "Create")}</span>
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/farm" className={itemClasses}>
+                        <TrendingUp className="h-4 w-4" />
+                        <span>{t("common.stake", "Stake")}</span>
+                      </Link>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -256,7 +263,7 @@ export const Route = createRootRoute({
 
             {/* Desktop Right Side */}
             <div className="hidden md:flex items-center gap-2.5 flex-shrink-0">
-              <Link to="/create">
+              <Link to="/daico">
                 <Button variant="outline" size="sm">
                   {t("common.launch", "Launch")}
                 </Button>
@@ -267,7 +274,7 @@ export const Route = createRootRoute({
 
             {/* Mobile Right Side */}
             <div className="flex md:hidden items-center gap-2 flex-shrink-0">
-              <Link to="/create">
+              <Link to="/daico">
                 <Button variant="outline" size="sm" className="text-xs px-2">
                   {t("navigation.create", "Create")}
                 </Button>
@@ -334,6 +341,10 @@ export const Route = createRootRoute({
                     {
                       to: "/coins",
                       label: t("common.coins"),
+                    },
+                    {
+                      to: "/farm",
+                      label: `📈 ${t("common.stake", "Stake")}`,
                     },
                     {
                       to: "/farm",
