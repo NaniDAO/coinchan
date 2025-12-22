@@ -5,11 +5,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { isAddress } from "viem";
 import { normalize } from "viem/ens";
-import {
-  PAMMSingletonAddress,
-  PAMMSingletonAbi,
-  ETH_COLLATERAL,
-} from "@/constants/PAMMSingleton";
+import { PAMMSingletonAddress, PAMMSingletonAbi, ETH_COLLATERAL } from "@/constants/PAMMSingleton";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

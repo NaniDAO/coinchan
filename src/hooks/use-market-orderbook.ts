@@ -53,9 +53,7 @@ export function useMarketOrderbook({
   });
 
   // Process raw orderbook data into structured format
-  const orderbook: Orderbook | null = orderbookData
-    ? processOrderbook(orderbookData)
-    : null;
+  const orderbook: Orderbook | null = orderbookData ? processOrderbook(orderbookData) : null;
 
   return {
     orderbook,
@@ -68,30 +66,32 @@ export function useMarketOrderbook({
 /**
  * Process raw orderbook data from PMRouter into structured format
  */
-function processOrderbook(data: readonly [
-  readonly `0x${string}`[],
-  readonly {
-    owner: `0x${string}`;
-    deadline: bigint;
-    isYes: boolean;
-    isBuy: boolean;
-    partialFill: boolean;
-    shares: bigint;
-    collateral: bigint;
-    marketId: bigint;
-  }[],
-  readonly `0x${string}`[],
-  readonly {
-    owner: `0x${string}`;
-    deadline: bigint;
-    isYes: boolean;
-    isBuy: boolean;
-    partialFill: boolean;
-    shares: bigint;
-    collateral: bigint;
-    marketId: bigint;
-  }[],
-]): Orderbook {
+function processOrderbook(
+  data: readonly [
+    readonly `0x${string}`[],
+    readonly {
+      owner: `0x${string}`;
+      deadline: bigint;
+      isYes: boolean;
+      isBuy: boolean;
+      partialFill: boolean;
+      shares: bigint;
+      collateral: bigint;
+      marketId: bigint;
+    }[],
+    readonly `0x${string}`[],
+    readonly {
+      owner: `0x${string}`;
+      deadline: bigint;
+      isYes: boolean;
+      isBuy: boolean;
+      partialFill: boolean;
+      shares: bigint;
+      collateral: bigint;
+      marketId: bigint;
+    }[],
+  ],
+): Orderbook {
   const [bidHashes, bidOrdersRaw, askHashes, askOrdersRaw] = data;
 
   // Convert to OrderbookEntry format

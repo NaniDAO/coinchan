@@ -61,7 +61,11 @@ export function useUserOrders({
     }));
   }, [orderHashes]);
 
-  const { data: orderDetails, refetch: refetchDetails, isLoading } = useReadContracts({
+  const {
+    data: orderDetails,
+    refetch: refetchDetails,
+    isLoading,
+  } = useReadContracts({
     contracts: orderDetailContracts,
     query: {
       enabled: orderDetailContracts.length > 0,
@@ -78,24 +82,23 @@ export function useUserOrders({
         const result = orderDetails[i];
         if (result.status !== "success" || !result.result) return null;
 
-        const [order, sharesFilled, sharesRemaining, collateralFilled, collateralRemaining, active] =
-          result.result as [
-            {
-              owner: `0x${string}`;
-              deadline: bigint;
-              isYes: boolean;
-              isBuy: boolean;
-              partialFill: boolean;
-              shares: bigint;
-              collateral: bigint;
-              marketId: bigint;
-            },
-            bigint,
-            bigint,
-            bigint,
-            bigint,
-            boolean,
-          ];
+        const [order, sharesFilled, sharesRemaining, collateralFilled, collateralRemaining, active] = result.result as [
+          {
+            owner: `0x${string}`;
+            deadline: bigint;
+            isYes: boolean;
+            isBuy: boolean;
+            partialFill: boolean;
+            shares: bigint;
+            collateral: bigint;
+            marketId: bigint;
+          },
+          bigint,
+          bigint,
+          bigint,
+          bigint,
+          boolean,
+        ];
 
         // Filter by marketId if specified
         if (marketId !== undefined && order.marketId !== marketId) return null;

@@ -169,8 +169,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
               <span className="text-muted-foreground">├── </span>
               <svg className="w-5 h-5 mr-1" viewBox="0 0 100 100">
                 <rect fill="#09090b" width="100" height="100" rx="12" />
-                <text x="50" y="55" fontFamily="system-ui,sans-serif" fontSize="16" fontWeight="600" fill="#ec4899" textAnchor="middle">Pnk</text>
-                <text x="50" y="72" fontFamily="system-ui,sans-serif" fontSize="14" fontWeight="600" fill="#3b82f6" textAnchor="middle">PM</text>
+                <text
+                  x="50"
+                  y="55"
+                  fontFamily="system-ui,sans-serif"
+                  fontSize="16"
+                  fontWeight="600"
+                  fill="#ec4899"
+                  textAnchor="middle"
+                >
+                  Pnk
+                </text>
+                <text
+                  x="50"
+                  y="72"
+                  fontFamily="system-ui,sans-serif"
+                  fontSize="14"
+                  fontWeight="600"
+                  fill="#3b82f6"
+                  textAnchor="middle"
+                >
+                  PM
+                </text>
               </svg>
               <span className="font-bold">PnkPM</span>
               <span className="text-muted-foreground text-xs ml-1">(PAMM Market)</span>
@@ -186,8 +206,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
               <span className="text-muted-foreground">└── </span>
               <svg className="w-5 h-5 mr-1" viewBox="0 0 100 100">
                 <rect fill="#09090b" width="100" height="100" rx="12" />
-                <text x="50" y="55" fontFamily="system-ui,sans-serif" fontSize="16" fontWeight="600" fill="#22c55e" textAnchor="middle">Gas</text>
-                <text x="50" y="72" fontFamily="system-ui,sans-serif" fontSize="14" fontWeight="600" fill="#3b82f6" textAnchor="middle">PM</text>
+                <text
+                  x="50"
+                  y="55"
+                  fontFamily="system-ui,sans-serif"
+                  fontSize="16"
+                  fontWeight="600"
+                  fill="#22c55e"
+                  textAnchor="middle"
+                >
+                  Gas
+                </text>
+                <text
+                  x="50"
+                  y="72"
+                  fontFamily="system-ui,sans-serif"
+                  fontSize="14"
+                  fontWeight="600"
+                  fill="#3b82f6"
+                  textAnchor="middle"
+                >
+                  PM
+                </text>
               </svg>
               <span className="font-bold">GasPM</span>
               <span className="text-muted-foreground text-xs ml-1">(PAMM Market)</span>

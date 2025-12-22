@@ -21,12 +21,7 @@ interface LimitOrderFormProps {
   onSuccess?: () => void;
 }
 
-export const LimitOrderForm: React.FC<LimitOrderFormProps> = ({
-  marketId,
-  isYes,
-  noId,
-  onSuccess,
-}) => {
+export const LimitOrderForm: React.FC<LimitOrderFormProps> = ({ marketId, isYes, noId, onSuccess }) => {
   const { address } = useAccount();
   const [isBuy, setIsBuy] = useState(true);
   const [price, setPrice] = useState("");
@@ -168,7 +163,7 @@ export const LimitOrderForm: React.FC<LimitOrderFormProps> = ({
             "flex-1 py-2 text-sm font-medium transition-colors",
             isBuy
               ? "bg-green-500/20 text-green-500 border-green-500"
-              : "bg-transparent text-muted-foreground hover:bg-muted/50"
+              : "bg-transparent text-muted-foreground hover:bg-muted/50",
           )}
         >
           Buy {sideLabel}
@@ -180,7 +175,7 @@ export const LimitOrderForm: React.FC<LimitOrderFormProps> = ({
             "flex-1 py-2 text-sm font-medium transition-colors",
             !isBuy
               ? "bg-red-500/20 text-red-500 border-red-500"
-              : "bg-transparent text-muted-foreground hover:bg-muted/50"
+              : "bg-transparent text-muted-foreground hover:bg-muted/50",
           )}
         >
           Sell {sideLabel}
@@ -209,22 +204,14 @@ export const LimitOrderForm: React.FC<LimitOrderFormProps> = ({
           value={price}
           onChange={(e) => setPrice(e.target.value)}
         />
-        <p className="text-xs text-muted-foreground">
-          Shares pay 1 ETH if they win. Price = probability.
-        </p>
+        <p className="text-xs text-muted-foreground">Shares pay 1 ETH if they win. Price = probability.</p>
       </div>
 
       {/* Amount Input */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm">
-            {isBuy ? "Amount (ETH)" : `Shares to sell`}
-          </Label>
-          <button
-            type="button"
-            onClick={handleMax}
-            className="text-xs text-primary hover:underline"
-          >
+          <Label className="text-sm">{isBuy ? "Amount (ETH)" : `Shares to sell`}</Label>
+          <button type="button" onClick={handleMax} className="text-xs text-primary hover:underline">
             Max
           </button>
         </div>
@@ -251,9 +238,7 @@ export const LimitOrderForm: React.FC<LimitOrderFormProps> = ({
       {estimatedTotal > 0 && (
         <div className="p-3 rounded-lg bg-muted/50 space-y-1">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">
-              {isBuy ? "Est. Shares" : "Est. ETH"}
-            </span>
+            <span className="text-muted-foreground">{isBuy ? "Est. Shares" : "Est. ETH"}</span>
             <span className="font-mono">
               {estimatedTotal.toFixed(4)} {isBuy ? sideLabel : "ETH"}
             </span>
@@ -272,11 +257,7 @@ export const LimitOrderForm: React.FC<LimitOrderFormProps> = ({
       {/* Options */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Switch
-            checked={partialFill}
-            onCheckedChange={setPartialFill}
-            id="partial-fill"
-          />
+          <Switch checked={partialFill} onCheckedChange={setPartialFill} id="partial-fill" />
           <Label htmlFor="partial-fill" className="text-sm cursor-pointer">
             Allow partial fills
           </Label>
@@ -311,9 +292,7 @@ export const LimitOrderForm: React.FC<LimitOrderFormProps> = ({
         ) : validationError ? (
           validationError
         ) : (
-          <>
-            {isBuy ? "Place Buy Order" : "Place Sell Order"}
-          </>
+          <>{isBuy ? "Place Buy Order" : "Place Sell Order"}</>
         )}
       </Button>
     </div>

@@ -210,7 +210,6 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const isPerpetualOracle = isPerpetualOracleResolver(resolver);
   const trustedResolverInfo = getTrustedResolver(resolver);
 
-
   // Fetch market details to get closing time and canAccelerateClosing
   const { data: marketData, refetch: refetchMarketData } = useReadContract({
     address: PAMMSingletonAddress,
@@ -264,7 +263,6 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     setTimeout(() => setIsCopied(false), 2000);
   };
 
-
   useEffect(() => {
     if (isClaimSuccess && claimHash && toastedClaim.current !== claimHash) {
       toastedClaim.current = claimHash;
@@ -287,7 +285,6 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       toast.error(errorMessage || "Claim failed");
     }
   }, [claimError]);
-
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -554,9 +551,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                     </span>
                   </TooltipTrigger>
                   <TooltipContent side="top">
-                    <p className="text-xs">
-                      Verified onchain oracle - resolves automatically via smart contract
-                    </p>
+                    <p className="text-xs">Verified onchain oracle - resolves automatically via smart contract</p>
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -719,12 +714,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               </div>
               {/* Pool/Supply Information */}
               <div className="flex justify-between text-xs text-muted-foreground pt-1 border-t border-border/30">
-                <span>
-                  Pool YES: {Number(formatEther(rYes !== undefined ? rYes : yesSupply)).toFixed(2)}
-                </span>
-                <span>
-                  Pool NO: {Number(formatEther(rNo !== undefined ? rNo : noSupply)).toFixed(2)}
-                </span>
+                <span>Pool YES: {Number(formatEther(rYes !== undefined ? rYes : yesSupply)).toFixed(2)}</span>
+                <span>Pool NO: {Number(formatEther(rNo !== undefined ? rNo : noSupply)).toFixed(2)}</span>
               </div>
             </div>
           )}

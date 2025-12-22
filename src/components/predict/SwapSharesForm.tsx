@@ -17,11 +17,7 @@ interface SwapSharesFormProps {
   onSuccess?: () => void;
 }
 
-export const SwapSharesForm: React.FC<SwapSharesFormProps> = ({
-  marketId,
-  noId,
-  onSuccess,
-}) => {
+export const SwapSharesForm: React.FC<SwapSharesFormProps> = ({ marketId, noId, onSuccess }) => {
   const { address } = useAccount();
   const [yesForNo, setYesForNo] = useState(true); // true = YES->NO, false = NO->YES
   const [amount, setAmount] = useState("");
@@ -125,9 +121,7 @@ export const SwapSharesForm: React.FC<SwapSharesFormProps> = ({
           <div
             className={cn(
               "w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold",
-              yesForNo
-                ? "bg-green-500/20 text-green-500"
-                : "bg-red-500/20 text-red-500"
+              yesForNo ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500",
             )}
           >
             {sourceLabel}
@@ -149,9 +143,7 @@ export const SwapSharesForm: React.FC<SwapSharesFormProps> = ({
           <div
             className={cn(
               "w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold",
-              !yesForNo
-                ? "bg-green-500/20 text-green-500"
-                : "bg-red-500/20 text-red-500"
+              !yesForNo ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500",
             )}
           >
             {targetLabel}
@@ -166,11 +158,7 @@ export const SwapSharesForm: React.FC<SwapSharesFormProps> = ({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label className="text-sm">{sourceLabel} Amount</Label>
-          <button
-            type="button"
-            onClick={handleMax}
-            className="text-xs text-primary hover:underline"
-          >
+          <button type="button" onClick={handleMax} className="text-xs text-primary hover:underline">
             Max
           </button>
         </div>
@@ -214,7 +202,7 @@ export const SwapSharesForm: React.FC<SwapSharesFormProps> = ({
               "px-2 py-1 text-xs rounded border transition-colors",
               slippage === pct
                 ? "bg-primary/20 text-primary border-primary"
-                : "bg-transparent text-muted-foreground border-border hover:border-primary/50"
+                : "bg-transparent text-muted-foreground border-border hover:border-primary/50",
             )}
           >
             {pct}%
@@ -223,11 +211,7 @@ export const SwapSharesForm: React.FC<SwapSharesFormProps> = ({
       </div>
 
       {/* Submit Button */}
-      <Button
-        className="w-full"
-        onClick={handleSubmit}
-        disabled={!!validationError || isPending || isConfirming}
-      >
+      <Button className="w-full" onClick={handleSubmit} disabled={!!validationError || isPending || isConfirming}>
         {isPending || isConfirming ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />

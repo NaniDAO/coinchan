@@ -60,7 +60,10 @@ export const isTrustedResolver = (address: string): boolean => {
 /**
  * External PAMM market sites by resolver address
  */
-export const PAMM_EXTERNAL_SITES: Record<string, { url: string; name: string; logo: { textTop: string; colorTop: string } }> = {
+export const PAMM_EXTERNAL_SITES: Record<
+  string,
+  { url: string; name: string; logo: { textTop: string; colorTop: string } }
+> = {
   [PNKPM_RESOLVER_ADDRESS.toLowerCase()]: {
     url: "https://pnkpm.eth.limo/",
     name: "PnkPM",

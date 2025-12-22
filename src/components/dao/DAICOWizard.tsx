@@ -32,11 +32,7 @@ import { getEtherscanTxUrl } from "@/lib/explorer";
 import { pinJsonToPinata, pinImageToPinata } from "@/lib/pinata";
 import { Badge } from "@/components/ui/badge";
 import { ImageInput } from "@/components/ui/image-input";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 // Default addresses from user
 const DEFAULT_SUMMON_CONFIG = {
@@ -89,9 +85,7 @@ function FeaturePill({
       <HoverCardContent className="w-80" side="bottom">
         <div className="space-y-2">
           <h4 className="font-semibold text-sm">{title}</h4>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {description}
-          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
         </div>
       </HoverCardContent>
     </HoverCard>
@@ -198,9 +192,7 @@ function DAICOPreview({ formState, imagePreview }: { formState: DAICOFormState; 
     <div className="flex flex-col space-y-4 h-full min-h-[600px]">
       {/* Preview Label */}
       <div className="px-1">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          Live Preview
-        </p>
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live Preview</p>
       </div>
 
       {/* Header Card */}
@@ -214,9 +206,7 @@ function DAICOPreview({ formState, imagePreview }: { formState: DAICOFormState; 
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold truncate mb-2">
-              {formState.orgName || "Your DAO"}
-            </h2>
+            <h2 className="text-2xl font-bold truncate mb-2">{formState.orgName || "Your DAO"}</h2>
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="font-mono text-xs">
                 {formState.orgSymbol || "TKN"}
@@ -240,19 +230,14 @@ function DAICOPreview({ formState, imagePreview }: { formState: DAICOFormState; 
 
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">
-              {formState.orgSymbol || "TKN"} Price
-            </span>
-            <span className="font-semibold">
-              {tokenPrice.toFixed(6)} ETH
-            </span>
+            <span className="text-sm text-muted-foreground">{formState.orgSymbol || "TKN"} Price</span>
+            <span className="font-semibold">{tokenPrice.toFixed(6)} ETH</span>
           </div>
 
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Sale Supply</span>
             <span className="font-semibold">
-              {parseFloat(formState.saleSupply || "0").toLocaleString()}{" "}
-              {formState.orgSymbol || "TKN"}
+              {parseFloat(formState.saleSupply || "0").toLocaleString()} {formState.orgSymbol || "TKN"}
             </span>
           </div>
 
@@ -260,16 +245,12 @@ function DAICOPreview({ formState, imagePreview }: { formState: DAICOFormState; 
 
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Total Raise</span>
-            <span className="font-bold text-lg text-primary">
-              {totalRaise.toFixed(2)} ETH
-            </span>
+            <span className="font-bold text-lg text-primary">{totalRaise.toFixed(2)} ETH</span>
           </div>
 
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Quorum</span>
-            <span className="font-semibold">
-              {(parseInt(formState.quorumBps) / 100).toFixed(0)}%
-            </span>
+            <span className="font-semibold">{(parseInt(formState.quorumBps) / 100).toFixed(0)}%</span>
           </div>
 
           {formState.ragequittable && (
@@ -357,7 +338,8 @@ function DAICOPreview({ formState, imagePreview }: { formState: DAICOFormState; 
       <div className="mt-auto pt-6">
         <div className="p-4 rounded-lg bg-muted/50 border border-border">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Your DAICO will be deployed to Ethereum mainnet. Token holders will be able to vote on governance proposals and control fund release through the tap mechanism.
+            Your DAICO will be deployed to Ethereum mainnet. Token holders will be able to vote on governance proposals
+            and control fund release through the tap mechanism.
           </p>
         </div>
       </div>
@@ -382,7 +364,7 @@ function ModuleCard({
     <Card
       className={cn(
         "p-6 transition-all duration-300 shadow-sm",
-        enabled ? "border-primary/50 bg-primary/5 shadow-md" : "border-border"
+        enabled ? "border-primary/50 bg-primary/5 shadow-md" : "border-border",
       )}
     >
       <div className="flex items-start justify-between gap-4 mb-4">
@@ -403,7 +385,6 @@ function ModuleCard({
   );
 }
 
-
 export default function DAICOWizard() {
   const { address: userAddress, isConnected } = useAccount();
   const [formState, setFormState] = useState<DAICOFormState>(defaultFormState);
@@ -414,10 +395,9 @@ export default function DAICOWizard() {
   const { data: ethUsdPrice } = useEthUsdPrice();
   const { writeContractAsync, isPending: isWritePending } = useWriteContract();
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
-  const { isLoading: isTxLoading, isSuccess: isTxSuccess } =
-    useWaitForTransactionReceipt({
-      hash: txHash || undefined,
-    });
+  const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
+    hash: txHash || undefined,
+  });
 
   const handleImageChange = (file: File | File[] | undefined) => {
     if (file && !Array.isArray(file)) {
@@ -433,10 +413,7 @@ export default function DAICOWizard() {
     }
   };
 
-  const updateField = <K extends keyof DAICOFormState>(
-    key: K,
-    value: DAICOFormState[K]
-  ) => {
+  const updateField = <K extends keyof DAICOFormState>(key: K, value: DAICOFormState[K]) => {
     setFormState((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -454,16 +431,10 @@ export default function DAICOWizard() {
     }));
   };
 
-  const updateInitialHolder = (
-    index: number,
-    field: keyof InitialHolder,
-    value: string
-  ) => {
+  const updateInitialHolder = (index: number, field: keyof InitialHolder, value: string) => {
     setFormState((prev) => ({
       ...prev,
-      initialHolders: prev.initialHolders.map((holder, i) =>
-        i === index ? { ...holder, [field]: value } : holder
-      ),
+      initialHolders: prev.initialHolders.map((holder, i) => (i === index ? { ...holder, [field]: value } : holder)),
     }));
   };
 
@@ -471,37 +442,28 @@ export default function DAICOWizard() {
   const validateForm = (): string | null => {
     if (!formState.orgName.trim()) return "Organization name is required";
     if (!formState.orgSymbol.trim()) return "Symbol is required";
-    if (!formState.tribAmt || parseFloat(formState.tribAmt) <= 0)
-      return "Price per batch must be greater than 0";
-    if (!formState.forAmt || parseFloat(formState.forAmt) <= 0)
-      return "Tokens per batch must be greater than 0";
-    if (!formState.saleSupply || parseFloat(formState.saleSupply) <= 0)
-      return "Sale supply must be greater than 0";
+    if (!formState.tribAmt || parseFloat(formState.tribAmt) <= 0) return "Price per batch must be greater than 0";
+    if (!formState.forAmt || parseFloat(formState.forAmt) <= 0) return "Tokens per batch must be greater than 0";
+    if (!formState.saleSupply || parseFloat(formState.saleSupply) <= 0) return "Sale supply must be greater than 0";
 
     const quorum = parseInt(formState.quorumBps);
-    if (isNaN(quorum) || quorum < 0 || quorum > 10000)
-      return "Quorum must be between 0 and 10000 bps";
+    if (isNaN(quorum) || quorum < 0 || quorum > 10000) return "Quorum must be between 0 and 10000 bps";
 
     if (formState.enableAutoLP) {
       const lpBps = parseInt(formState.lpBps);
-      if (isNaN(lpBps) || lpBps < 0 || lpBps >= 10000)
-        return "LP portion must be between 0 and 9999 bps";
+      if (isNaN(lpBps) || lpBps < 0 || lpBps >= 10000) return "LP portion must be between 0 and 9999 bps";
     }
 
     if (formState.enableInitialMembers && formState.initialHolders.length > 0) {
       for (const holder of formState.initialHolders) {
-        if (!holder.address.match(/^0x[a-fA-F0-9]{40}$/))
-          return "Invalid holder address";
-        if (!holder.shares || parseFloat(holder.shares) <= 0)
-          return "Holder shares must be greater than 0";
+        if (!holder.address.match(/^0x[a-fA-F0-9]{40}$/)) return "Invalid holder address";
+        if (!holder.shares || parseFloat(holder.shares) <= 0) return "Holder shares must be greater than 0";
       }
     }
 
     if (formState.enablePassiveIncome) {
-      if (!formState.opsAddress.match(/^0x[a-fA-F0-9]{40}$/))
-        return "Invalid operator address";
-      if (!formState.ratePerSec || parseFloat(formState.ratePerSec) <= 0)
-        return "Tap rate must be greater than 0";
+      if (!formState.opsAddress.match(/^0x[a-fA-F0-9]{40}$/)) return "Invalid operator address";
+      if (!formState.ratePerSec || parseFloat(formState.ratePerSec) <= 0) return "Tap rate must be greater than 0";
       if (!formState.tapAllowance || parseFloat(formState.tapAllowance) <= 0)
         return "Tap budget must be greater than 0";
     }
@@ -567,9 +529,9 @@ export default function DAICOWizard() {
           : [];
 
       // Generate salt (random bytes32)
-      const salt = `0x${Array.from({ length: 64 }, () =>
-        Math.floor(Math.random() * 16).toString(16)
-      ).join("")}` as `0x${string}`;
+      const salt = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(
+        "",
+      )}` as `0x${string}`;
 
       // DAICO config
       const daicoConfig = {
@@ -599,8 +561,7 @@ export default function DAICOWizard() {
             };
 
       // Determine which function to call
-      const hasPassiveIncome =
-        formState.enablePassiveIncome && formState.opsAddress;
+      const hasPassiveIncome = formState.enablePassiveIncome && formState.opsAddress;
 
       const baseArgs = [
         summonConfig,
@@ -648,9 +609,7 @@ export default function DAICOWizard() {
       {/* Hero Header */}
       <div className="text-center space-y-6 mb-12 md:mb-16">
         <div className="space-y-4">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
-            Launch Your DAICO
-          </h1>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">Launch Your DAICO</h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-light">
             Community-governed fundraising with built-in transparency and accountability
           </p>
@@ -668,11 +627,7 @@ export default function DAICOWizard() {
             title={FEATURE_INFO.passiveIncome.title}
             description={FEATURE_INFO.passiveIncome.description}
           />
-          <FeaturePill
-            icon={Droplet}
-            title={FEATURE_INFO.autoLP.title}
-            description={FEATURE_INFO.autoLP.description}
-          />
+          <FeaturePill icon={Droplet} title={FEATURE_INFO.autoLP.title} description={FEATURE_INFO.autoLP.description} />
         </div>
       </div>
 
@@ -688,108 +643,103 @@ export default function DAICOWizard() {
           {/* Basic DAO Information */}
           <div className="space-y-3">
             <div className="px-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                DAO Information
-              </p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">DAO Information</p>
             </div>
             <Card className="p-6 space-y-4 shadow-sm">
-
-            <div className="space-y-2">
-              <Label>Organization Logo</Label>
-              <ImageInput onChange={handleImageChange} />
-              <p className="text-xs text-muted-foreground">
-                Upload an image to represent your DAO
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="orgName">Organization Name</Label>
-                <Input
-                  id="orgName"
-                  placeholder="My DAO"
-                  value={formState.orgName}
-                  onChange={(e) => updateField("orgName", e.target.value)}
-                  required
-                />
+                <Label>Organization Logo</Label>
+                <ImageInput onChange={handleImageChange} />
+                <p className="text-xs text-muted-foreground">Upload an image to represent your DAO</p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="orgSymbol">Symbol</Label>
-                <Input
-                  id="orgSymbol"
-                  placeholder="TKN"
-                  value={formState.orgSymbol}
-                  onChange={(e) => updateField("orgSymbol", e.target.value.toUpperCase())}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Token symbol (e.g., TKN, DAO, SHARE)
-                </p>
-              </div>
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="orgName">Organization Name</Label>
+                  <Input
+                    id="orgName"
+                    placeholder="My DAO"
+                    value={formState.orgName}
+                    onChange={(e) => updateField("orgName", e.target.value)}
+                    required
+                  />
+                </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="quorumBps">Voting Quorum</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="orgSymbol">Symbol</Label>
+                  <Input
+                    id="orgSymbol"
+                    placeholder="TKN"
+                    value={formState.orgSymbol}
+                    onChange={(e) => updateField("orgSymbol", e.target.value.toUpperCase())}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">Token symbol (e.g., TKN, DAO, SHARE)</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="quorumBps">Voting Quorum</Label>
+                    <HoverCard openDelay={200}>
+                      <HoverCardTrigger asChild>
+                        <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-80" side="right">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-sm">Voting Quorum</h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            The minimum percentage of voting shares that must participate for a proposal to pass. Higher
+                            quorum (60-80%) provides more security and ensures broader consensus, while lower quorum
+                            (20-40%) enables faster decision-making. 50% is a common balanced choice.
+                          </p>
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-bold text-primary">
+                      {(parseInt(formState.quorumBps) / 100).toFixed(0)}%
+                    </span>
+                  </div>
+                </div>
+                <Slider
+                  id="quorumBps"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={[parseInt(formState.quorumBps) / 100]}
+                  onValueChange={(values) => updateField("quorumBps", (values[0] * 100).toString())}
+                  className="py-4"
+                />
+                <p className="text-xs text-muted-foreground">Percentage of shares needed to approve proposals</p>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="ragequittable"
+                  checked={formState.ragequittable}
+                  onCheckedChange={(checked) => updateField("ragequittable", checked)}
+                />
+                <Label htmlFor="ragequittable" className="cursor-pointer flex items-center gap-2">
+                  Allow ragequit
                   <HoverCard openDelay={200}>
                     <HoverCardTrigger asChild>
                       <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
                     </HoverCardTrigger>
                     <HoverCardContent className="w-80" side="right">
                       <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">Voting Quorum</h4>
+                        <h4 className="font-semibold text-sm">Ragequit</h4>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                          The minimum percentage of voting shares that must participate for a proposal to pass. Higher quorum (60-80%) provides more security and ensures broader consensus, while lower quorum (20-40%) enables faster decision-making. 50% is a common balanced choice.
+                          Allows members to exit the DAO at any time by burning their tokens in exchange for their
+                          proportional share of the treasury. This provides an exit mechanism and protects minority
+                          token holders from malicious proposals.
                         </p>
                       </div>
                     </HoverCardContent>
                   </HoverCard>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold text-primary">
-                    {(parseInt(formState.quorumBps) / 100).toFixed(0)}%
-                  </span>
-                </div>
+                </Label>
               </div>
-              <Slider
-                id="quorumBps"
-                min={0}
-                max={100}
-                step={1}
-                value={[parseInt(formState.quorumBps) / 100]}
-                onValueChange={(values) => updateField("quorumBps", (values[0] * 100).toString())}
-                className="py-4"
-              />
-              <p className="text-xs text-muted-foreground">
-                Percentage of shares needed to approve proposals
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="ragequittable"
-                checked={formState.ragequittable}
-                onCheckedChange={(checked) => updateField("ragequittable", checked)}
-              />
-              <Label htmlFor="ragequittable" className="cursor-pointer flex items-center gap-2">
-                Allow ragequit
-                <HoverCard openDelay={200}>
-                  <HoverCardTrigger asChild>
-                    <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-80" side="right">
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-sm">Ragequit</h4>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        Allows members to exit the DAO at any time by burning their tokens in exchange for their proportional share of the treasury. This provides an exit mechanism and protects minority token holders from malicious proposals.
-                      </p>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
-              </Label>
-            </div>
             </Card>
           </div>
 
@@ -801,120 +751,99 @@ export default function DAICOWizard() {
               </p>
             </div>
             <Card className="p-6 space-y-4 shadow-sm">
+              <div className="space-y-2">
+                <Label htmlFor="tokenPrice">Price per token (ETH)</Label>
+                <Input
+                  id="tokenPrice"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0.0001"
+                  value={formState.tribAmt}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    // Allow empty, numbers, and decimals
+                    if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                      updateField("forAmt", "1");
+                      updateField("tribAmt", val);
+                    }
+                  }}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">How much ETH each token costs</p>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="tokenPrice">Price per token (ETH)</Label>
-              <Input
-                id="tokenPrice"
-                type="text"
-                inputMode="decimal"
-                placeholder="0.0001"
-                value={formState.tribAmt}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  // Allow empty, numbers, and decimals
-                  if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                    updateField("forAmt", "1");
-                    updateField("tribAmt", val);
-                  }
-                }}
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                How much ETH each token costs
-              </p>
-            </div>
+              {/* Price in USD */}
+              {formState.tribAmt && parseFloat(formState.tribAmt) > 0 && ethUsdPrice ? (
+                <p className="text-xs text-muted-foreground -mt-1">
+                  ≈ $
+                  {(parseFloat(formState.tribAmt) * ethUsdPrice).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 6,
+                  })}{" "}
+                  per token
+                </p>
+              ) : null}
 
-            {/* Price in USD */}
-            {formState.tribAmt && parseFloat(formState.tribAmt) > 0 && ethUsdPrice ? (
-              <p className="text-xs text-muted-foreground -mt-1">
-                ≈ ${(parseFloat(formState.tribAmt) * ethUsdPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} per token
-              </p>
-            ) : null}
+              <div className="space-y-2">
+                <Label htmlFor="saleSupply">Total sale supply</Label>
+                <Input
+                  id="saleSupply"
+                  type="number"
+                  placeholder="1000000"
+                  value={formState.saleSupply}
+                  onChange={(e) => updateField("saleSupply", e.target.value)}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Total tokens allocated for the sale</p>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="saleSupply">Total sale supply</Label>
-              <Input
-                id="saleSupply"
-                type="number"
-                placeholder="1000000"
-                value={formState.saleSupply}
-                onChange={(e) => updateField("saleSupply", e.target.value)}
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Total tokens allocated for the sale
-              </p>
-            </div>
+              {/* Total raise summary */}
+              {formState.tribAmt &&
+                formState.saleSupply &&
+                parseFloat(formState.tribAmt) > 0 &&
+                parseFloat(formState.saleSupply) > 0 &&
+                (() => {
+                  const pricePerToken = parseFloat(formState.tribAmt);
+                  const totalRaiseEth = parseFloat(formState.saleSupply) * pricePerToken;
+                  const totalRaiseUsd = ethUsdPrice ? totalRaiseEth * ethUsdPrice : 0;
 
-            {/* Total raise summary */}
-            {formState.tribAmt && formState.saleSupply &&
-             parseFloat(formState.tribAmt) > 0 && parseFloat(formState.saleSupply) > 0 && (() => {
-              const pricePerToken = parseFloat(formState.tribAmt);
-              const totalRaiseEth = parseFloat(formState.saleSupply) * pricePerToken;
-              const totalRaiseUsd = ethUsdPrice ? totalRaiseEth * ethUsdPrice : 0;
-
-              return (
-                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-                  <p className="text-sm text-center">
-                    <span className="text-muted-foreground">If sold out, you'll raise </span>
-                    <span className="font-bold text-primary">
-                      {totalRaiseEth.toLocaleString(undefined, { maximumFractionDigits: 4 })} ETH
-                    </span>
-                    {ethUsdPrice ? (
-                      <span className="text-muted-foreground">
-                        {" "}(${totalRaiseUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })})
-                      </span>
-                    ) : null}
-                  </p>
-                </div>
-              );
-            })()}
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="sellLoot"
-                checked={formState.sellLoot}
-                onCheckedChange={(checked) => updateField("sellLoot", checked)}
-              />
-              <Label htmlFor="sellLoot" className="cursor-pointer flex items-center gap-2">
-                Sell Loot tokens (non-voting shares) instead of Shares
-                <HoverCard openDelay={200}>
-                  <HoverCardTrigger asChild>
-                    <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-80" side="right">
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-sm">Loot vs Shares</h4>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        <strong>Shares</strong> provide voting rights and treasury claims. <strong>Loot</strong> only provides treasury claims without voting power. Use Loot for passive investors who want treasury exposure without governance participation.
+                  return (
+                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                      <p className="text-sm text-center">
+                        <span className="text-muted-foreground">If sold out, you'll raise </span>
+                        <span className="font-bold text-primary">
+                          {totalRaiseEth.toLocaleString(undefined, { maximumFractionDigits: 4 })} ETH
+                        </span>
+                        {ethUsdPrice ? (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            (${totalRaiseUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })})
+                          </span>
+                        ) : null}
                       </p>
                     </div>
-                  </HoverCardContent>
-                </HoverCard>
-              </Label>
-            </div>
+                  );
+                })()}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="sharesLocked"
-                  checked={formState.sharesLocked}
-                  onCheckedChange={(checked) =>
-                    updateField("sharesLocked", checked)
-                  }
+                  id="sellLoot"
+                  checked={formState.sellLoot}
+                  onCheckedChange={(checked) => updateField("sellLoot", checked)}
                 />
-                <Label htmlFor="sharesLocked" className="cursor-pointer text-sm flex items-center gap-2">
-                  Lock Shares (non-transferable)
+                <Label htmlFor="sellLoot" className="cursor-pointer flex items-center gap-2">
+                  Sell Loot tokens (non-voting shares) instead of Shares
                   <HoverCard openDelay={200}>
                     <HoverCardTrigger asChild>
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
+                      <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
                     </HoverCardTrigger>
-                    <HoverCardContent className="w-72" side="top">
+                    <HoverCardContent className="w-80" side="right">
                       <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">Lock Shares</h4>
+                        <h4 className="font-semibold text-sm">Loot vs Shares</h4>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                          When locked, shares cannot be transferred between addresses. This prevents token trading and ensures voting power stays with committed members.
+                          <strong>Shares</strong> provide voting rights and treasury claims. <strong>Loot</strong> only
+                          provides treasury claims without voting power. Use Loot for passive investors who want
+                          treasury exposure without governance participation.
                         </p>
                       </div>
                     </HoverCardContent>
@@ -922,30 +851,57 @@ export default function DAICOWizard() {
                 </Label>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="lootLocked"
-                  checked={formState.lootLocked}
-                  onCheckedChange={(checked) => updateField("lootLocked", checked)}
-                />
-                <Label htmlFor="lootLocked" className="cursor-pointer text-sm flex items-center gap-2">
-                  Lock Loot (non-transferable)
-                  <HoverCard openDelay={200}>
-                    <HoverCardTrigger asChild>
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-72" side="top">
-                      <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">Lock Loot</h4>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          When locked, loot tokens cannot be transferred between addresses. This ensures treasury claims stay with original contributors.
-                        </p>
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
-                </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="sharesLocked"
+                    checked={formState.sharesLocked}
+                    onCheckedChange={(checked) => updateField("sharesLocked", checked)}
+                  />
+                  <Label htmlFor="sharesLocked" className="cursor-pointer text-sm flex items-center gap-2">
+                    Lock Shares (non-transferable)
+                    <HoverCard openDelay={200}>
+                      <HoverCardTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-72" side="top">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-sm">Lock Shares</h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            When locked, shares cannot be transferred between addresses. This prevents token trading and
+                            ensures voting power stays with committed members.
+                          </p>
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="lootLocked"
+                    checked={formState.lootLocked}
+                    onCheckedChange={(checked) => updateField("lootLocked", checked)}
+                  />
+                  <Label htmlFor="lootLocked" className="cursor-pointer text-sm flex items-center gap-2">
+                    Lock Loot (non-transferable)
+                    <HoverCard openDelay={200}>
+                      <HoverCardTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-72" side="top">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-sm">Lock Loot</h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            When locked, loot tokens cannot be transferred between addresses. This ensures treasury
+                            claims stay with original contributors.
+                          </p>
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
+                  </Label>
+                </div>
               </div>
-            </div>
             </Card>
           </div>
 
@@ -955,9 +911,7 @@ export default function DAICOWizard() {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
                 Optional Features
               </p>
-              <p className="text-sm text-muted-foreground">
-                Add advanced functionality to your DAICO
-              </p>
+              <p className="text-sm text-muted-foreground">Add advanced functionality to your DAICO</p>
             </div>
 
             {/* Auto LP Module */}
@@ -1032,9 +986,7 @@ export default function DAICOWizard() {
                       <Input
                         placeholder="0x..."
                         value={holder.address}
-                        onChange={(e) =>
-                          updateInitialHolder(index, "address", e.target.value)
-                        }
+                        onChange={(e) => updateInitialHolder(index, "address", e.target.value)}
                       />
                     </div>
                     <div className="w-32 space-y-2">
@@ -1043,9 +995,7 @@ export default function DAICOWizard() {
                         type="number"
                         placeholder="1000"
                         value={holder.shares}
-                        onChange={(e) =>
-                          updateInitialHolder(index, "shares", e.target.value)
-                        }
+                        onChange={(e) => updateInitialHolder(index, "shares", e.target.value)}
                       />
                     </div>
                     <Button
@@ -1060,13 +1010,7 @@ export default function DAICOWizard() {
                   </div>
                 ))}
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addInitialHolder}
-                  className="w-full"
-                >
+                <Button type="button" variant="outline" size="sm" onClick={addInitialHolder} className="w-full">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Member
                 </Button>
@@ -1089,9 +1033,7 @@ export default function DAICOWizard() {
                     value={formState.opsAddress}
                     onChange={(e) => updateField("opsAddress", e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Address that can claim the periodic payments
-                  </p>
+                  <p className="text-xs text-muted-foreground">Address that can claim the periodic payments</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1106,8 +1048,7 @@ export default function DAICOWizard() {
                       onChange={(e) => updateField("ratePerSec", e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      ≈ {(parseFloat(formState.ratePerSec) * 86400).toFixed(4)}{" "}
-                      ETH/day
+                      ≈ {(parseFloat(formState.ratePerSec) * 86400).toFixed(4)} ETH/day
                     </p>
                   </div>
 
@@ -1121,9 +1062,7 @@ export default function DAICOWizard() {
                       value={formState.tapAllowance}
                       onChange={(e) => updateField("tapAllowance", e.target.value)}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Maximum funds operator can claim
-                    </p>
+                    <p className="text-xs text-muted-foreground">Maximum funds operator can claim</p>
                   </div>
                 </div>
               </div>
@@ -1133,50 +1072,42 @@ export default function DAICOWizard() {
           {/* Submit Button */}
           <div className="space-y-3">
             <div className="px-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Deploy
-              </p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Deploy</p>
             </div>
             <Card className="p-6 shadow-sm">
-            {!isConnected ? (
-              <Button type="button" size="lg" className="w-full" disabled>
-                Connect Wallet to Continue
-              </Button>
-            ) : isTxSuccess ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-center gap-2 text-green-500">
-                  <CheckCircle className="w-6 h-6" />
-                  <span className="text-lg font-semibold">
-                    DAICO Summoned Successfully!
-                  </span>
+              {!isConnected ? (
+                <Button type="button" size="lg" className="w-full" disabled>
+                  Connect Wallet to Continue
+                </Button>
+              ) : isTxSuccess ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-center gap-2 text-green-500">
+                    <CheckCircle className="w-6 h-6" />
+                    <span className="text-lg font-semibold">DAICO Summoned Successfully!</span>
+                  </div>
+                  {txHash && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => window.open(getEtherscanTxUrl(txHash), "_blank")}
+                    >
+                      View on Etherscan
+                    </Button>
+                  )}
                 </div>
-                {txHash && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => window.open(getEtherscanTxUrl(txHash), "_blank")}
-                  >
-                    View on Etherscan
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    {isUploading
-                      ? "Uploading metadata..."
-                      : isTxLoading
-                        ? "Confirming..."
-                        : "Summoning..."}
-                  </>
-                ) : (
-                  "Summon DAICO"
-                )}
-              </Button>
-            )}
+              ) : (
+                <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      {isUploading ? "Uploading metadata..." : isTxLoading ? "Confirming..." : "Summoning..."}
+                    </>
+                  ) : (
+                    "Summon DAICO"
+                  )}
+                </Button>
+              )}
             </Card>
           </div>
         </form>

@@ -47,11 +47,7 @@ export const OrderbookDisplay: React.FC<OrderbookDisplayProps> = ({
   }
 
   if (!orderbook || (orderbook.bids.length === 0 && orderbook.asks.length === 0)) {
-    return (
-      <div className="text-center py-6 text-sm text-muted-foreground">
-        No orders in book
-      </div>
-    );
+    return <div className="text-center py-6 text-sm text-muted-foreground">No orders in book</div>;
   }
 
   const formatPrice = (price: number) => {
@@ -157,15 +153,7 @@ interface OrderRowProps {
   formatSize: (size: bigint) => string;
 }
 
-const OrderRow: React.FC<OrderRowProps> = ({
-  entry,
-  maxTotal,
-  isBid,
-  onClick,
-  compact,
-  formatPrice,
-  formatSize,
-}) => {
+const OrderRow: React.FC<OrderRowProps> = ({ entry, maxTotal, isBid, onClick, compact, formatPrice, formatSize }) => {
   // Calculate depth bar width
   const depthPercent = maxTotal > 0n ? (Number(entry.total) / Number(maxTotal)) * 100 : 0;
 
@@ -180,27 +168,18 @@ const OrderRow: React.FC<OrderRowProps> = ({
     >
       {/* Depth background bar */}
       <div
-        className={cn(
-          "absolute inset-y-0 right-0 opacity-20",
-          isBid ? "bg-green-500" : "bg-red-500",
-        )}
+        className={cn("absolute inset-y-0 right-0 opacity-20", isBid ? "bg-green-500" : "bg-red-500")}
         style={{ width: `${depthPercent}%` }}
       />
 
       {/* Price */}
-      <div className={cn("relative z-10", isBid ? "text-green-500" : "text-red-500")}>
-        {formatPrice(entry.price)}
-      </div>
+      <div className={cn("relative z-10", isBid ? "text-green-500" : "text-red-500")}>{formatPrice(entry.price)}</div>
 
       {/* Size */}
-      <div className="relative z-10 text-right text-foreground">
-        {formatSize(entry.size)}
-      </div>
+      <div className="relative z-10 text-right text-foreground">{formatSize(entry.size)}</div>
 
       {/* Total */}
-      <div className="relative z-10 text-right text-muted-foreground">
-        {formatSize(entry.total)}
-      </div>
+      <div className="relative z-10 text-right text-muted-foreground">{formatSize(entry.total)}</div>
     </div>
   );
 };
@@ -254,9 +233,7 @@ export const OrderbookPreview: React.FC<{
         )}
       </div>
       {orderbook.spread !== null && (
-        <span className="text-muted-foreground">
-          Spread: {orderbook.spread.toFixed(4)}
-        </span>
+        <span className="text-muted-foreground">Spread: {orderbook.spread.toFixed(4)}</span>
       )}
     </div>
   );

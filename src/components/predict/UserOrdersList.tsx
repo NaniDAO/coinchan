@@ -14,11 +14,7 @@ interface UserOrdersListProps {
   compact?: boolean;
 }
 
-export const UserOrdersList: React.FC<UserOrdersListProps> = ({
-  marketId,
-  onOrderCancelled,
-  compact = false,
-}) => {
+export const UserOrdersList: React.FC<UserOrdersListProps> = ({ marketId, onOrderCancelled, compact = false }) => {
   const { address } = useAccount();
   const { activeOrders, inactiveOrders, isLoading, refetch } = useUserOrders({ marketId });
   const { cancelOrder, isPending: isCancelling, isSuccess: cancelSuccess, reset } = useCancelOrder();
@@ -34,11 +30,7 @@ export const UserOrdersList: React.FC<UserOrdersListProps> = ({
   }, [cancelSuccess, reset, refetch, onOrderCancelled]);
 
   if (!address) {
-    return (
-      <div className="text-center py-4 text-sm text-muted-foreground">
-        Connect wallet to view orders
-      </div>
-    );
+    return <div className="text-center py-4 text-sm text-muted-foreground">Connect wallet to view orders</div>;
   }
 
   if (isLoading) {
@@ -50,11 +42,7 @@ export const UserOrdersList: React.FC<UserOrdersListProps> = ({
   }
 
   if (activeOrders.length === 0 && inactiveOrders.length === 0) {
-    return (
-      <div className="text-center py-6 text-sm text-muted-foreground">
-        No orders found
-      </div>
-    );
+    return <div className="text-center py-6 text-sm text-muted-foreground">No orders found</div>;
   }
 
   return (
@@ -62,9 +50,7 @@ export const UserOrdersList: React.FC<UserOrdersListProps> = ({
       {/* Active Orders */}
       {activeOrders.length > 0 && (
         <div className="space-y-2">
-          {!compact && (
-            <h4 className="text-sm font-medium text-muted-foreground">Active Orders</h4>
-          )}
+          {!compact && <h4 className="text-sm font-medium text-muted-foreground">Active Orders</h4>}
           {activeOrders.map((order) => (
             <OrderCard
               key={order.orderHash}
@@ -82,11 +68,7 @@ export const UserOrdersList: React.FC<UserOrdersListProps> = ({
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-muted-foreground">Past Orders</h4>
           {inactiveOrders.slice(0, 5).map((order) => (
-            <OrderCard
-              key={order.orderHash}
-              order={order}
-              compact={compact}
-            />
+            <OrderCard key={order.orderHash} order={order} compact={compact} />
           ))}
         </div>
       )}
@@ -101,12 +83,7 @@ interface OrderCardProps {
   compact?: boolean;
 }
 
-const OrderCard: React.FC<OrderCardProps> = ({
-  order,
-  onCancel,
-  isCancelling,
-  compact,
-}) => {
+const OrderCard: React.FC<OrderCardProps> = ({ order, onCancel, isCancelling, compact }) => {
   const formatPrice = (price: number) => price.toFixed(4);
   const formatAmount = (amount: bigint) => {
     const val = Number(formatEther(amount));
@@ -131,28 +108,20 @@ const OrderCard: React.FC<OrderCardProps> = ({
               "text-[10px]",
               order.order.isBuy
                 ? "bg-green-500/10 text-green-500 border-green-500/30"
-                : "bg-red-500/10 text-red-500 border-red-500/30"
+                : "bg-red-500/10 text-red-500 border-red-500/30",
             )}
           >
             {actionLabel}
           </Badge>
           <span className="font-mono">{formatPrice(order.price)}</span>
           <span className="text-muted-foreground">×</span>
-          <span>{formatAmount(order.order.shares)} {sideLabel}</span>
+          <span>
+            {formatAmount(order.order.shares)} {sideLabel}
+          </span>
         </div>
         {order.active && onCancel && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0"
-            onClick={onCancel}
-            disabled={isCancelling}
-          >
-            {isCancelling ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <X className="h-3 w-3" />
-            )}
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onCancel} disabled={isCancelling}>
+            {isCancelling ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
           </Button>
         )}
       </div>
@@ -170,7 +139,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
               className={cn(
                 order.order.isBuy
                   ? "bg-green-500/10 text-green-500 border-green-500/30"
-                  : "bg-red-500/10 text-red-500 border-red-500/30"
+                  : "bg-red-500/10 text-red-500 border-red-500/30",
               )}
             >
               {actionLabel} {sideLabel}
@@ -207,10 +176,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
           {order.percentFilled > 0 && (
             <div className="flex items-center gap-2 text-xs">
               <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full"
-                  style={{ width: `${order.percentFilled}%` }}
-                />
+                <div className="h-full bg-primary rounded-full" style={{ width: `${order.percentFilled}%` }} />
               </div>
               <span className="text-muted-foreground">{order.percentFilled}% filled</span>
             </div>
@@ -218,9 +184,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
 
           {/* Expiry */}
           {order.active && !isExpired && (
-            <p className="text-xs text-muted-foreground">
-              Expires in {formatTimeRemaining(expiresIn)}
-            </p>
+            <p className="text-xs text-muted-foreground">Expires in {formatTimeRemaining(expiresIn)}</p>
           )}
         </div>
 
