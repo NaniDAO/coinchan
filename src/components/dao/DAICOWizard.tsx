@@ -100,25 +100,6 @@ const DAICO_TEMPLATES: DAICOTemplate[] = [
     },
   },
   {
-    id: "builder",
-    name: "Builder",
-    description: "Builder controls. Centralized operations with optional community oversight.",
-    icon: Shield,
-    config: {
-      tribAmt: "0.0001",
-      saleSupply: "1000000",
-      forAmt: "1",
-      quorumBps: "2000", // 20% lower threshold
-      ragequittable: false,
-      sellLoot: true, // Sell loot (non-voting)
-      enablePassiveIncome: true,
-      ratePerSec: "0.001",
-      tapAllowance: "5",
-      sharesLocked: true, // Lock shares
-      lootLocked: false,
-    },
-  },
-  {
     id: "ungovern",
     name: "Ungovern",
     description: "Tap + ragequit. Minimal governance, holders can exit anytime.",
@@ -133,25 +114,6 @@ const DAICO_TEMPLATES: DAICOTemplate[] = [
       enablePassiveIncome: true,
       ratePerSec: "0.001",
       tapAllowance: "10",
-      sharesLocked: false,
-      lootLocked: false,
-    },
-  },
-  {
-    id: "custom",
-    name: "Custom",
-    description: "Start from scratch and configure all settings manually.",
-    icon: Sparkles,
-    config: {
-      tribAmt: "0.0001",
-      saleSupply: "1000000",
-      forAmt: "1",
-      quorumBps: "5000",
-      ragequittable: true,
-      sellLoot: false,
-      enablePassiveIncome: false,
-      enableAutoLP: false,
-      enableInitialMembers: false,
       sharesLocked: false,
       lootLocked: false,
     },
@@ -852,7 +814,7 @@ export default function DAICOWizard() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {DAICO_TEMPLATES.map((template) => {
             const Icon = template.icon;
             return (
