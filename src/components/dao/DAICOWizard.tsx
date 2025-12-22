@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertCircle,
   CheckCircle,
@@ -25,6 +26,11 @@ import {
   Calendar,
   DollarSign,
   Info,
+  Twitter,
+  MessageCircle,
+  Hash,
+  Globe,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -45,6 +51,73 @@ const DEFAULT_SUMMON_CONFIG = {
   sharesImpl: "0x71E9b38d301b5A58cb998C1295045FE276Acf600" as Address,
   lootImpl: "0x6f1f2aF76a3aDD953277e9F369242697C87bc6A5" as Address,
 };
+
+// DAICO Templates
+interface DAICOTemplate {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ElementType;
+  config: Partial<DAICOFormState>;
+}
+
+const DAICO_TEMPLATES: DAICOTemplate[] = [
+  {
+    id: "buterin",
+    name: "Buterin",
+    description: "Tap + governance. All holders vote. Tap releases funds automatically to ops.",
+    icon: TrendingUp,
+    config: {
+      tribAmt: "0.00001", // 0.01 ETH per 1M tokens
+      saleSupply: "1000000000", // 1B tokens
+      forAmt: "1",
+      quorumBps: "1000", // 10%
+      ragequittable: true,
+      sellLoot: false,
+      enablePassiveIncome: true,
+      ratePerSec: "0.000634259", // ≈ 0.0548 ETH/day
+      tapAllowance: "10", // 100% of raise
+      sharesLocked: false,
+      lootLocked: false,
+    },
+  },
+  {
+    id: "club",
+    name: "Club",
+    description: "Vote on spends. Community governance with member proposals.",
+    icon: Users,
+    config: {
+      tribAmt: "0.0001",
+      saleSupply: "1000000",
+      forAmt: "1",
+      quorumBps: "5000", // 50%
+      ragequittable: true,
+      sellLoot: false,
+      enablePassiveIncome: false,
+      sharesLocked: false,
+      lootLocked: false,
+    },
+  },
+  {
+    id: "ungovern",
+    name: "Ungovern",
+    description: "Tap + ragequit. Minimal governance, holders can exit anytime.",
+    icon: Droplet,
+    config: {
+      tribAmt: "0.0001",
+      saleSupply: "1000000",
+      forAmt: "1",
+      quorumBps: "3000", // 30%
+      ragequittable: true,
+      sellLoot: false,
+      enablePassiveIncome: true,
+      ratePerSec: "0.001",
+      tapAllowance: "10",
+      sharesLocked: false,
+      lootLocked: false,
+    },
+  },
+];
 
 // Feature info for hover cards
 const FEATURE_INFO = {
@@ -108,8 +181,15 @@ interface DAICOFormState {
   orgName: string;
   orgSymbol: string;
   orgURI: string;
+  description: string;
   quorumBps: string; // basis points (e.g., 5000 = 50%)
   ragequittable: boolean;
+
+  // Social media and external links
+  twitter: string;
+  telegram: string;
+  farcaster: string;
+  website: string;
 
   // Sale configuration
   tribTkn: Address; // Payment token (address(0) for ETH)
@@ -142,8 +222,14 @@ const defaultFormState: DAICOFormState = {
   orgName: "",
   orgSymbol: "",
   orgURI: "",
+  description: "",
   quorumBps: "5000", // 50% default
   ragequittable: true,
+
+  twitter: "",
+  telegram: "",
+  farcaster: "",
+  website: "",
 
   tribTkn: "0x0000000000000000000000000000000000000000" as Address, // ETH
   tribAmt: "0.0001", // Price per token in ETH
@@ -227,6 +313,13 @@ function DAICOPreview({ formState, imagePreview }: { formState: DAICOFormState; 
             </div>
           </div>
         </div>
+        {formState.description && (
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+              {formState.description}
+            </p>
+          </div>
+        )}
       </Card>
 
       {/* Sale Details */}
@@ -410,6 +503,7 @@ export default function DAICOWizard() {
   const [isUploading, setIsUploading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [whitepaperFile, setWhitepaperFile] = useState<File | null>(null);
 
   const { data: ethUsdPrice } = useEthUsdPrice();
   const { writeContractAsync, isPending: isWritePending } = useWriteContract();
@@ -465,6 +559,14 @@ export default function DAICOWizard() {
         i === index ? { ...holder, [field]: value } : holder
       ),
     }));
+  };
+
+  const applyTemplate = (template: DAICOTemplate) => {
+    setFormState((prev) => ({
+      ...prev,
+      ...template.config,
+    }));
+    toast.success(`Applied ${template.name} template`);
   };
 
   // Validation function
@@ -540,13 +642,39 @@ export default function DAICOWizard() {
         });
       }
 
+      // Upload whitepaper to IPFS (if provided)
+      let whitepaperUri: string | undefined;
+      if (whitepaperFile) {
+        const whitepaperBuffer = await whitepaperFile.arrayBuffer();
+        const fileName = `${formState.orgName.replace(/\s+/g, "_")}_whitepaper.pdf`;
+        whitepaperUri = await pinImageToPinata(whitepaperBuffer, fileName, {
+          keyvalues: {
+            orgName: formState.orgName,
+            orgSymbol: formState.orgSymbol,
+            type: "whitepaper",
+          },
+        });
+      }
+
       // Upload metadata to IPFS
-      const metadata = {
+      const metadata: Record<string, unknown> = {
         name: formState.orgName,
         symbol: formState.orgSymbol,
-        description: `DAICO for ${formState.orgName}`,
+        description: formState.description || `DAICO for ${formState.orgName}`,
         ...(imageUri && { image: imageUri }),
+        ...(whitepaperUri && { whitepaper: whitepaperUri }),
       };
+
+      // Add social links if provided
+      const socialLinks: Record<string, string> = {};
+      if (formState.website) socialLinks.website = formState.website;
+      if (formState.twitter) socialLinks.twitter = formState.twitter;
+      if (formState.telegram) socialLinks.telegram = formState.telegram;
+      if (formState.farcaster) socialLinks.farcaster = formState.farcaster;
+
+      if (Object.keys(socialLinks).length > 0) {
+        metadata.links = socialLinks;
+      }
 
       const ipfsHash = await pinJsonToPinata(metadata);
       const uri = `ipfs://${ipfsHash}`;
@@ -676,6 +804,41 @@ export default function DAICOWizard() {
         </div>
       </div>
 
+      {/* Template Selector */}
+      <div className="mb-8">
+        <div className="text-center mb-6">
+          <h2 className="text-xl font-semibold mb-2">Choose a Template</h2>
+          <p className="text-sm text-muted-foreground">
+            Start with a preset configuration or build from scratch
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {DAICO_TEMPLATES.map((template) => {
+            const Icon = template.icon;
+            return (
+              <Card
+                key={template.id}
+                className="p-6 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 group"
+                onClick={() => applyTemplate(template)}
+              >
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <Icon className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">{template.name}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {template.description}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Main 2-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 mt-8">
         {/* Left Column: Preview (Top on mobile) */}
@@ -725,6 +888,126 @@ export default function DAICOWizard() {
                 />
                 <p className="text-xs text-muted-foreground">
                   Token symbol (e.g., TKN, DAO, SHARE)
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Describe your DAO's mission, goals, and what makes it unique..."
+                value={formState.description}
+                onChange={(e) => updateField("description", e.target.value)}
+                rows={4}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Help potential members understand your project
+              </p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-muted-foreground" />
+                <Label className="text-sm font-semibold">Social Links & Resources</Label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="website" className="flex items-center gap-2">
+                    <Globe className="w-3.5 h-3.5" />
+                    Website
+                  </Label>
+                  <Input
+                    id="website"
+                    type="url"
+                    placeholder="https://example.com"
+                    value={formState.website}
+                    onChange={(e) => updateField("website", e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="twitter" className="flex items-center gap-2">
+                    <Twitter className="w-3.5 h-3.5" />
+                    Twitter
+                  </Label>
+                  <Input
+                    id="twitter"
+                    placeholder="@yourproject or https://twitter.com/yourproject"
+                    value={formState.twitter}
+                    onChange={(e) => updateField("twitter", e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="telegram" className="flex items-center gap-2">
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    Telegram
+                  </Label>
+                  <Input
+                    id="telegram"
+                    placeholder="https://t.me/yourgroup"
+                    value={formState.telegram}
+                    onChange={(e) => updateField("telegram", e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="farcaster" className="flex items-center gap-2">
+                    <Hash className="w-3.5 h-3.5" />
+                    Farcaster
+                  </Label>
+                  <Input
+                    id="farcaster"
+                    placeholder="@username or https://warpcast.com/username"
+                    value={formState.farcaster}
+                    onChange={(e) => updateField("farcaster", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="whitepaper" className="flex items-center gap-2">
+                  <FileText className="w-3.5 h-3.5" />
+                  Whitepaper (Optional)
+                </Label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    id="whitepaper"
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      setWhitepaperFile(file || null);
+                    }}
+                    className="cursor-pointer"
+                  />
+                  {whitepaperFile && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setWhitepaperFile(null);
+                        const input = document.getElementById("whitepaper") as HTMLInputElement;
+                        if (input) input.value = "";
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                {whitepaperFile && (
+                  <p className="text-xs text-muted-foreground">
+                    {whitepaperFile.name} ({(whitepaperFile.size / 1024).toFixed(1)} KB)
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Upload a PDF document with your project details (will be pinned to IPFS)
                 </p>
               </div>
             </div>
