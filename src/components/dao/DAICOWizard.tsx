@@ -511,7 +511,7 @@ export default function DAICOWizard() {
       };
 
       const ipfsHash = await pinJsonToPinata(metadata);
-      const uri = `ipfs://${ipfsHash}`;
+      const uri = ipfsHash;
 
       setIsUploading(false);
 
