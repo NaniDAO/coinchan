@@ -39,6 +39,7 @@ import { Route as ExplorePoolsRouteImport } from './routes/explore/pools'
 import { Route as ExploreOrdersRouteImport } from './routes/explore/orders'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 import { Route as PredictMarketTypeMarketIdRouteImport } from './routes/predict.$marketType.$marketId'
+import { Route as OrgChainIdDaoAddressRouteImport } from './routes/org.$chainId.$daoAddress'
 import { Route as EmbedPoolPoolIdRouteImport } from './routes/embed/pool.$poolId'
 
 const WlfiRoute = WlfiRouteImport.update({
@@ -192,6 +193,11 @@ const PredictMarketTypeMarketIdRoute =
     path: '/$marketType/$marketId',
     getParentRoute: () => PredictRoute,
   } as any)
+const OrgChainIdDaoAddressRoute = OrgChainIdDaoAddressRouteImport.update({
+  id: '/org/$chainId/$daoAddress',
+  path: '/org/$chainId/$daoAddress',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmbedPoolPoolIdRoute = EmbedPoolPoolIdRouteImport.update({
   id: '/embed/pool/$poolId',
   path: '/embed/pool/$poolId',
@@ -229,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
   '/embed/pool/$poolId': typeof EmbedPoolPoolIdRoute
+  '/org/$chainId/$daoAddress': typeof OrgChainIdDaoAddressRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRoutesByTo {
@@ -260,6 +267,7 @@ export interface FileRoutesByTo {
   '/farm': typeof FarmIndexRoute
   '/positions': typeof PositionsIndexRoute
   '/embed/pool/$poolId': typeof EmbedPoolPoolIdRoute
+  '/org/$chainId/$daoAddress': typeof OrgChainIdDaoAddressRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRoutesById {
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
   '/embed/pool/$poolId': typeof EmbedPoolPoolIdRoute
+  '/org/$chainId/$daoAddress': typeof OrgChainIdDaoAddressRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRouteTypes {
@@ -329,6 +338,7 @@ export interface FileRouteTypes {
     | '/farm/'
     | '/positions/'
     | '/embed/pool/$poolId'
+    | '/org/$chainId/$daoAddress'
     | '/predict/$marketType/$marketId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -360,6 +370,7 @@ export interface FileRouteTypes {
     | '/farm'
     | '/positions'
     | '/embed/pool/$poolId'
+    | '/org/$chainId/$daoAddress'
     | '/predict/$marketType/$marketId'
   id:
     | '__root__'
@@ -393,6 +404,7 @@ export interface FileRouteTypes {
     | '/farm/'
     | '/positions/'
     | '/embed/pool/$poolId'
+    | '/org/$chainId/$daoAddress'
     | '/predict/$marketType/$marketId'
   fileRoutesById: FileRoutesById
 }
@@ -419,6 +431,7 @@ export interface RootRouteChildren {
   CCoinIdRoute: typeof CCoinIdRoute
   PPoolIdRoute: typeof PPoolIdRoute
   EmbedPoolPoolIdRoute: typeof EmbedPoolPoolIdRoute
+  OrgChainIdDaoAddressRoute: typeof OrgChainIdDaoAddressRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -633,6 +646,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PredictMarketTypeMarketIdRouteImport
       parentRoute: typeof PredictRoute
     }
+    '/org/$chainId/$daoAddress': {
+      id: '/org/$chainId/$daoAddress'
+      path: '/org/$chainId/$daoAddress'
+      fullPath: '/org/$chainId/$daoAddress'
+      preLoaderRoute: typeof OrgChainIdDaoAddressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/embed/pool/$poolId': {
       id: '/embed/pool/$poolId'
       path: '/embed/pool/$poolId'
@@ -720,6 +740,7 @@ const rootRouteChildren: RootRouteChildren = {
   CCoinIdRoute: CCoinIdRoute,
   PPoolIdRoute: PPoolIdRoute,
   EmbedPoolPoolIdRoute: EmbedPoolPoolIdRoute,
+  OrgChainIdDaoAddressRoute: OrgChainIdDaoAddressRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
