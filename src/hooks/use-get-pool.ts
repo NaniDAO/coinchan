@@ -2,8 +2,8 @@ import { CoinSource } from "@/lib/coins";
 import { useQuery } from "@tanstack/react-query";
 
 const GET_POOL = `
-  query GetPool($id: BigInt!, $source: String!) {
-    pool(id: $id, source: $source) {
+  query GetPool($id: BigInt!, $source: String!, $chainId: Float!) {
+    pool(id: $id, source: $source, chainId: $chainId) {
       feeOrHook
       hook
       hookType
@@ -44,70 +44,81 @@ const GET_POOL = `
 
 // ----- Types (optional but helpful) -----
 type Coin = {
-  id: string;
-  decimals: number;
-  name: string;
-  symbol: string;
-  source: string;
-  token: string;
-  imageUrl: string;
-  tokenURI: string;
+    id: string;
+    decimals: number;
+    name: string;
+    symbol: string;
+    source: string;
+    token: string;
+    imageUrl: string;
+    tokenURI: string;
 };
 
 export type Pool = {
-  feeOrHook: string | null;
-  hook: string | null;
-  hookType: string | null;
-  id: string;
-  swapFee: string | number | null;
-  source: string | null;
-  reserve1: string | number | null;
-  reserve0: string | number | null;
-  price1: string | number | null;
-  price0: string | number | null;
-  coin1Id: string | null;
-  coin0Id: string | null;
-  token0: string | null;
-  token1: string | null;
-  coin0: Coin | null;
-  coin1: Coin | null;
+    feeOrHook: string | null;
+    hook: string | null;
+    hookType: string | null;
+    id: string;
+    swapFee: string | number | null;
+    source: string | null;
+    reserve1: string | number | null;
+    reserve0: string | number | null;
+    price1: string | number | null;
+    price0: string | number | null;
+    coin1Id: string | null;
+    coin0Id: string | null;
+    token0: string | null;
+    token1: string | null;
+    coin0: Coin | null;
+    coin1: Coin | null;
 };
 
 type GetPoolResponse = {
-  data?: { pool: Pool | null };
-  errors?: Array<{ message: string }>;
+    data?: { pool: Pool | null };
+    errors?: Array<{ message: string }>;
 };
 
 // ----- Fetcher -----
-export const fetchPool = async (poolId: string, source: CoinSource): Promise<Pool | null> => {
-  const response = await fetch(`${import.meta.env.VITE_INDEXER_URL}/graphql`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query: GET_POOL,
-      variables: { id: poolId, source },
-    }),
-  });
+export const fetchPool = async (
+    poolId: string,
+    source: CoinSource,
+    chainId: string,
+): Promise<Pool | null> => {
+    const response = await fetch(
+        `${import.meta.env.VITE_INDEXER_URL}/graphql`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                query: GET_POOL,
+                variables: { id: poolId, source, chainId: parseInt(chainId) },
+            }),
+        },
+    );
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch pool (${response.status})`);
-  }
+    if (!response.ok) {
+        throw new Error(`Failed to fetch pool (${response.status})`);
+    }
 
-  const json: GetPoolResponse = await response.json();
+    const json: GetPoolResponse = await response.json();
 
-  if (json.errors?.length) {
-    // Surface the first GraphQL error
-    throw new Error(json.errors[0].message || "GraphQL error");
-  }
+    if (json.errors?.length) {
+        // Surface the first GraphQL error
+        throw new Error(json.errors[0].message || "GraphQL error");
+    }
 
-  return json.data?.pool ?? null;
+    return json.data?.pool ?? null;
 };
 
 // ----- React Query hook -----
-export const useGetPool = (poolId: string, source: CoinSource) => {
-  return useQuery({
-    queryKey: ["get-pool", poolId],
-    queryFn: () => fetchPool(poolId, source),
-    enabled: Boolean(poolId),
-  });
+export const useGetPool = (
+    poolId: string,
+    source: CoinSource,
+    chainId: string = "1",
+) => {
+    return useQuery({
+        queryKey: ["get-pool", poolId, chainId],
+        queryFn: () => fetchPool(poolId, source, chainId),
+        enabled: Boolean(poolId && chainId),
+    });
 };

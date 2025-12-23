@@ -5,6 +5,7 @@ export type SortDir = "asc" | "desc";
 
 export type PoolTableItem = {
   poolId: string;
+  chainId?: string;
   token0: string;
   token1: string;
   coin0: {

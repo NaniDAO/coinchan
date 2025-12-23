@@ -31,7 +31,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PositionsIndexRouteImport } from './routes/positions/index'
 import { Route as FarmIndexRouteImport } from './routes/farm/index'
 import { Route as PositionsCreateRouteImport } from './routes/positions/create'
-import { Route as PPoolIdRouteImport } from './routes/p.$poolId'
 import { Route as FarmCreateRouteImport } from './routes/farm/create'
 import { Route as ExploreTokensRouteImport } from './routes/explore/tokens'
 import { Route as ExploreTokenRouteImport } from './routes/explore/token'
@@ -39,7 +38,8 @@ import { Route as ExplorePoolsRouteImport } from './routes/explore/pools'
 import { Route as ExploreOrdersRouteImport } from './routes/explore/orders'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 import { Route as PredictMarketTypeMarketIdRouteImport } from './routes/predict.$marketType.$marketId'
-import { Route as EmbedPoolPoolIdRouteImport } from './routes/embed/pool.$poolId'
+import { Route as PChainIdPoolIdRouteImport } from './routes/p.$chainId.$poolId'
+import { Route as EmbedPoolChainIdPoolIdRouteImport } from './routes/embed/pool.$chainId.$poolId'
 
 const WlfiRoute = WlfiRouteImport.update({
   id: '/wlfi',
@@ -151,11 +151,6 @@ const PositionsCreateRoute = PositionsCreateRouteImport.update({
   path: '/create',
   getParentRoute: () => PositionsRoute,
 } as any)
-const PPoolIdRoute = PPoolIdRouteImport.update({
-  id: '/p/$poolId',
-  path: '/p/$poolId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const FarmCreateRoute = FarmCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -192,9 +187,14 @@ const PredictMarketTypeMarketIdRoute =
     path: '/$marketType/$marketId',
     getParentRoute: () => PredictRoute,
   } as any)
-const EmbedPoolPoolIdRoute = EmbedPoolPoolIdRouteImport.update({
-  id: '/embed/pool/$poolId',
-  path: '/embed/pool/$poolId',
+const PChainIdPoolIdRoute = PChainIdPoolIdRouteImport.update({
+  id: '/p/$chainId/$poolId',
+  path: '/p/$chainId/$poolId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmbedPoolChainIdPoolIdRoute = EmbedPoolChainIdPoolIdRouteImport.update({
+  id: '/embed/pool/$chainId/$poolId',
+  path: '/embed/pool/$chainId/$poolId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -224,12 +224,12 @@ export interface FileRoutesByFullPath {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
-  '/p/$poolId': typeof PPoolIdRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
-  '/embed/pool/$poolId': typeof EmbedPoolPoolIdRoute
+  '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
+  '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -255,12 +255,12 @@ export interface FileRoutesByTo {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
-  '/p/$poolId': typeof PPoolIdRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm': typeof FarmIndexRoute
   '/positions': typeof PositionsIndexRoute
-  '/embed/pool/$poolId': typeof EmbedPoolPoolIdRoute
+  '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
+  '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -289,12 +289,12 @@ export interface FileRoutesById {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
-  '/p/$poolId': typeof PPoolIdRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
-  '/embed/pool/$poolId': typeof EmbedPoolPoolIdRoute
+  '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
+  '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -324,12 +324,12 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
-    | '/p/$poolId'
     | '/positions/create'
     | '/farm/'
     | '/positions/'
-    | '/embed/pool/$poolId'
+    | '/p/$chainId/$poolId'
     | '/predict/$marketType/$marketId'
+    | '/embed/pool/$chainId/$poolId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -355,12 +355,12 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
-    | '/p/$poolId'
     | '/positions/create'
     | '/farm'
     | '/positions'
-    | '/embed/pool/$poolId'
+    | '/p/$chainId/$poolId'
     | '/predict/$marketType/$marketId'
+    | '/embed/pool/$chainId/$poolId'
   id:
     | '__root__'
     | '/'
@@ -388,12 +388,12 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
-    | '/p/$poolId'
     | '/positions/create'
     | '/farm/'
     | '/positions/'
-    | '/embed/pool/$poolId'
+    | '/p/$chainId/$poolId'
     | '/predict/$marketType/$marketId'
+    | '/embed/pool/$chainId/$poolId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -417,8 +417,8 @@ export interface RootRouteChildren {
   UserRoute: typeof UserRoute
   WlfiRoute: typeof WlfiRoute
   CCoinIdRoute: typeof CCoinIdRoute
-  PPoolIdRoute: typeof PPoolIdRoute
-  EmbedPoolPoolIdRoute: typeof EmbedPoolPoolIdRoute
+  PChainIdPoolIdRoute: typeof PChainIdPoolIdRoute
+  EmbedPoolChainIdPoolIdRoute: typeof EmbedPoolChainIdPoolIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -577,13 +577,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PositionsCreateRouteImport
       parentRoute: typeof PositionsRoute
     }
-    '/p/$poolId': {
-      id: '/p/$poolId'
-      path: '/p/$poolId'
-      fullPath: '/p/$poolId'
-      preLoaderRoute: typeof PPoolIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/farm/create': {
       id: '/farm/create'
       path: '/create'
@@ -633,11 +626,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PredictMarketTypeMarketIdRouteImport
       parentRoute: typeof PredictRoute
     }
-    '/embed/pool/$poolId': {
-      id: '/embed/pool/$poolId'
-      path: '/embed/pool/$poolId'
-      fullPath: '/embed/pool/$poolId'
-      preLoaderRoute: typeof EmbedPoolPoolIdRouteImport
+    '/p/$chainId/$poolId': {
+      id: '/p/$chainId/$poolId'
+      path: '/p/$chainId/$poolId'
+      fullPath: '/p/$chainId/$poolId'
+      preLoaderRoute: typeof PChainIdPoolIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/embed/pool/$chainId/$poolId': {
+      id: '/embed/pool/$chainId/$poolId'
+      path: '/embed/pool/$chainId/$poolId'
+      fullPath: '/embed/pool/$chainId/$poolId'
+      preLoaderRoute: typeof EmbedPoolChainIdPoolIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -718,8 +718,8 @@ const rootRouteChildren: RootRouteChildren = {
   UserRoute: UserRoute,
   WlfiRoute: WlfiRoute,
   CCoinIdRoute: CCoinIdRoute,
-  PPoolIdRoute: PPoolIdRoute,
-  EmbedPoolPoolIdRoute: EmbedPoolPoolIdRoute,
+  PChainIdPoolIdRoute: PChainIdPoolIdRoute,
+  EmbedPoolChainIdPoolIdRoute: EmbedPoolChainIdPoolIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

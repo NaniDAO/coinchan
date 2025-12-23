@@ -17,17 +17,17 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getPAMMExternalSite } from "@/constants/TrustedResolvers";
 
-export const Route = createFileRoute("/p/$poolId" as any)({
+export const Route = createFileRoute("/p/$chainId/$poolId" as any)({
   component: PoolPage,
 });
 
 function PoolPage() {
-  const { poolId } = Route.useParams() as { poolId: string };
+  const { poolId, chainId } = Route.useParams() as { poolId: string; chainId: string };
   const { data: ethUsdPrice } = useEthUsdPrice();
 
   // Try COOKBOOK first, then ZAMM
-  const { data: cookbookPool, isLoading: cookbookLoading } = useGetPool(poolId, "COOKBOOK");
-  const { data: zammPool, isLoading: zammLoading } = useGetPool(poolId, "ZAMM");
+  const { data: cookbookPool, isLoading: cookbookLoading } = useGetPool(poolId, "COOKBOOK", chainId);
+  const { data: zammPool, isLoading: zammLoading } = useGetPool(poolId, "ZAMM", chainId);
 
   const pool = cookbookPool || zammPool;
   const isLoading = cookbookLoading && zammLoading;
