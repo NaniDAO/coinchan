@@ -114,7 +114,7 @@ export const fetchPool = async (
 export const useGetPool = (
     poolId: string,
     source: CoinSource,
-    chainId: string = "1",
+    chainId?: string = "1",
 ) => {
     return useQuery({
         queryKey: ["get-pool", poolId, chainId],
