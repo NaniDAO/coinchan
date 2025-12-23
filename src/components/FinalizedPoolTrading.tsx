@@ -83,6 +83,7 @@ function FinalizedPoolTradingInner({
   const { data: coinData } = useGetCoin({
     coinId: coinId,
     token: contractAddress || CookbookAddress,
+    chainId: 1, // @todo hardcode mainnet this is a hotfix
   });
 
   // Calculate pool ID and fee - use feeOrHook from sale data if available
