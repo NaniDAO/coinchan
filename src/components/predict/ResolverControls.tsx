@@ -109,7 +109,6 @@ export const ResolverControls: React.FC<ResolverControlsProps> = ({
     }
   };
 
-
   React.useEffect(() => {
     if (isTxSuccess) {
       toast.success(t("predict.transaction_confirmed"));
@@ -223,9 +222,7 @@ export const ResolverControls: React.FC<ResolverControlsProps> = ({
                   : "text-yellow-700 dark:text-yellow-300 text-xs"
               }
             >
-              {previewData[1]
-                ? t("predict.condition_true_outcome_yes")
-                : t("predict.condition_false_outcome_no")}
+              {previewData[1] ? t("predict.condition_true_outcome_yes") : t("predict.condition_false_outcome_no")}
             </AlertDescription>
           </Alert>
         )}

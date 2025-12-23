@@ -858,11 +858,7 @@ export function computePAMMPoolId(marketId: bigint, feeOrHook: bigint = DEFAULT_
  * @param feeOrHook Optional fee tier (defaults to 30 bps)
  * @returns The pool ID as a bigint
  */
-export function computePAMMPoolIdFromIds(
-  yesId: bigint,
-  noId: bigint,
-  feeOrHook: bigint = DEFAULT_FEE_OR_HOOK,
-): bigint {
+export function computePAMMPoolIdFromIds(yesId: bigint, noId: bigint, feeOrHook: bigint = DEFAULT_FEE_OR_HOOK): bigint {
   // Order IDs: smaller first (matching ZAMM pool key ordering)
   const id0 = yesId < noId ? yesId : noId;
   const id1 = yesId < noId ? noId : yesId;

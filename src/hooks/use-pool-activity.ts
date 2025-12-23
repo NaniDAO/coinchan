@@ -53,18 +53,20 @@ export function usePoolSwaps(poolId?: string, _source?: "ZAMM" | "COOKBOOK", lim
       // Filter to only swap events (BUY/SELL) and convert to SwapEvent format
       return events
         .filter((e) => e.type === "BUY" || e.type === "SELL")
-        .map((e): SwapEvent => ({
-          id: `${e.txhash}-${e.timestamp}`,
-          poolId: poolId!,
-          type: e.type as "BUY" | "SELL",
-          sender: e.maker,
-          amount0In: e.amount0_in || "0",
-          amount1In: e.amount1_in || "0",
-          amount0Out: e.amount0_out || "0",
-          amount1Out: e.amount1_out || "0",
-          timestamp: String(e.timestamp),
-          txHash: e.txhash,
-        }));
+        .map(
+          (e): SwapEvent => ({
+            id: `${e.txhash}-${e.timestamp}`,
+            poolId: poolId!,
+            type: e.type as "BUY" | "SELL",
+            sender: e.maker,
+            amount0In: e.amount0_in || "0",
+            amount1In: e.amount1_in || "0",
+            amount0Out: e.amount0_out || "0",
+            amount1Out: e.amount1_out || "0",
+            timestamp: String(e.timestamp),
+            txHash: e.txhash,
+          }),
+        );
     },
     enabled: !!poolId,
     staleTime: 30_000, // 30 seconds

@@ -9,11 +9,16 @@ import {
 import { useTheme } from "@/lib/theme";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { useChainId, useSwitchChain } from "wagmi";
+import { mainnet, sepolia } from "wagmi/chains";
 
 export function UserSettingsMenu() {
   const { toggleTheme } = useTheme();
   const navigate = useNavigate();
   const { i18n, t } = useTranslation();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
+
   // Normalize language code to handle cases like "en-US" -> "en"
   const currentLanguage = i18n.language.split("-")[0];
 
@@ -33,6 +38,19 @@ export function UserSettingsMenu() {
     } else {
       return "English"; // Show English when in Chinese
     }
+  };
+
+  const toggleChain = () => {
+    if (!switchChain) return;
+    const targetChainId = chainId === mainnet.id ? sepolia.id : mainnet.id;
+    switchChain({ chainId: targetChainId });
+  };
+
+  const getCurrentChainLabel = () => {
+    if (chainId === sepolia.id) {
+      return t("common.sepolia");
+    }
+    return t("common.mainnet");
   };
 
   return (
@@ -60,6 +78,13 @@ export function UserSettingsMenu() {
           onClick={toggleTheme}
         >
           {t("common.theme")}
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
+          onClick={toggleChain}
+        >
+          {t("common.network")}: {getCurrentChainLabel()}
         </DropdownMenuItem>
 
         <DropdownMenuItem

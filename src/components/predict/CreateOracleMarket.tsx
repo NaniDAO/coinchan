@@ -1,12 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { parseEther, formatEther, encodeFunctionData, isAddress, zeroAddress } from "viem";
-import {
-  useAccount,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useEnsAddress,
-  useBalance,
-} from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useEnsAddress, useBalance } from "wagmi";
 import { toast } from "sonner";
 import { normalize } from "viem/ens";
 import { Button } from "@/components/ui/button";
@@ -42,7 +36,6 @@ const POPULAR_TOKENS = [
   { symbol: "wstETH", address: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", decimals: 18 },
   { symbol: "UNI", address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", decimals: 18 },
 ];
-
 
 // Deadline presets
 type DeadlinePreset =
@@ -108,7 +101,7 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
     }
 
     const preset = DEADLINE_PRESETS.find(
-      (p) => p.label.toLowerCase().replace(" ", "") === deadlinePreset.toLowerCase().replace(" ", "")
+      (p) => p.label.toLowerCase().replace(" ", "") === deadlinePreset.toLowerCase().replace(" ", ""),
     );
 
     if (preset) {
@@ -205,9 +198,10 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
     // - ERC20 balance: target = token contract (Resolver calls target.balanceOf(walletToCheck))
 
     // Determine target based on market type
-    const target = marketType === "eth-balance"
-      ? targetAddress! // ETH: target is the address whose balance we check
-      : (tokenAddress as `0x${string}`); // ERC20: target is the token contract
+    const target =
+      marketType === "eth-balance"
+        ? targetAddress! // ETH: target is the address whose balance we check
+        : (tokenAddress as `0x${string}`); // ERC20: target is the token contract
 
     try {
       writeContract({
@@ -273,9 +267,7 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
           </Badge>
         </div>
         <h2 className="text-xl font-bold">Create Onchain Event Market</h2>
-        <p className="text-sm text-muted-foreground">
-          Markets resolve automatically via onchain oracle
-        </p>
+        <p className="text-sm text-muted-foreground">Markets resolve automatically via onchain oracle</p>
       </div>
 
       {/* Market Type Tabs */}
@@ -292,17 +284,23 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
           <TabsTrigger value="price" className="flex-1 min-w-[100px] text-muted-foreground" disabled>
             <span className="mr-1">📈</span>
             Price
-            <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0">Soon</Badge>
+            <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0">
+              Soon
+            </Badge>
           </TabsTrigger>
           <TabsTrigger value="governance" className="flex-1 min-w-[110px] text-muted-foreground" disabled>
             <span className="mr-1">🗳️</span>
             Governance
-            <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0">Soon</Badge>
+            <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0">
+              Soon
+            </Badge>
           </TabsTrigger>
           <TabsTrigger value="supply" className="flex-1 min-w-[100px] text-muted-foreground" disabled>
             <span className="mr-1">🔥</span>
             Supply
-            <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0">Soon</Badge>
+            <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0">
+              Soon
+            </Badge>
           </TabsTrigger>
         </TabsList>
 
@@ -311,9 +309,7 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Target Address</CardTitle>
-              <CardDescription>
-                The address whose ETH balance will be checked. Supports ENS names.
-              </CardDescription>
+              <CardDescription>The address whose ETH balance will be checked. Supports ENS names.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="relative">
@@ -330,9 +326,7 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
                 )}
               </div>
               {isEnsName && resolvedAddress && (
-                <p className="text-xs text-muted-foreground font-mono">
-                  Resolves to: {resolvedAddress}
-                </p>
+                <p className="text-xs text-muted-foreground font-mono">Resolves to: {resolvedAddress}</p>
               )}
             </CardContent>
           </Card>
@@ -340,9 +334,7 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Condition</CardTitle>
-              <CardDescription>
-                Market resolves YES if balance meets condition at deadline
-              </CardDescription>
+              <CardDescription>Market resolves YES if balance meets condition at deadline</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex gap-2">
@@ -378,9 +370,7 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Token</CardTitle>
-              <CardDescription>
-                Select a token or enter a custom address
-              </CardDescription>
+              <CardDescription>Select a token or enter a custom address</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex flex-wrap gap-2">
@@ -420,9 +410,7 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Target Address</CardTitle>
-              <CardDescription>
-                The address whose token balance will be checked. Supports ENS names.
-              </CardDescription>
+              <CardDescription>The address whose token balance will be checked. Supports ENS names.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="relative">
@@ -439,9 +427,7 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
                 )}
               </div>
               {isEnsName && resolvedAddress && (
-                <p className="text-xs text-muted-foreground font-mono">
-                  Resolves to: {resolvedAddress}
-                </p>
+                <p className="text-xs text-muted-foreground font-mono">Resolves to: {resolvedAddress}</p>
               )}
             </CardContent>
           </Card>
@@ -449,9 +435,7 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Condition</CardTitle>
-              <CardDescription>
-                Market resolves YES if balance meets condition at deadline
-              </CardDescription>
+              <CardDescription>Market resolves YES if balance meets condition at deadline</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex gap-2">
@@ -488,9 +472,7 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
             <Clock className="h-4 w-4" />
             Deadline
           </CardTitle>
-          <CardDescription>
-            When the market will check the condition and resolve
-          </CardDescription>
+          <CardDescription>When the market will check the condition and resolve</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
@@ -513,15 +495,9 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
             </Button>
           </div>
           {deadlinePreset === "custom" && (
-            <Input
-              type="datetime-local"
-              value={customDeadline}
-              onChange={(e) => setCustomDeadline(e.target.value)}
-            />
+            <Input type="datetime-local" value={customDeadline} onChange={(e) => setCustomDeadline(e.target.value)} />
           )}
-          <p className="text-xs text-muted-foreground">
-            Resolves: {formatDeadline(deadlineTimestamp)}
-          </p>
+          <p className="text-xs text-muted-foreground">Resolves: {formatDeadline(deadlineTimestamp)}</p>
         </CardContent>
       </Card>
 
@@ -544,9 +520,7 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm">Seed Liquidity</CardTitle>
-          <CardDescription>
-            Initial ETH to provide as market liquidity (you become LP)
-          </CardDescription>
+          <CardDescription>Initial ETH to provide as market liquidity (you become LP)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-2">
@@ -614,9 +588,7 @@ export const CreateOracleMarket: React.FC<CreateOracleMarketProps> = ({ onSucces
       </Card>
 
       {/* Error Display */}
-      {validationError && (
-        <p className="text-sm text-destructive text-center">{validationError}</p>
-      )}
+      {validationError && <p className="text-sm text-destructive text-center">{validationError}</p>}
 
       {/* Create Button */}
       <Button

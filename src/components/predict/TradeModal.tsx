@@ -9,12 +9,7 @@ import {
   useBalance,
 } from "wagmi";
 import { toast } from "sonner";
-import {
-  PAMMSingletonAbi,
-  PAMMSingletonAddress,
-  DEFAULT_FEE_OR_HOOK,
-  ZAMM_ADDRESS,
-} from "@/constants/PAMMSingleton";
+import { PAMMSingletonAbi, PAMMSingletonAddress, DEFAULT_FEE_OR_HOOK, ZAMM_ADDRESS } from "@/constants/PAMMSingleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -505,28 +500,28 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
           {/* PAMM Payout Explainer */}
           <Collapsible className="mt-3">
-              <CollapsibleTrigger className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
-                <span>ℹ️</span>
-                <span className="font-medium">How do PAMM payouts work?</span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg text-xs space-y-2">
-                <p className="font-semibold text-blue-900 dark:text-blue-100">
-                  PAMM uses parimutuel (pool-based) payouts
-                </p>
-                <ul className="list-disc list-inside space-y-1.5 text-blue-800 dark:text-blue-200">
-                  <li>Every trade adds wstETH to a shared pot</li>
-                  <li>
-                    At resolution, winners split the pot proportionally:{" "}
-                    <span className="font-mono bg-blue-100 dark:bg-blue-900/40 px-1 rounded">
-                      payout per share = pot ÷ winning shares
-                    </span>
-                  </li>
-                  <li>Your profit depends on both winning AND your average cost vs. final payout per share</li>
-                  <li>Earlier positions typically get better returns (like traditional parimutuel betting)</li>
-                  <li>You can also exit positions early by selling at current market odds</li>
-                </ul>
-              </CollapsibleContent>
-            </Collapsible>
+            <CollapsibleTrigger className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+              <span>ℹ️</span>
+              <span className="font-medium">How do PAMM payouts work?</span>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg text-xs space-y-2">
+              <p className="font-semibold text-blue-900 dark:text-blue-100">
+                PAMM uses parimutuel (pool-based) payouts
+              </p>
+              <ul className="list-disc list-inside space-y-1.5 text-blue-800 dark:text-blue-200">
+                <li>Every trade adds wstETH to a shared pot</li>
+                <li>
+                  At resolution, winners split the pot proportionally:{" "}
+                  <span className="font-mono bg-blue-100 dark:bg-blue-900/40 px-1 rounded">
+                    payout per share = pot ÷ winning shares
+                  </span>
+                </li>
+                <li>Your profit depends on both winning AND your average cost vs. final payout per share</li>
+                <li>Earlier positions typically get better returns (like traditional parimutuel betting)</li>
+                <li>You can also exit positions early by selling at current market odds</li>
+              </ul>
+            </CollapsibleContent>
+          </Collapsible>
         </DialogHeader>
 
         <div className="space-y-6 py-2">
@@ -674,8 +669,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   const profit = sharesBought > costWei ? sharesBought - costWei : 0n;
 
                   const payoutUsd = wstethUsdPrice ? Number(formatEther(sharesBought)) * wstethUsdPrice : null;
-                  const profitUsd =
-                    wstethUsdPrice && profit > 0n ? Number(formatEther(profit)) * wstethUsdPrice : null;
+                  const profitUsd = wstethUsdPrice && profit > 0n ? Number(formatEther(profit)) * wstethUsdPrice : null;
 
                   // Calculate cost per share and projected payout per share
                   // Formula matches PAMM.sol: payoutPerShare = mulDiv(pot, Q, winningCirc) where Q = 1e18
@@ -738,9 +732,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                       {/* Payout Analysis */}
                       <div className="space-y-2 text-xs border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-purple-700 dark:text-purple-300 font-medium">
-                            Your Cost Per Share
-                          </span>
+                          <span className="text-purple-700 dark:text-purple-300 font-medium">Your Cost Per Share</span>
                           <span className="font-mono text-purple-900 dark:text-purple-100">
                             {Number(formatEther(userAvgCostPerShare)).toFixed(6)} wstETH
                           </span>
@@ -832,39 +824,39 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
               {/* Slippage Settings - Collapsible & Subtle */}
               <div className="pt-2 border-t border-border/30">
-                  <button
-                    type="button"
-                    onClick={() => setShowSlippageSettings(!showSlippageSettings)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-sm"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Settings className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-muted-foreground">Slippage Settings</span>
-                    </div>
-                    <span className="font-mono font-semibold text-xs">{slippageTolerance}%</span>
-                  </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSlippageSettings(!showSlippageSettings)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <Settings className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-muted-foreground">Slippage Settings</span>
+                  </div>
+                  <span className="font-mono font-semibold text-xs">{slippageTolerance}%</span>
+                </button>
 
-                  {showSlippageSettings && (
-                    <div className="mt-3 space-y-3 px-3 pb-2">
-                      <Slider
-                        id="slippage"
-                        min={0.1}
-                        max={100}
-                        step={0.1}
-                        value={[slippageTolerance]}
-                        onValueChange={(value) => setSlippageTolerance(value[0])}
-                        className="w-full"
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>0.1%</span>
-                        <span>100%</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground italic">
-                        Higher slippage = more price movement tolerance
-                      </p>
+                {showSlippageSettings && (
+                  <div className="mt-3 space-y-3 px-3 pb-2">
+                    <Slider
+                      id="slippage"
+                      min={0.1}
+                      max={100}
+                      step={0.1}
+                      value={[slippageTolerance]}
+                      onValueChange={(value) => setSlippageTolerance(value[0])}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>0.1%</span>
+                      <span>100%</span>
                     </div>
-                  )}
-                </div>
+                    <p className="text-xs text-muted-foreground italic">
+                      Higher slippage = more price movement tolerance
+                    </p>
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="sell" className="space-y-5 mt-5">
@@ -955,39 +947,39 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
               {/* Slippage Settings - Collapsible & Subtle */}
               <div className="pt-2 border-t border-border/30">
-                  <button
-                    type="button"
-                    onClick={() => setShowSlippageSettings(!showSlippageSettings)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-sm"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Settings className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-muted-foreground">Slippage Settings</span>
-                    </div>
-                    <span className="font-mono font-semibold text-xs">{slippageTolerance}%</span>
-                  </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSlippageSettings(!showSlippageSettings)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <Settings className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-muted-foreground">Slippage Settings</span>
+                  </div>
+                  <span className="font-mono font-semibold text-xs">{slippageTolerance}%</span>
+                </button>
 
-                  {showSlippageSettings && (
-                    <div className="mt-3 space-y-3 px-3 pb-2">
-                      <Slider
-                        id="slippage-sell"
-                        min={0.1}
-                        max={20}
-                        step={0.1}
-                        value={[slippageTolerance]}
-                        onValueChange={(value) => setSlippageTolerance(value[0])}
-                        className="w-full"
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>0.1%</span>
-                        <span>20%</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground italic">
-                        Higher slippage = more price movement tolerance
-                      </p>
+                {showSlippageSettings && (
+                  <div className="mt-3 space-y-3 px-3 pb-2">
+                    <Slider
+                      id="slippage-sell"
+                      min={0.1}
+                      max={20}
+                      step={0.1}
+                      value={[slippageTolerance]}
+                      onValueChange={(value) => setSlippageTolerance(value[0])}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>0.1%</span>
+                      <span>20%</span>
                     </div>
-                  )}
-                </div>
+                    <p className="text-xs text-muted-foreground italic">
+                      Higher slippage = more price movement tolerance
+                    </p>
+                  </div>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
 

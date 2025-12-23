@@ -1,5 +1,6 @@
 import { RainbowConnectButton } from "@/components/RainbowConnectButton";
 import UserSettingsMenu from "@/components/UserSettingsMenu";
+import { TestnetIndicator } from "@/components/TestnetIndicator";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link, Outlet, createRootRoute, useMatchRoute, useLocation, useNavigate } from "@tanstack/react-router";
@@ -376,6 +377,9 @@ export const Route = createRootRoute({
           <div className="min-h-screen w-full max-w-[100vw] bg-background z-0 overflow-x-hidden">
             <Outlet />
           </div>
+
+          {/* Testnet Indicator */}
+          <TestnetIndicator />
         </main>
 
         {/* Overlay for mobile menu */}

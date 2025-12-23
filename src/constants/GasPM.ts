@@ -55,7 +55,12 @@ export const GasPMAbi = [
     name: "OwnershipTransferred",
     type: "event",
   },
-  { anonymous: false, inputs: [{ indexed: false, internalType: "bool", name: "enabled", type: "bool" }], name: "PublicCreationSet", type: "event" },
+  {
+    anonymous: false,
+    inputs: [{ indexed: false, internalType: "bool", name: "enabled", type: "bool" }],
+    name: "PublicCreationSet",
+    type: "event",
+  },
   {
     anonymous: false,
     inputs: [

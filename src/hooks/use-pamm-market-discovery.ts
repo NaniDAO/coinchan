@@ -41,7 +41,7 @@ export function usePAMMMarketDiscovery(
     address: PAMMSingletonAddress,
     abi: PAMMSingletonAbi,
     functionName: "getMarkets",
-    args: [0n, marketCount && marketCount > 100n ? 100n : (marketCount ?? 50n)],
+    args: [0n, marketCount && marketCount > 100n ? 100n : marketCount ?? 50n],
     query: {
       enabled: enabled && !!poolId && marketCount !== undefined && marketCount > 0n,
     },
@@ -49,9 +49,8 @@ export function usePAMMMarketDiscovery(
 
   // getMarkets returns a tuple: [ids[], resolvers[], collaterals[], states[], closes[], ...]
   // We only need the first element (ids array)
-  const marketIds = Array.isArray(marketsData) && marketsData.length > 0
-    ? (marketsData[0] as readonly bigint[])
-    : undefined;
+  const marketIds =
+    Array.isArray(marketsData) && marketsData.length > 0 ? (marketsData[0] as readonly bigint[]) : undefined;
 
   // Build noId fetch calls for all markets
   const noIdCalls = useMemo(() => {

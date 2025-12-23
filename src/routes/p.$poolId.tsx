@@ -222,8 +222,28 @@ function PredictionMarketHeader({
             >
               <svg className="w-4 h-4" viewBox="0 0 100 100">
                 <rect fill="#09090b" width="100" height="100" rx="12" />
-                <text x="50" y="55" fontFamily="system-ui,sans-serif" fontSize="16" fontWeight="600" fill={externalSite.logo.colorTop} textAnchor="middle">{externalSite.logo.textTop}</text>
-                <text x="50" y="72" fontFamily="system-ui,sans-serif" fontSize="14" fontWeight="600" fill="#3b82f6" textAnchor="middle">PM</text>
+                <text
+                  x="50"
+                  y="55"
+                  fontFamily="system-ui,sans-serif"
+                  fontSize="16"
+                  fontWeight="600"
+                  fill={externalSite.logo.colorTop}
+                  textAnchor="middle"
+                >
+                  {externalSite.logo.textTop}
+                </text>
+                <text
+                  x="50"
+                  y="72"
+                  fontFamily="system-ui,sans-serif"
+                  fontSize="14"
+                  fontWeight="600"
+                  fill="#3b82f6"
+                  textAnchor="middle"
+                >
+                  PM
+                </text>
               </svg>
               <span className="font-medium">{externalSite.name}</span>
               <ExternalLink className="w-3 h-3 text-muted-foreground" />

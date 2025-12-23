@@ -254,9 +254,13 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     userPammPositions,
     // Use BigInt-safe serialization to avoid deep type instantiation
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    pammTradingOpenData?.map(d => d.result?.toString()).join(','),
+    pammTradingOpenData
+      ?.map((d) => d.result?.toString())
+      .join(","),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    pammPoolStates?.map(d => d.result?.map(v => v?.toString()).join('-')).join(','),
+    pammPoolStates
+      ?.map((d) => d.result?.map((v) => v?.toString()).join("-"))
+      .join(","),
   ]);
 
   // Excluded resolver addresses
@@ -586,7 +590,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
               <TabsTrigger value="price" className="whitespace-nowrap">
                 <span className="flex items-center gap-1">
                   <span>{CATEGORY_INFO.price.icon}</span>
-                  <span className="hidden sm:inline">{CATEGORY_INFO.price.label} ({categoryCounts.price})</span>
+                  <span className="hidden sm:inline">
+                    {CATEGORY_INFO.price.label} ({categoryCounts.price})
+                  </span>
                   <span className="sm:hidden">{CATEGORY_INFO.price.label}</span>
                 </span>
               </TabsTrigger>
@@ -595,7 +601,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
               <TabsTrigger value="governance" className="whitespace-nowrap">
                 <span className="flex items-center gap-1">
                   <span>{CATEGORY_INFO.governance.icon}</span>
-                  <span className="hidden sm:inline">{CATEGORY_INFO.governance.label} ({categoryCounts.governance})</span>
+                  <span className="hidden sm:inline">
+                    {CATEGORY_INFO.governance.label} ({categoryCounts.governance})
+                  </span>
                   <span className="sm:hidden">{CATEGORY_INFO.governance.label}</span>
                 </span>
               </TabsTrigger>
@@ -604,7 +612,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
               <TabsTrigger value="balance" className="whitespace-nowrap">
                 <span className="flex items-center gap-1">
                   <span>{CATEGORY_INFO.balance.icon}</span>
-                  <span className="hidden sm:inline">{CATEGORY_INFO.balance.label} ({categoryCounts.balance})</span>
+                  <span className="hidden sm:inline">
+                    {CATEGORY_INFO.balance.label} ({categoryCounts.balance})
+                  </span>
                   <span className="sm:hidden">{CATEGORY_INFO.balance.label}</span>
                 </span>
               </TabsTrigger>
@@ -613,7 +623,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
               <TabsTrigger value="network" className="whitespace-nowrap">
                 <span className="flex items-center gap-1">
                   <span>{CATEGORY_INFO.network.icon}</span>
-                  <span className="hidden sm:inline">{CATEGORY_INFO.network.label} ({categoryCounts.network})</span>
+                  <span className="hidden sm:inline">
+                    {CATEGORY_INFO.network.label} ({categoryCounts.network})
+                  </span>
                   <span className="sm:hidden">{CATEGORY_INFO.network.label}</span>
                 </span>
               </TabsTrigger>
@@ -622,7 +634,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
               <TabsTrigger value="supply" className="whitespace-nowrap">
                 <span className="flex items-center gap-1">
                   <span>{CATEGORY_INFO.supply.icon}</span>
-                  <span className="hidden sm:inline">{CATEGORY_INFO.supply.label} ({categoryCounts.supply})</span>
+                  <span className="hidden sm:inline">
+                    {CATEGORY_INFO.supply.label} ({categoryCounts.supply})
+                  </span>
                   <span className="sm:hidden">{CATEGORY_INFO.supply.label}</span>
                 </span>
               </TabsTrigger>
@@ -631,7 +645,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
               <TabsTrigger value="protocol" className="whitespace-nowrap">
                 <span className="flex items-center gap-1">
                   <span>{CATEGORY_INFO.protocol.icon}</span>
-                  <span className="hidden sm:inline">{CATEGORY_INFO.protocol.label} ({categoryCounts.protocol})</span>
+                  <span className="hidden sm:inline">
+                    {CATEGORY_INFO.protocol.label} ({categoryCounts.protocol})
+                  </span>
                   <span className="sm:hidden">{CATEGORY_INFO.protocol.label}</span>
                 </span>
               </TabsTrigger>
@@ -640,7 +656,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
               <TabsTrigger value="random" className="whitespace-nowrap">
                 <span className="flex items-center gap-1">
                   <span>{CATEGORY_INFO.random.icon}</span>
-                  <span className="hidden sm:inline">{CATEGORY_INFO.random.label} ({categoryCounts.random})</span>
+                  <span className="hidden sm:inline">
+                    {CATEGORY_INFO.random.label} ({categoryCounts.random})
+                  </span>
                   <span className="sm:hidden">{CATEGORY_INFO.random.label}</span>
                 </span>
               </TabsTrigger>
@@ -649,7 +667,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
               <TabsTrigger value="custom" className="whitespace-nowrap">
                 <span className="flex items-center gap-1">
                   <span>{CATEGORY_INFO.custom.icon}</span>
-                  <span className="hidden sm:inline">{CATEGORY_INFO.custom.label} ({categoryCounts.custom})</span>
+                  <span className="hidden sm:inline">
+                    {CATEGORY_INFO.custom.label} ({categoryCounts.custom})
+                  </span>
                   <span className="sm:hidden">{CATEGORY_INFO.custom.label}</span>
                 </span>
               </TabsTrigger>
@@ -706,33 +726,33 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
               {/* Markets Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in duration-300">
                 {filteredMarkets.map((market) => (
-                    <MarketCard
-                      key={`${market.contractAddress}-${market.marketId.toString()}`}
-                      marketId={market.marketId}
-                      yesSupply={market.yesSupply}
-                      noSupply={market.noSupply}
-                      resolver={market.resolver}
-                      resolved={market.resolved}
-                      outcome={market.outcome}
-                      pot={market.pot}
-                      payoutPerShare={market.payoutPerShare}
-                      description={market.description}
-                      userYesBalance={market.userYesBalance}
-                      userNoBalance={market.userNoBalance}
-                      userClaimable={market.userClaimable}
-                      contractAddress={market.contractAddress}
-                      rYes={market.rYes}
-                      rNo={market.rNo}
-                      category={market.category}
-                      isOracleMarket={market.isOracleMarket}
-                      onClaimSuccess={() => {
-                        refetchPAMM();
-                        if (address) {
-                          refetchUserDataPAMM();
-                        }
-                      }}
-                    />
-                  ))}
+                  <MarketCard
+                    key={`${market.contractAddress}-${market.marketId.toString()}`}
+                    marketId={market.marketId}
+                    yesSupply={market.yesSupply}
+                    noSupply={market.noSupply}
+                    resolver={market.resolver}
+                    resolved={market.resolved}
+                    outcome={market.outcome}
+                    pot={market.pot}
+                    payoutPerShare={market.payoutPerShare}
+                    description={market.description}
+                    userYesBalance={market.userYesBalance}
+                    userNoBalance={market.userNoBalance}
+                    userClaimable={market.userClaimable}
+                    contractAddress={market.contractAddress}
+                    rYes={market.rYes}
+                    rNo={market.rNo}
+                    category={market.category}
+                    isOracleMarket={market.isOracleMarket}
+                    onClaimSuccess={() => {
+                      refetchPAMM();
+                      if (address) {
+                        refetchUserDataPAMM();
+                      }
+                    }}
+                  />
+                ))}
               </div>
             </div>
           )}

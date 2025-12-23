@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from "react";
 import { useAccount, useChainId, useSwitchChain } from "wagmi";
-import { mainnet } from "wagmi/chains";
+import { mainnet, sepolia } from "wagmi/chains";
 
 interface UseMainnetCheckOptions {
   // Whether to automatically switch to mainnet
@@ -23,7 +23,9 @@ export const useMainnetCheck = (options: UseMainnetCheckOptions = {}) => {
   const { switchChain, isPending: isSwitching, error: switchError } = useSwitchChain();
 
   const isOnMainnet = chainId === mainnet.id;
-  const needsNetworkSwitch = isConnected && !isOnMainnet;
+  const isOnSepolia = chainId === sepolia.id;
+  const isOnSupportedChain = isOnMainnet || isOnSepolia;
+  const needsNetworkSwitch = isConnected && !isOnSupportedChain;
 
   // Attempt to switch to mainnet
   const switchToMainnet = useCallback(async () => {
@@ -60,6 +62,8 @@ export const useMainnetCheck = (options: UseMainnetCheckOptions = {}) => {
 
   return {
     isOnMainnet,
+    isOnSepolia,
+    isOnSupportedChain,
     needsNetworkSwitch,
     isSwitching,
     switchError,

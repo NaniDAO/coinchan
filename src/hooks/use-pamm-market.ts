@@ -54,17 +54,9 @@ export function usePAMMMarket(pool: Pool | null): {
   // Parse token IDs - try coin0Id first, then fallback to coin0?.id
   // Skip coin0Id if it's "0" (invalid for PAMM markets)
   const id0 =
-    pool?.coin0Id && pool.coin0Id !== "0"
-      ? BigInt(pool.coin0Id)
-      : pool?.coin0?.id
-        ? BigInt(pool.coin0.id)
-        : null;
+    pool?.coin0Id && pool.coin0Id !== "0" ? BigInt(pool.coin0Id) : pool?.coin0?.id ? BigInt(pool.coin0.id) : null;
   const id1 =
-    pool?.coin1Id && pool.coin1Id !== "0"
-      ? BigInt(pool.coin1Id)
-      : pool?.coin1?.id
-        ? BigInt(pool.coin1.id)
-        : null;
+    pool?.coin1Id && pool.coin1Id !== "0" ? BigInt(pool.coin1Id) : pool?.coin1?.id ? BigInt(pool.coin1.id) : null;
 
   // Identify which ID is YES (marketId) and which is NO (noId)
   const yesNoIds = id0 !== null && id1 !== null ? identifyYesNoIds(id0, id1) : null;
@@ -182,10 +174,8 @@ export function usePAMMMarket(pool: Pool | null): {
   const tradingOpen = contractData?.[1]?.result ?? false;
 
   // Calculate probabilities from pool reserves
-  const rYes =
-    pool?.reserve0 && pool?.reserve1 ? (yesIsId0 ? BigInt(pool.reserve0) : BigInt(pool.reserve1)) : null;
-  const rNo =
-    pool?.reserve0 && pool?.reserve1 ? (yesIsId0 ? BigInt(pool.reserve1) : BigInt(pool.reserve0)) : null;
+  const rYes = pool?.reserve0 && pool?.reserve1 ? (yesIsId0 ? BigInt(pool.reserve0) : BigInt(pool.reserve1)) : null;
+  const rNo = pool?.reserve0 && pool?.reserve1 ? (yesIsId0 ? BigInt(pool.reserve1) : BigInt(pool.reserve0)) : null;
 
   const { yesPercent, noPercent } =
     rYes !== null && rNo !== null ? calculateYesProbability(rYes, rNo) : { yesPercent: 50, noPercent: 50 };

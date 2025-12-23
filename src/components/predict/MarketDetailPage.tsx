@@ -2,11 +2,7 @@ import React, { useState } from "react";
 import { useReadContract, useAccount } from "wagmi";
 import { useNavigate } from "@tanstack/react-router";
 import { formatEther } from "viem";
-import {
-  PAMMSingletonAddress,
-  PAMMSingletonAbi,
-  DEFAULT_FEE_OR_HOOK,
-} from "@/constants/PAMMSingleton";
+import { PAMMSingletonAddress, PAMMSingletonAbi, DEFAULT_FEE_OR_HOOK } from "@/constants/PAMMSingleton";
 import { MarketCard } from "./MarketCard";
 import { TradeModal } from "./TradeModal";
 import { LimitOrderForm } from "./LimitOrderForm";
@@ -16,13 +12,7 @@ import { UserOrdersList } from "./UserOrdersList";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  ArrowLeft,
-  TrendingUp,
-  BookOpen,
-  ArrowLeftRight,
-  ListOrdered,
-} from "lucide-react";
+import { ArrowLeft, TrendingUp, BookOpen, ArrowLeftRight, ListOrdered } from "lucide-react";
 import { Heading } from "@/components/ui/typography";
 import { PredictErrorBoundary } from "./ErrorBoundary";
 import { useMarketOrderbook } from "@/hooks/use-market-orderbook";
@@ -32,15 +22,11 @@ interface MarketDetailPageProps {
   marketId: string;
 }
 
-const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({
-  marketId,
-}) => {
+const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({ marketId }) => {
   const navigate = useNavigate();
   const { address } = useAccount();
   const [isYes, setIsYes] = useState(true);
-  const [tradeTab, setTradeTab] = useState<"market" | "limit" | "swap">(
-    "market"
-  );
+  const [tradeTab, setTradeTab] = useState<"market" | "limit" | "swap">("market");
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
 
   // Convert marketId string to BigInt
@@ -105,19 +91,13 @@ const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({
   if (!marketData) {
     return (
       <div className="mx-auto max-w-7xl p-4">
-        <Button
-          variant="ghost"
-          onClick={() => navigate({ to: "/predict" })}
-          className="mb-4"
-        >
+        <Button variant="ghost" onClick={() => navigate({ to: "/predict" })} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Markets
         </Button>
         <div className="text-center py-12">
           <Heading level={3}>Market not found</Heading>
-          <p className="text-muted-foreground mt-2">
-            This market may have been removed or doesn't exist.
-          </p>
+          <p className="text-muted-foreground mt-2">This market may have been removed or doesn't exist.</p>
         </div>
       </div>
     );
@@ -139,19 +119,14 @@ const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({
   const rNo = poolState?.[1];
 
   // Calculate AMM price from reserves
-  const ammPrice =
-    rYes && rNo && rYes + rNo > 0n
-      ? Number(rNo) / Number(rYes + rNo)
-      : undefined;
+  const ammPrice = rYes && rNo && rYes + rNo > 0n ? Number(rNo) / Number(rYes + rNo) : undefined;
 
   // Find user positions for this market
   let userYesBalance = 0n;
   let userNoBalance = 0n;
   let userClaimable = 0n;
   if (userPositions) {
-    const userIdx = (userPositions[0] as bigint[]).findIndex(
-      (id) => id === marketIdBigInt
-    );
+    const userIdx = (userPositions[0] as bigint[]).findIndex((id) => id === marketIdBigInt);
     if (userIdx >= 0) {
       userYesBalance = (userPositions[3] as bigint[])[userIdx] || 0n;
       userNoBalance = (userPositions[4] as bigint[])[userIdx] || 0n;
@@ -167,11 +142,7 @@ const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({
 
   return (
     <div className="mx-auto max-w-7xl p-4 space-y-6">
-      <Button
-        variant="ghost"
-        onClick={() => navigate({ to: "/predict" })}
-        className="mb-4"
-      >
+      <Button variant="ghost" onClick={() => navigate({ to: "/predict" })} className="mb-4">
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Markets
       </Button>
@@ -209,9 +180,7 @@ const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({
                   onClick={() => setIsYes(true)}
                   className={cn(
                     "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all",
-                    isYes
-                      ? "bg-green-500 text-white shadow"
-                      : "text-muted-foreground hover:text-foreground"
+                    isYes ? "bg-green-500 text-white shadow" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   YES
@@ -221,9 +190,7 @@ const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({
                   onClick={() => setIsYes(false)}
                   className={cn(
                     "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all",
-                    !isYes
-                      ? "bg-red-500 text-white shadow"
-                      : "text-muted-foreground hover:text-foreground"
+                    !isYes ? "bg-red-500 text-white shadow" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   NO
@@ -231,12 +198,7 @@ const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({
               </div>
 
               {/* Trading Tabs */}
-              <Tabs
-                value={tradeTab}
-                onValueChange={(v) =>
-                  setTradeTab(v as "market" | "limit" | "swap")
-                }
-              >
+              <Tabs value={tradeTab} onValueChange={(v) => setTradeTab(v as "market" | "limit" | "swap")}>
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="market" className="gap-1.5">
                     <TrendingUp className="h-3.5 w-3.5" />
@@ -256,18 +218,13 @@ const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({
                   <div className="p-4 rounded-lg border border-border bg-card space-y-4">
                     {/* Current odds display */}
                     <div className="text-center space-y-2">
-                      <p className="text-sm text-muted-foreground">
-                        Current {isYes ? "YES" : "NO"} Price
-                      </p>
+                      <p className="text-sm text-muted-foreground">Current {isYes ? "YES" : "NO"} Price</p>
                       <p className="text-3xl font-bold">
-                        {ammPrice !== undefined
-                          ? `${((isYes ? ammPrice : 1 - ammPrice) * 100).toFixed(1)}%`
-                          : "—"}
+                        {ammPrice !== undefined ? `${((isYes ? ammPrice : 1 - ammPrice) * 100).toFixed(1)}%` : "—"}
                       </p>
                       {rYes !== undefined && rNo !== undefined && (
                         <p className="text-xs text-muted-foreground">
-                          Pool: {Number(formatEther(rYes)).toFixed(2)} YES /{" "}
-                          {Number(formatEther(rNo)).toFixed(2)} NO
+                          Pool: {Number(formatEther(rYes)).toFixed(2)} YES / {Number(formatEther(rNo)).toFixed(2)} NO
                         </p>
                       )}
                     </div>
@@ -299,24 +256,18 @@ const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({
                     {/* User positions */}
                     {(userYesBalance > 0n || userNoBalance > 0n) && (
                       <div className="pt-3 border-t border-border">
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Your Positions
-                        </p>
+                        <p className="text-xs text-muted-foreground mb-2">Your Positions</p>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           {userYesBalance > 0n && (
                             <div className="flex justify-between">
                               <span className="text-green-500">YES</span>
-                              <span className="font-mono">
-                                {Number(formatEther(userYesBalance)).toFixed(4)}
-                              </span>
+                              <span className="font-mono">{Number(formatEther(userYesBalance)).toFixed(4)}</span>
                             </div>
                           )}
                           {userNoBalance > 0n && (
                             <div className="flex justify-between">
                               <span className="text-red-500">NO</span>
-                              <span className="font-mono">
-                                {Number(formatEther(userNoBalance)).toFixed(4)}
-                              </span>
+                              <span className="font-mono">{Number(formatEther(userNoBalance)).toFixed(4)}</span>
                             </div>
                           )}
                         </div>
@@ -338,11 +289,7 @@ const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({
 
                 <TabsContent value="swap" className="mt-4">
                   <div className="p-4 rounded-lg border border-border bg-card">
-                    <SwapSharesForm
-                      marketId={marketIdBigInt}
-                      noId={noId}
-                      onSuccess={handleTradeSuccess}
-                    />
+                    <SwapSharesForm marketId={marketIdBigInt} noId={noId} onSuccess={handleTradeSuccess} />
                   </div>
                 </TabsContent>
               </Tabs>
@@ -351,9 +298,7 @@ const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({
               <div className="rounded-lg border border-border bg-card overflow-hidden">
                 <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center gap-2">
                   <ListOrdered className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {isYes ? "YES" : "NO"} Orderbook
-                  </span>
+                  <span className="text-sm font-medium">{isYes ? "YES" : "NO"} Orderbook</span>
                 </div>
                 <div className="p-2">
                   <OrderbookDisplay
@@ -373,11 +318,7 @@ const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({
                     <span className="text-sm font-medium">Your Orders</span>
                   </div>
                   <div className="p-3">
-                    <UserOrdersList
-                      marketId={marketIdBigInt}
-                      onOrderCancelled={handleTradeSuccess}
-                      compact
-                    />
+                    <UserOrdersList marketId={marketIdBigInt} onOrderCancelled={handleTradeSuccess} compact />
                   </div>
                 </div>
               )}
@@ -385,9 +326,7 @@ const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({
           ) : (
             <div className="p-6 rounded-lg border border-border bg-card text-center">
               <p className="text-muted-foreground">
-                {resolved
-                  ? `Market resolved: ${outcome ? "YES" : "NO"} won`
-                  : "Trading is closed for this market"}
+                {resolved ? `Market resolved: ${outcome ? "YES" : "NO"} won` : "Trading is closed for this market"}
               </p>
             </div>
           )}

@@ -37,16 +37,8 @@ export function PoolActivityPanel({ pool, pammData, className }: PoolActivityPan
 
   // For prediction markets, token symbols depend on yesIsId0 (which position is YES)
   // ZAMM doesn't know YES/NO - we get that from PAMM's identifyYesNoIds
-  const token0Symbol = isPredictionMarket
-    ? pammData?.yesIsId0
-      ? "YES"
-      : "NO"
-    : pool.coin0?.symbol || "Token0";
-  const token1Symbol = isPredictionMarket
-    ? pammData?.yesIsId0
-      ? "NO"
-      : "YES"
-    : pool.coin1?.symbol || "Token1";
+  const token0Symbol = isPredictionMarket ? (pammData?.yesIsId0 ? "YES" : "NO") : pool.coin0?.symbol || "Token0";
+  const token1Symbol = isPredictionMarket ? (pammData?.yesIsId0 ? "NO" : "YES") : pool.coin1?.symbol || "Token1";
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className={className}>
