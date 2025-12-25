@@ -7,14 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  ArrowLeft,
-  Coins,
-  DollarSign,
-  Droplet,
-  Shield,
-  Calendar,
-} from "lucide-react";
+import { ArrowLeft, Coins, DollarSign, Droplet, Shield, Calendar } from "lucide-react";
 import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
 
 export const Route = createFileRoute("/org/$chainId/$daoAddress")({
@@ -161,9 +154,7 @@ function OrgPage() {
 
   const orgName = daoContractData?.[0]?.result as string | undefined;
   const orgSymbol = daoContractData?.[1]?.result as string | undefined;
-  const quorumBps = daoContractData?.[2]?.result
-    ? Number(daoContractData[2].result)
-    : undefined;
+  const quorumBps = daoContractData?.[2]?.result ? Number(daoContractData[2].result) : undefined;
 
   const hasSale = sale && sale.tribAmt > 0n;
   const hasLP = lpConfig && lpConfig.lpBps > 0;
@@ -174,10 +165,7 @@ function OrgPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <Link
-        to="/daico"
-        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6"
-      >
+      <Link to="/daico" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="w-4 h-4" />
         Back to DAICO Wizard
       </Link>
@@ -210,9 +198,7 @@ function OrgPage() {
                   {daoAddress.slice(0, 6)}...{daoAddress.slice(-4)}
                 </Badge>
               </div>
-              {metadata?.description && (
-                <p className="mt-4 text-muted-foreground">{metadata.description}</p>
-              )}
+              {metadata?.description && <p className="mt-4 text-muted-foreground">{metadata.description}</p>}
             </div>
           </div>
         </Card>
@@ -242,7 +228,8 @@ function OrgPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Price (USD)</span>
                   <span className="font-semibold">
-                    ${(tokenPrice * 1e18 * ethUsdPrice).toLocaleString(undefined, {
+                    $
+                    {(tokenPrice * 1e18 * ethUsdPrice).toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 6,
                     })}
@@ -260,9 +247,7 @@ function OrgPage() {
               {sale.deadline > 0 && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Sale Deadline</span>
-                  <span className="text-sm">
-                    {new Date(sale.deadline * 1000).toLocaleDateString()}
-                  </span>
+                  <span className="text-sm">{new Date(sale.deadline * 1000).toLocaleDateString()}</span>
                 </div>
               )}
 
@@ -351,16 +336,12 @@ function OrgPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Rate per Day</span>
-                <span className="font-medium">
-                  {(Number(tap.ratePerSec) * 86400 / 1e18).toFixed(4)} ETH
-                </span>
+                <span className="font-medium">{((Number(tap.ratePerSec) * 86400) / 1e18).toFixed(4)} ETH</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Last Claim</span>
                 <span className="text-xs">
-                  {tap.lastClaim > 0
-                    ? new Date(tap.lastClaim * 1000).toLocaleDateString()
-                    : "Never"}
+                  {tap.lastClaim > 0 ? new Date(tap.lastClaim * 1000).toLocaleDateString() : "Never"}
                 </span>
               </div>
             </div>
