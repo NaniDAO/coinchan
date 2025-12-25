@@ -61,6 +61,7 @@ export const CookbookFarmTab = ({
   const { data: coinData } = useGetCoin({
     coinId: coinId,
     token: contractAddress || CookbookAddress,
+    chainId: 1, // @todo hardcode mainnet this is a hotfix
   });
 
   // Get farms for this pool

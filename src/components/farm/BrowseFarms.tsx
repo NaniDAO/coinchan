@@ -1,4 +1,7 @@
-import { IncentiveStream, useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
+import {
+  IncentiveStream,
+  useActiveIncentiveStreams,
+} from "@/hooks/use-incentive-streams";
 import { useFarmsSummary } from "@/hooks/use-farms-summary";
 import { getReserves } from "@/hooks/use-reserves";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
@@ -25,7 +28,8 @@ const blacklistedFarms = [
 export const BrowseFarms = () => {
   const { t } = useTranslation();
   const { address } = useAccount();
-  const { data: activeStreams, isLoading: isLoadingStreams } = useActiveIncentiveStreams();
+  const { data: activeStreams, isLoading: isLoadingStreams } =
+    useActiveIncentiveStreams();
   const [showHiddenFarms, setShowHiddenFarms] = useState(false);
 
   // Filter out ended streams
@@ -33,16 +37,20 @@ export const BrowseFarms = () => {
     if (!activeStreams) return undefined;
     const currentTime = BigInt(Math.floor(Date.now() / 1000));
     return activeStreams.filter(
-      (stream) => stream.endTime > currentTime && !blacklistedFarms.includes(stream.chefId.toString()),
+      (stream) =>
+        stream.endTime > currentTime &&
+        !blacklistedFarms.includes(stream.chefId.toString()),
     );
   }, [activeStreams]);
 
   // Get real-time farm summary data
-  const { totalStaked, uniquePools, streamsWithRealTimeData } = useFarmsSummary(activeOnlyStreams);
+  const { totalStaked, uniquePools, streamsWithRealTimeData } =
+    useFarmsSummary(activeOnlyStreams);
 
   // Separate active farms and hidden farms (zero staked)
   const { activeFarms, hiddenFarms } = useMemo(() => {
-    if (!streamsWithRealTimeData) return { activeFarms: undefined, hiddenFarms: undefined };
+    if (!streamsWithRealTimeData)
+      return { activeFarms: undefined, hiddenFarms: undefined };
 
     const active: typeof streamsWithRealTimeData = [];
     const hidden: typeof streamsWithRealTimeData = [];
@@ -86,7 +94,9 @@ export const BrowseFarms = () => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex justify-center items-center gap-3">
             <h3 className="font-mono font-bold text-sm sm:text-base uppercase tracking-wider text-primary">
-              {showHiddenFarms ? t("common.hidden_farms") : t("common.active_farms")}
+              {showHiddenFarms
+                ? t("common.hidden_farms")
+                : t("common.active_farms")}
             </h3>
             <div
               className={cn(
@@ -94,7 +104,9 @@ export const BrowseFarms = () => {
                 sortedStreams && sortedStreams.length > 0 && "animate-pulse",
               )}
             >
-              <span className="text-primary font-mono text-sm font-bold">{sortedStreams?.length || 0}</span>
+              <span className="text-primary font-mono text-sm font-bold">
+                {sortedStreams?.length || 0}
+              </span>
             </div>
             {/* Hidden farms toggle */}
             {hiddenFarms && hiddenFarms.length > 0 && (
@@ -106,7 +118,11 @@ export const BrowseFarms = () => {
                     ? "bg-primary/20 text-primary border border-primary/30"
                     : "text-muted-foreground hover:text-primary border border-transparent hover:border-primary/20",
                 )}
-                title={showHiddenFarms ? t("common.show_active_farms") : t("common.show_hidden_farms")}
+                title={
+                  showHiddenFarms
+                    ? t("common.show_active_farms")
+                    : t("common.show_hidden_farms")
+                }
               >
                 [{showHiddenFarms ? "-" : "+"}]
               </button>
@@ -116,12 +132,20 @@ export const BrowseFarms = () => {
             {sortedStreams && sortedStreams.length > 0 && (
               <>
                 <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">{t("common.total_staked")}:</span>
-                  <span className="text-primary font-bold ml-1">{formatBalance(formatEther(totalStaked), "LP")}</span>
+                  <span className="text-muted-foreground">
+                    {t("common.total_staked")}:
+                  </span>
+                  <span className="text-primary font-bold ml-1">
+                    {formatBalance(formatEther(totalStaked), "LP")}
+                  </span>
                 </div>
                 <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">{t("common.unique_pools")}:</span>
-                  <span className="text-primary font-bold ml-1">{uniquePools}</span>
+                  <span className="text-muted-foreground">
+                    {t("common.unique_pools")}:
+                  </span>
+                  <span className="text-primary font-bold ml-1">
+                    {uniquePools}
+                  </span>
                 </div>
               </>
             )}
@@ -132,7 +156,9 @@ export const BrowseFarms = () => {
       {/* Hidden farms info message */}
       {showHiddenFarms && hiddenFarms && hiddenFarms.length > 0 && (
         <div className="bg-muted/10 border border-muted/30 rounded-lg p-3 mb-4">
-          <p className="text-xs font-mono text-muted-foreground">{t("common.hidden_farms_info")}</p>
+          <p className="text-xs font-mono text-muted-foreground">
+            {t("common.hidden_farms_info")}
+          </p>
         </div>
       )}
 
@@ -149,7 +175,9 @@ export const BrowseFarms = () => {
           <div className="bg-gradient-to-br from-muted/20 to-muted/5 border-2 border-dashed border-primary/30 rounded-xl p-8 backdrop-blur-sm">
             <div className="font-mono text-muted-foreground space-y-4">
               <div className="text-4xl sm:text-5xl opacity-20">◇</div>
-              <p className="text-xl font-bold text-primary">[ {t("common.no_active_farms")} ]</p>
+              <p className="text-xl font-bold text-primary">
+                [ {t("common.no_active_farms")} ]
+              </p>
               <p className="text-sm mt-3">{t("common.no_farms_description")}</p>
             </div>
           </div>
@@ -167,12 +195,14 @@ const useGetTokenMetaFromPool = (poolId?: bigint) => {
     queryFn: async (): Promise<TokenMeta | null> => {
       // Try fetching from both sources since we don't know the source yet
       // First try ZAMM (for regular pools), then COOKBOOK (for cookbook coins)
-      let pool = await fetchPool(poolId!.toString(), "ZAMM");
+      // @TODO hardcoded to mainnet
+      let pool = await fetchPool(poolId!.toString(), "ZAMM", "1");
       let source: "ZAMM" | "COOKBOOK" = "ZAMM";
 
       if (!pool) {
         // If not found in ZAMM, try COOKBOOK
-        pool = await fetchPool(poolId!.toString(), "COOKBOOK");
+        // @TODO hardcoded mainnet
+        pool = await fetchPool(poolId!.toString(), "COOKBOOK", "1");
         source = "COOKBOOK";
       }
 
@@ -199,7 +229,11 @@ const useGetTokenMetaFromPool = (poolId?: bigint) => {
         reserve0: reserves.reserve0, // ETH reserves in the pool
         reserve1: reserves.reserve1, // Token reserves in the pool
         liquidity: reserves.reserve0 + reserves.reserve1, // Total liquidity in the pool
-        swapFee: pool?.feeOrHook ? BigInt(pool?.feeOrHook) : pool?.swapFee ? BigInt(pool?.swapFee) : undefined,
+        swapFee: pool?.feeOrHook
+          ? BigInt(pool?.feeOrHook)
+          : pool?.swapFee
+            ? BigInt(pool?.swapFee)
+            : undefined,
         poolId: BigInt(pool?.id),
         token0: (pool?.token0 as Address) ?? undefined,
         token1: (pool?.token1 as Address) ?? undefined,
@@ -215,7 +249,8 @@ const IncentiveStreamCardListItem = ({
 }: {
   stream: IncentiveStream;
 }) => {
-  const { data: lpToken, isLoading: isLoadingLpToken } = useGetTokenMetaFromPool(stream.lpId);
+  const { data: lpToken, isLoading: isLoadingLpToken } =
+    useGetTokenMetaFromPool(stream.lpId);
   const { t } = useTranslation();
 
   // If lpToken is not found and tokens are not loading, show error

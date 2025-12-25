@@ -458,8 +458,8 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
                   }}
                   onClick={() => {
                     navigate({
-                      to: "/p/$poolId",
-                      params: { poolId: pool.poolId },
+                      to: "/p/$chainId/$poolId",
+                      params: { poolId: pool.poolId, chainId: pool.chainId || "1" },
                     } as any);
                   }}
                 >

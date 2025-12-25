@@ -204,6 +204,7 @@ const EmbedPoolPoolIdRoute = EmbedPoolPoolIdRouteImport.update({
 } as any);
 
 export interface FileRoutesByFullPath {
+<<<<<<< HEAD
   "/": typeof IndexRoute;
   "/about": typeof AboutRoute;
   "/create": typeof CreateRoute;
@@ -303,10 +304,109 @@ export interface FileRoutesById {
   "/embed/pool/$poolId": typeof EmbedPoolPoolIdRoute;
   "/org/$chainId/$daoAddress": typeof OrgChainIdDaoAddressRoute;
   "/predict/$marketType/$marketId": typeof PredictMarketTypeMarketIdRoute;
+=======
+  '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/create': typeof CreateRoute
+  '/cult': typeof CultRoute
+  '/daico': typeof DaicoRoute
+  '/dao': typeof DaoRoute
+  '/ens': typeof EnsRoute
+  '/explore': typeof ExploreRouteWithChildren
+  '/farm': typeof FarmRouteWithChildren
+  '/jpyc': typeof JpycRoute
+  '/limit': typeof LimitRoute
+  '/pm': typeof PmRoute
+  '/positions': typeof PositionsRouteWithChildren
+  '/predict': typeof PredictRouteWithChildren
+  '/send': typeof SendRoute
+  '/swap': typeof SwapRoute
+  '/trade': typeof TradeRoute
+  '/user': typeof UserRoute
+  '/wlfi': typeof WlfiRoute
+  '/c/$coinId': typeof CCoinIdRoute
+  '/explore/orders': typeof ExploreOrdersRoute
+  '/explore/pools': typeof ExplorePoolsRoute
+  '/explore/token': typeof ExploreTokenRoute
+  '/explore/tokens': typeof ExploreTokensRoute
+  '/farm/create': typeof FarmCreateRoute
+  '/positions/create': typeof PositionsCreateRoute
+  '/farm/': typeof FarmIndexRoute
+  '/positions/': typeof PositionsIndexRoute
+  '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
+  '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
+  '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
+}
+export interface FileRoutesByTo {
+  '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/create': typeof CreateRoute
+  '/cult': typeof CultRoute
+  '/daico': typeof DaicoRoute
+  '/dao': typeof DaoRoute
+  '/ens': typeof EnsRoute
+  '/explore': typeof ExploreRouteWithChildren
+  '/jpyc': typeof JpycRoute
+  '/limit': typeof LimitRoute
+  '/pm': typeof PmRoute
+  '/predict': typeof PredictRouteWithChildren
+  '/send': typeof SendRoute
+  '/swap': typeof SwapRoute
+  '/trade': typeof TradeRoute
+  '/user': typeof UserRoute
+  '/wlfi': typeof WlfiRoute
+  '/c/$coinId': typeof CCoinIdRoute
+  '/explore/orders': typeof ExploreOrdersRoute
+  '/explore/pools': typeof ExplorePoolsRoute
+  '/explore/token': typeof ExploreTokenRoute
+  '/explore/tokens': typeof ExploreTokensRoute
+  '/farm/create': typeof FarmCreateRoute
+  '/positions/create': typeof PositionsCreateRoute
+  '/farm': typeof FarmIndexRoute
+  '/positions': typeof PositionsIndexRoute
+  '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
+  '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
+  '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/create': typeof CreateRoute
+  '/cult': typeof CultRoute
+  '/daico': typeof DaicoRoute
+  '/dao': typeof DaoRoute
+  '/ens': typeof EnsRoute
+  '/explore': typeof ExploreRouteWithChildren
+  '/farm': typeof FarmRouteWithChildren
+  '/jpyc': typeof JpycRoute
+  '/limit': typeof LimitRoute
+  '/pm': typeof PmRoute
+  '/positions': typeof PositionsRouteWithChildren
+  '/predict': typeof PredictRouteWithChildren
+  '/send': typeof SendRoute
+  '/swap': typeof SwapRoute
+  '/trade': typeof TradeRoute
+  '/user': typeof UserRoute
+  '/wlfi': typeof WlfiRoute
+  '/c/$coinId': typeof CCoinIdRoute
+  '/explore/orders': typeof ExploreOrdersRoute
+  '/explore/pools': typeof ExplorePoolsRoute
+  '/explore/token': typeof ExploreTokenRoute
+  '/explore/tokens': typeof ExploreTokensRoute
+  '/farm/create': typeof FarmCreateRoute
+  '/positions/create': typeof PositionsCreateRoute
+  '/farm/': typeof FarmIndexRoute
+  '/positions/': typeof PositionsIndexRoute
+  '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
+  '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
+  '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
+>>>>>>> main
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
+<<<<<<< HEAD
     | "/"
     | "/about"
     | "/create"
@@ -431,10 +531,133 @@ export interface RootRouteChildren {
   PPoolIdRoute: typeof PPoolIdRoute;
   EmbedPoolPoolIdRoute: typeof EmbedPoolPoolIdRoute;
   OrgChainIdDaoAddressRoute: typeof OrgChainIdDaoAddressRoute;
+=======
+    | '/'
+    | '/about'
+    | '/create'
+    | '/cult'
+    | '/daico'
+    | '/dao'
+    | '/ens'
+    | '/explore'
+    | '/farm'
+    | '/jpyc'
+    | '/limit'
+    | '/pm'
+    | '/positions'
+    | '/predict'
+    | '/send'
+    | '/swap'
+    | '/trade'
+    | '/user'
+    | '/wlfi'
+    | '/c/$coinId'
+    | '/explore/orders'
+    | '/explore/pools'
+    | '/explore/token'
+    | '/explore/tokens'
+    | '/farm/create'
+    | '/positions/create'
+    | '/farm/'
+    | '/positions/'
+    | '/p/$chainId/$poolId'
+    | '/predict/$marketType/$marketId'
+    | '/embed/pool/$chainId/$poolId'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/about'
+    | '/create'
+    | '/cult'
+    | '/daico'
+    | '/dao'
+    | '/ens'
+    | '/explore'
+    | '/jpyc'
+    | '/limit'
+    | '/pm'
+    | '/predict'
+    | '/send'
+    | '/swap'
+    | '/trade'
+    | '/user'
+    | '/wlfi'
+    | '/c/$coinId'
+    | '/explore/orders'
+    | '/explore/pools'
+    | '/explore/token'
+    | '/explore/tokens'
+    | '/farm/create'
+    | '/positions/create'
+    | '/farm'
+    | '/positions'
+    | '/p/$chainId/$poolId'
+    | '/predict/$marketType/$marketId'
+    | '/embed/pool/$chainId/$poolId'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/create'
+    | '/cult'
+    | '/daico'
+    | '/dao'
+    | '/ens'
+    | '/explore'
+    | '/farm'
+    | '/jpyc'
+    | '/limit'
+    | '/pm'
+    | '/positions'
+    | '/predict'
+    | '/send'
+    | '/swap'
+    | '/trade'
+    | '/user'
+    | '/wlfi'
+    | '/c/$coinId'
+    | '/explore/orders'
+    | '/explore/pools'
+    | '/explore/token'
+    | '/explore/tokens'
+    | '/farm/create'
+    | '/positions/create'
+    | '/farm/'
+    | '/positions/'
+    | '/p/$chainId/$poolId'
+    | '/predict/$marketType/$marketId'
+    | '/embed/pool/$chainId/$poolId'
+  fileRoutesById: FileRoutesById
+}
+export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  CreateRoute: typeof CreateRoute
+  CultRoute: typeof CultRoute
+  DaicoRoute: typeof DaicoRoute
+  DaoRoute: typeof DaoRoute
+  EnsRoute: typeof EnsRoute
+  ExploreRoute: typeof ExploreRouteWithChildren
+  FarmRoute: typeof FarmRouteWithChildren
+  JpycRoute: typeof JpycRoute
+  LimitRoute: typeof LimitRoute
+  PmRoute: typeof PmRoute
+  PositionsRoute: typeof PositionsRouteWithChildren
+  PredictRoute: typeof PredictRouteWithChildren
+  SendRoute: typeof SendRoute
+  SwapRoute: typeof SwapRoute
+  TradeRoute: typeof TradeRoute
+  UserRoute: typeof UserRoute
+  WlfiRoute: typeof WlfiRoute
+  CCoinIdRoute: typeof CCoinIdRoute
+  PChainIdPoolIdRoute: typeof PChainIdPoolIdRoute
+  EmbedPoolChainIdPoolIdRoute: typeof EmbedPoolChainIdPoolIdRoute
+>>>>>>> main
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
+<<<<<<< HEAD
     "/wlfi": {
       id: "/wlfi";
       path: "/wlfi";
@@ -659,6 +882,225 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof EmbedPoolPoolIdRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+=======
+    '/wlfi': {
+      id: '/wlfi'
+      path: '/wlfi'
+      fullPath: '/wlfi'
+      preLoaderRoute: typeof WlfiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/user': {
+      id: '/user'
+      path: '/user'
+      fullPath: '/user'
+      preLoaderRoute: typeof UserRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trade': {
+      id: '/trade'
+      path: '/trade'
+      fullPath: '/trade'
+      preLoaderRoute: typeof TradeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/swap': {
+      id: '/swap'
+      path: '/swap'
+      fullPath: '/swap'
+      preLoaderRoute: typeof SwapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/send': {
+      id: '/send'
+      path: '/send'
+      fullPath: '/send'
+      preLoaderRoute: typeof SendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/predict': {
+      id: '/predict'
+      path: '/predict'
+      fullPath: '/predict'
+      preLoaderRoute: typeof PredictRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/positions': {
+      id: '/positions'
+      path: '/positions'
+      fullPath: '/positions'
+      preLoaderRoute: typeof PositionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pm': {
+      id: '/pm'
+      path: '/pm'
+      fullPath: '/pm'
+      preLoaderRoute: typeof PmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/limit': {
+      id: '/limit'
+      path: '/limit'
+      fullPath: '/limit'
+      preLoaderRoute: typeof LimitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/jpyc': {
+      id: '/jpyc'
+      path: '/jpyc'
+      fullPath: '/jpyc'
+      preLoaderRoute: typeof JpycRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/farm': {
+      id: '/farm'
+      path: '/farm'
+      fullPath: '/farm'
+      preLoaderRoute: typeof FarmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ens': {
+      id: '/ens'
+      path: '/ens'
+      fullPath: '/ens'
+      preLoaderRoute: typeof EnsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dao': {
+      id: '/dao'
+      path: '/dao'
+      fullPath: '/dao'
+      preLoaderRoute: typeof DaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/daico': {
+      id: '/daico'
+      path: '/daico'
+      fullPath: '/daico'
+      preLoaderRoute: typeof DaicoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cult': {
+      id: '/cult'
+      path: '/cult'
+      fullPath: '/cult'
+      preLoaderRoute: typeof CultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create': {
+      id: '/create'
+      path: '/create'
+      fullPath: '/create'
+      preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/positions/': {
+      id: '/positions/'
+      path: '/'
+      fullPath: '/positions/'
+      preLoaderRoute: typeof PositionsIndexRouteImport
+      parentRoute: typeof PositionsRoute
+    }
+    '/farm/': {
+      id: '/farm/'
+      path: '/'
+      fullPath: '/farm/'
+      preLoaderRoute: typeof FarmIndexRouteImport
+      parentRoute: typeof FarmRoute
+    }
+    '/positions/create': {
+      id: '/positions/create'
+      path: '/create'
+      fullPath: '/positions/create'
+      preLoaderRoute: typeof PositionsCreateRouteImport
+      parentRoute: typeof PositionsRoute
+    }
+    '/farm/create': {
+      id: '/farm/create'
+      path: '/create'
+      fullPath: '/farm/create'
+      preLoaderRoute: typeof FarmCreateRouteImport
+      parentRoute: typeof FarmRoute
+    }
+    '/explore/tokens': {
+      id: '/explore/tokens'
+      path: '/tokens'
+      fullPath: '/explore/tokens'
+      preLoaderRoute: typeof ExploreTokensRouteImport
+      parentRoute: typeof ExploreRoute
+    }
+    '/explore/token': {
+      id: '/explore/token'
+      path: '/token'
+      fullPath: '/explore/token'
+      preLoaderRoute: typeof ExploreTokenRouteImport
+      parentRoute: typeof ExploreRoute
+    }
+    '/explore/pools': {
+      id: '/explore/pools'
+      path: '/pools'
+      fullPath: '/explore/pools'
+      preLoaderRoute: typeof ExplorePoolsRouteImport
+      parentRoute: typeof ExploreRoute
+    }
+    '/explore/orders': {
+      id: '/explore/orders'
+      path: '/orders'
+      fullPath: '/explore/orders'
+      preLoaderRoute: typeof ExploreOrdersRouteImport
+      parentRoute: typeof ExploreRoute
+    }
+    '/c/$coinId': {
+      id: '/c/$coinId'
+      path: '/c/$coinId'
+      fullPath: '/c/$coinId'
+      preLoaderRoute: typeof CCoinIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/predict/$marketType/$marketId': {
+      id: '/predict/$marketType/$marketId'
+      path: '/$marketType/$marketId'
+      fullPath: '/predict/$marketType/$marketId'
+      preLoaderRoute: typeof PredictMarketTypeMarketIdRouteImport
+      parentRoute: typeof PredictRoute
+    }
+    '/p/$chainId/$poolId': {
+      id: '/p/$chainId/$poolId'
+      path: '/p/$chainId/$poolId'
+      fullPath: '/p/$chainId/$poolId'
+      preLoaderRoute: typeof PChainIdPoolIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/embed/pool/$chainId/$poolId': {
+      id: '/embed/pool/$chainId/$poolId'
+      path: '/embed/pool/$chainId/$poolId'
+      fullPath: '/embed/pool/$chainId/$poolId'
+      preLoaderRoute: typeof EmbedPoolChainIdPoolIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+>>>>>>> main
   }
 }
 

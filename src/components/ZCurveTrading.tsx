@@ -80,6 +80,7 @@ export function ZCurveTrading({
   const { data: coinData, isLoading: coinDataLoading } = useGetCoin({
     coinId,
     token: CookbookAddress,
+    chainId: 1, // @todo hardcode mainnet this is a hotfix
   });
 
   // Transaction state

@@ -40,6 +40,7 @@ interface FinalizedPoolTradingProps {
   coinSymbol?: string;
   coinIcon?: string;
   poolId?: string;
+  chainId?: string;
   totalSupply?: bigint;
 }
 
@@ -50,6 +51,7 @@ function FinalizedPoolTradingInner({
   coinSymbol,
   coinIcon,
   poolId: providedPoolId,
+  chainId = "1",
   totalSupply,
 }: FinalizedPoolTradingProps) {
   const { t } = useTranslation();
@@ -73,7 +75,7 @@ function FinalizedPoolTradingInner({
 
   // Fetch sale and user data
   const { data: sale } = useZCurveSale(coinId);
-  const { data: pool } = useGetPool(providedPoolId ?? "", source);
+  const { data: pool } = useGetPool(providedPoolId ?? "", source, chainId);
   const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
   const { data: userBalance } = useZCurveBalance(coinId, address);
 
@@ -81,6 +83,7 @@ function FinalizedPoolTradingInner({
   const { data: coinData } = useGetCoin({
     coinId: coinId,
     token: contractAddress || CookbookAddress,
+    chainId: 1, // @todo hardcode mainnet this is a hotfix
   });
 
   // Calculate pool ID and fee - use feeOrHook from sale data if available

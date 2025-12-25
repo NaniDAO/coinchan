@@ -81,6 +81,7 @@ export const CoinHolders = ({
   const { data: coinData } = useGetCoin({
     coinId: coinId,
     token: isCookbook ? CookbookAddress : ZAMMAddress,
+    chainId: 1, // @todo hardcode mainnet this is a hotfix
   });
 
   // Get the actual swap fee from the coin's pools, defaulting to SWAP_FEE if not found

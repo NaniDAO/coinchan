@@ -14,7 +14,7 @@ interface EmbedSearchParams {
   range?: TimeRange;
 }
 
-export const Route = createFileRoute("/embed/pool/$poolId" as any)({
+export const Route = createFileRoute("/embed/pool/$chainId/$poolId" as any)({
   component: EmbedPoolChart,
   validateSearch: (search: Record<string, unknown>): EmbedSearchParams => ({
     theme: search.theme === "light" || search.theme === "dark" ? search.theme : undefined,
@@ -23,13 +23,13 @@ export const Route = createFileRoute("/embed/pool/$poolId" as any)({
 });
 
 function EmbedPoolChart() {
-  const { poolId } = Route.useParams() as { poolId: string };
+  const { poolId, chainId } = Route.useParams() as { poolId: string; chainId: string };
   const { theme, range } = Route.useSearch() as EmbedSearchParams;
   const { data: ethUsdPrice } = useEthUsdPrice();
 
   // Fetch pool to get ticker and check if it's a prediction market
-  const { data: cookbookPool, isLoading: cookbookLoading } = useGetPool(poolId, "COOKBOOK");
-  const { data: zammPool, isLoading: zammLoading } = useGetPool(poolId, "ZAMM");
+  const { data: cookbookPool, isLoading: cookbookLoading } = useGetPool(poolId, "COOKBOOK", chainId);
+  const { data: zammPool, isLoading: zammLoading } = useGetPool(poolId, "ZAMM", chainId);
   const pool = cookbookPool || zammPool;
   const isLoading = cookbookLoading && zammLoading;
 
