@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { DAICOOrg, DAICOSale, DAICOPurchase, DAICOTap, DAICOLP } from "@/types/daico";
+import type { DAICOOrg } from "@/types/daico";
 
 const INDEXER_URL = import.meta.env.VITE_INDEXER_URL;
 
