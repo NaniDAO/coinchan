@@ -11,9 +11,12 @@ import {
 import { useDAICOSales } from "@/hooks/use-daico-sales";
 import type { DAICOSaleItem } from "@/types/daico";
 import { formatEther } from "viem";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Format helpers
 const fmt2 = (n: number | null) => {
@@ -42,24 +45,42 @@ const timeRemaining = (deadline: number | null) => {
   return `${minutes}m`;
 };
 
+const CHAIN_OPTIONS = [
+  { id: 1, name: "Mainnet" },
+  { id: 11155111, name: "Sepolia" },
+] as const;
+
 export function DAICOSalesTable() {
   const [sorting, setSorting] = useState<SortingState>([{ id: "createdAt", desc: true }]);
   const [query, setQuery] = useState("");
+  const [selectedChains, setSelectedChains] = useState<number[]>([1]); // Default to mainnet only
 
   const { data: sales, isLoading, error } = useDAICOSales();
 
-  // Filter sales by search query
+  // Filter sales by search query and chain
   const filteredSales = useMemo(() => {
     if (!sales) return [];
-    if (!query.trim()) return sales;
-    const q = query.toLowerCase();
-    return sales.filter(
-      (sale) =>
-        sale.daoName?.toLowerCase().includes(q) ||
-        sale.daoSymbol?.toLowerCase().includes(q) ||
-        sale.daoAddress.toLowerCase().includes(q),
-    );
-  }, [sales, query]);
+
+    let filtered = sales;
+
+    // Filter by chain
+    if (selectedChains.length > 0) {
+      filtered = filtered.filter((sale) => selectedChains.includes(sale.chainId));
+    }
+
+    // Filter by search query
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      filtered = filtered.filter(
+        (sale) =>
+          sale.daoName?.toLowerCase().includes(q) ||
+          sale.daoSymbol?.toLowerCase().includes(q) ||
+          sale.daoAddress.toLowerCase().includes(q),
+      );
+    }
+
+    return filtered;
+  }, [sales, query, selectedChains]);
 
   const columns = useMemo<ColumnDef<DAICOSaleItem>[]>(
     () => [
@@ -82,6 +103,20 @@ export function DAICOSalesTable() {
           );
         },
         size: 200,
+      },
+      {
+        id: "chain",
+        header: "Chain",
+        accessorKey: "chainId",
+        cell: ({ getValue }) => {
+          const chainId = getValue<number>();
+          return (
+            <Badge variant={chainId === 1 ? "default" : "secondary"}>
+              {chainId === 1 ? "Mainnet" : chainId === 11155111 ? "Sepolia" : `Chain ${chainId}`}
+            </Badge>
+          );
+        },
+        size: 100,
       },
       {
         id: "sale",
@@ -228,17 +263,62 @@ export function DAICOSalesTable() {
     );
   }
 
+  const handleToggleChain = (chainId: number, checked: boolean) => {
+    setSelectedChains(
+      checked ? [...new Set([...selectedChains, chainId])] : selectedChains.filter((id) => id !== chainId),
+    );
+  };
+
   return (
     <div className="space-y-4">
-      {/* Search bar */}
-      <div className="relative w-full max-w-xl">
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search DAO name, symbol, or address..."
-          className="w-full pl-9 pr-3"
-        />
-        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      {/* Search bar and chain selector */}
+      <div className="flex items-center justify-between gap-3 w-full">
+        <div className="relative w-full max-w-xl">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search DAO name, symbol, or address..."
+            className="w-full pl-9 pr-3"
+          />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        </div>
+
+        {/* Chain Selector */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Filter className="size-4" />
+              <span>Chains {selectedChains.length > 0 && `(${selectedChains.length})`}</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56">
+            <div className="space-y-3">
+              <div className="text-sm font-medium">Filter by Chain</div>
+              <div className="space-y-2">
+                {CHAIN_OPTIONS.map((chain) => (
+                  <label
+                    key={chain.id}
+                    className="flex items-center gap-3 cursor-pointer hover:bg-accent/50 rounded-md px-2 py-1.5 transition-colors"
+                  >
+                    <Checkbox
+                      checked={selectedChains.includes(chain.id)}
+                      onCheckedChange={(checked) => handleToggleChain(chain.id, checked === true)}
+                    />
+                    <span className="text-sm">{chain.name}</span>
+                  </label>
+                ))}
+              </div>
+              {selectedChains.length === 0 && (
+                <div className="text-xs text-muted-foreground pt-1 border-t">
+                  Select at least one chain to view sales
+                </div>
+              )}
+              {selectedChains.length === CHAIN_OPTIONS.length && (
+                <div className="text-xs text-muted-foreground pt-1 border-t">All chains selected</div>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Table */}

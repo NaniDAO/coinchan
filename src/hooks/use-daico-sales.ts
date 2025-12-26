@@ -19,48 +19,54 @@ const GET_DAICO_SALES = `
         updatedAt
         lastActivityAt
         sales {
-          daoAddress
-          tribTkn
-          chainId
-          forTkn
-          tribAmt
-          forAmt
-          deadline
-          totalSold
-          totalRaised
-          purchaseCount
-          lpBps
-          maxSlipBps
-          feeOrHook
-          status
-          createdAt
-          updatedAt
-          txHash
-          blockNumber
+          items {
+            daoAddress
+            tribTkn
+            chainId
+            forTkn
+            tribAmt
+            forAmt
+            deadline
+            totalSold
+            totalRaised
+            purchaseCount
+            lpBps
+            maxSlipBps
+            feeOrHook
+            status
+            createdAt
+            updatedAt
+            txHash
+            blockNumber
+          }
         }
         tap {
-          daoAddress
-          chainId
-          ops
-          tribTkn
-          ratePerSec
-          lastClaim
-          totalClaimed
-          claimCount
-          createdAt
-          updatedAt
+          items {
+            daoAddress
+            chainId
+            ops
+            tribTkn
+            ratePerSec
+            lastClaim
+            totalClaimed
+            claimCount
+            createdAt
+            updatedAt
+          }
         }
         lps {
-          daoAddress
-          tribTkn
-          chainId
-          tribUsed
-          forUsed
-          liquidity
-          poolId
-          timestamp
-          txHash
-          blockNumber
+          items {
+            daoAddress
+            tribTkn
+            chainId
+            tribUsed
+            forUsed
+            liquidity
+            poolId
+            timestamp
+            txHash
+            blockNumber
+          }
         }
       }
     }
@@ -79,50 +85,56 @@ type DAICOOrgResponse = {
   createdAt: string;
   updatedAt: string;
   lastActivityAt: string | null;
-  sales: Array<{
-    daoAddress: string;
-    tribTkn: string;
-    chainId: number;
-    forTkn: string;
-    tribAmt: string;
-    forAmt: string;
-    deadline: string | null;
-    totalSold: string;
-    totalRaised: string;
-    purchaseCount: number;
-    lpBps: number | null;
-    maxSlipBps: number | null;
-    feeOrHook: string | null;
-    status: string;
-    createdAt: string;
-    updatedAt: string;
-    txHash: string;
-    blockNumber: string;
-  }>;
+  sales: {
+    items: Array<{
+      daoAddress: string;
+      tribTkn: string;
+      chainId: number;
+      forTkn: string;
+      tribAmt: string;
+      forAmt: string;
+      deadline: string | null;
+      totalSold: string;
+      totalRaised: string;
+      purchaseCount: number;
+      lpBps: number | null;
+      maxSlipBps: number | null;
+      feeOrHook: string | null;
+      status: string;
+      createdAt: string;
+      updatedAt: string;
+      txHash: string;
+      blockNumber: string;
+    }>;
+  };
   tap: {
-    daoAddress: string;
-    chainId: number;
-    ops: string;
-    tribTkn: string;
-    ratePerSec: string;
-    lastClaim: string;
-    totalClaimed: string;
-    claimCount: number;
-    createdAt: string;
-    updatedAt: string;
-  } | null;
-  lps: Array<{
-    daoAddress: string;
-    tribTkn: string;
-    chainId: number;
-    tribUsed: string;
-    forUsed: string;
-    liquidity: string;
-    poolId: string;
-    timestamp: string;
-    txHash: string;
-    blockNumber: string;
-  }>;
+    items: Array<{
+      daoAddress: string;
+      chainId: number;
+      ops: string;
+      tribTkn: string;
+      ratePerSec: string;
+      lastClaim: string;
+      totalClaimed: string;
+      claimCount: number;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+  };
+  lps: {
+    items: Array<{
+      daoAddress: string;
+      tribTkn: string;
+      chainId: number;
+      tribUsed: string;
+      forUsed: string;
+      liquidity: string;
+      poolId: string;
+      timestamp: string;
+      txHash: string;
+      blockNumber: string;
+    }>;
+  };
 };
 
 type GetDAICOSalesResponse = {
@@ -157,9 +169,14 @@ async function fetchDAICOSales(): Promise<DAICOSaleItem[]> {
   const sales: DAICOSaleItem[] = [];
 
   for (const org of orgs) {
-    for (const sale of org.sales) {
+    const orgSales = org.sales.items || [];
+    const orgTap = org.tap.items?.[0] || null; // Get first tap if exists
+    const orgLps = org.lps.items || [];
+
+    for (const sale of orgSales) {
       sales.push({
         daoAddress: sale.daoAddress,
+        chainId: sale.chainId,
         daoName: org.name,
         daoSymbol: org.symbol,
         tribTkn: sale.tribTkn,
@@ -175,9 +192,9 @@ async function fetchDAICOSales(): Promise<DAICOSaleItem[]> {
         updatedAt: parseInt(sale.updatedAt),
         lpBps: sale.lpBps,
         feeOrHook: sale.feeOrHook,
-        hasLP: org.lps.some((lp) => lp.daoAddress === sale.daoAddress && lp.tribTkn === sale.tribTkn),
-        hasTap: org.tap !== null && org.tap.daoAddress === sale.daoAddress,
-        tapRate: org.tap?.ratePerSec || null,
+        hasLP: orgLps.some((lp) => lp.daoAddress === sale.daoAddress && lp.tribTkn === sale.tribTkn),
+        hasTap: orgTap !== null && orgTap.daoAddress === sale.daoAddress,
+        tapRate: orgTap?.ratePerSec || null,
         totalPurchases: org.totalPurchases,
         uniqueBuyers: org.uniqueBuyers,
       });

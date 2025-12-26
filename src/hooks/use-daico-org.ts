@@ -9,7 +9,7 @@ const GET_DAICO_ORG = `
       id
       chainId
       name
-      symbol
+      symbolcoi
       totalSales
       activeSalesCount
       totalPurchases

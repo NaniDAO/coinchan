@@ -2,6 +2,7 @@ export type DAICOSaleStatus = "ACTIVE" | "EXPIRED" | "SOLD_OUT" | "CANCELLED";
 
 export interface DAICOSaleItem {
   daoAddress: string;
+  chainId: number;
   daoName: string | null;
   daoSymbol: string | null;
   tribTkn: string;
