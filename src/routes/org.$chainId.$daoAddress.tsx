@@ -131,7 +131,7 @@ function OrgPage() {
         tribAmt: saleData[0] as bigint,
         forAmt: saleData[1] as bigint,
         forTkn: saleData[2] as Address,
-        deadline: saleData[3] as number,
+        deadline: Number(saleData[3]),
       }
     : null;
 
@@ -148,7 +148,7 @@ function OrgPage() {
         ops: tapData[0] as Address,
         tribTkn: tapData[1] as Address,
         ratePerSec: tapData[2] as bigint,
-        lastClaim: tapData[3] as number,
+        lastClaim: Number(tapData[3]),
       }
     : null;
 
