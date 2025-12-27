@@ -1,0 +1,387 @@
+import { useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import {
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+  type ColumnDef,
+  type SortingState,
+} from "@tanstack/react-table";
+import { useDAICOSales } from "@/hooks/use-daico-sales";
+import type { DAICOSaleItem } from "@/types/daico";
+import { formatEther } from "viem";
+import { Loader2, Search, Filter } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+// Format helpers
+const fmt2 = (n: number | null) => {
+  if (n == null) return "—";
+  return Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(n);
+};
+
+const fmtETH = (wei: string) => {
+  const eth = parseFloat(formatEther(BigInt(wei)));
+  return `Ξ${fmt2(eth)}`;
+};
+
+const fromEpoch = (s: number | null) =>
+  !s ? "—" : new Date(s * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+const timeRemaining = (deadline: number | null) => {
+  if (!deadline) return "No deadline";
+  const now = Date.now() / 1000;
+  if (deadline < now) return "Expired";
+  const diff = deadline - now;
+  const days = Math.floor(diff / 86400);
+  const hours = Math.floor((diff % 86400) / 3600);
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h`;
+  const minutes = Math.floor((diff % 3600) / 60);
+  return `${minutes}m`;
+};
+
+const CHAIN_OPTIONS = [
+  { id: 1, name: "Mainnet" },
+  { id: 11155111, name: "Sepolia" },
+] as const;
+
+export function DAICOSalesTable() {
+  const [sorting, setSorting] = useState<SortingState>([{ id: "createdAt", desc: true }]);
+  const [query, setQuery] = useState("");
+  const [selectedChains, setSelectedChains] = useState<number[]>([1]); // Default to mainnet only
+
+  const { data: sales, isLoading, error } = useDAICOSales();
+
+  // Filter sales by search query and chain
+  const filteredSales = useMemo(() => {
+    if (!sales) return [];
+
+    let filtered = sales;
+
+    // Filter by chain
+    if (selectedChains.length > 0) {
+      filtered = filtered.filter((sale) => selectedChains.includes(sale.chainId));
+    }
+
+    // Filter by search query
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      filtered = filtered.filter(
+        (sale) =>
+          sale.daoName?.toLowerCase().includes(q) ||
+          sale.daoSymbol?.toLowerCase().includes(q) ||
+          sale.daoAddress.toLowerCase().includes(q),
+      );
+    }
+
+    return filtered;
+  }, [sales, query, selectedChains]);
+
+  const columns = useMemo<ColumnDef<DAICOSaleItem>[]>(
+    () => [
+      {
+        id: "dao",
+        header: "DAO",
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <Link
+              to="/orgs/$chainId/$daoAddress"
+              params={{ chainId: r.chainId.toString(), daoAddress: r.daoAddress }}
+              className="flex flex-col min-w-0 hover:opacity-80 transition-opacity"
+            >
+              <div className="text-sm font-medium truncate">{r.daoName || "Unnamed DAO"}</div>
+              <div className="text-xs text-muted-foreground truncate">
+                {r.daoSymbol || r.daoAddress.slice(0, 10) + "..."}
+              </div>
+            </Link>
+          );
+        },
+        size: 200,
+      },
+      {
+        id: "chain",
+        header: "Chain",
+        accessorKey: "chainId",
+        cell: ({ getValue }) => {
+          const chainId = getValue<number>();
+          return (
+            <Badge variant={chainId === 1 ? "default" : "secondary"}>
+              {chainId === 1 ? "Mainnet" : chainId === 11155111 ? "Sepolia" : `Chain ${chainId}`}
+            </Badge>
+          );
+        },
+        size: 100,
+      },
+      {
+        id: "sale",
+        header: "Offering",
+        cell: ({ row }) => {
+          const r = row.original;
+          const forAmtEth = parseFloat(formatEther(BigInt(r.forAmt)));
+          const tribAmtEth = parseFloat(formatEther(BigInt(r.tribAmt)));
+          const price = tribAmtEth / forAmtEth;
+          return (
+            <div className="flex flex-col text-sm">
+              <div className="font-medium">
+                {fmt2(forAmtEth)} tokens @ Ξ{price.toFixed(6)}
+              </div>
+              <div className="text-xs text-muted-foreground">Price per token</div>
+            </div>
+          );
+        },
+        size: 180,
+      },
+      {
+        id: "raised",
+        header: "Raised",
+        accessorKey: "totalRaised",
+        cell: ({ getValue, row }) => {
+          const totalRaised = getValue<string>();
+          const totalSold = row.original.totalSold;
+          const forAmt = row.original.forAmt;
+          const progress = BigInt(forAmt) > 0n ? (BigInt(totalSold) * 100n) / BigInt(forAmt) : 0n;
+          return (
+            <div className="flex flex-col text-sm">
+              <div className="font-medium tabular-nums">{fmtETH(totalRaised)}</div>
+              <div className="text-xs text-muted-foreground">{progress.toString()}% sold</div>
+            </div>
+          );
+        },
+        size: 150,
+      },
+      {
+        id: "buyers",
+        header: "Buyers",
+        accessorKey: "uniqueBuyers",
+        cell: ({ getValue, row }) => {
+          const uniqueBuyers = getValue<number>();
+          const totalPurchases = row.original.totalPurchases;
+          return (
+            <div className="flex flex-col text-sm">
+              <div className="font-medium">{uniqueBuyers}</div>
+              <div className="text-xs text-muted-foreground">{totalPurchases} purchases</div>
+            </div>
+          );
+        },
+        size: 120,
+      },
+      {
+        id: "deadline",
+        header: "Deadline",
+        accessorKey: "deadline",
+        cell: ({ getValue }) => {
+          const deadline = getValue<number | null>();
+          return (
+            <div className="flex flex-col text-sm">
+              <div className="font-medium">{timeRemaining(deadline)}</div>
+              <div className="text-xs text-muted-foreground">{fromEpoch(deadline)}</div>
+            </div>
+          );
+        },
+        size: 140,
+      },
+      {
+        id: "features",
+        header: "Features",
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <div className="flex gap-1.5 flex-wrap">
+              {r.hasLP && (
+                <Badge variant="secondary" className="text-xs">
+                  LP
+                </Badge>
+              )}
+              {r.hasTap && (
+                <Badge variant="secondary" className="text-xs">
+                  Tap
+                </Badge>
+              )}
+              {r.lpBps && (
+                <Badge variant="outline" className="text-xs">
+                  {r.lpBps / 100}% LP
+                </Badge>
+              )}
+            </div>
+          );
+        },
+        size: 140,
+      },
+      {
+        id: "status",
+        header: "Status",
+        accessorKey: "status",
+        cell: ({ getValue }) => {
+          const status = getValue<string>();
+          const variant =
+            status === "ACTIVE"
+              ? "default"
+              : status === "SOLD_OUT"
+                ? "secondary"
+                : status === "EXPIRED"
+                  ? "outline"
+                  : "destructive";
+          return <Badge variant={variant}>{status}</Badge>;
+        },
+        size: 120,
+      },
+      {
+        id: "createdAt",
+        header: "Created",
+        accessorKey: "createdAt",
+        cell: ({ getValue }) => {
+          const ts = getValue<number>();
+          return <span className="text-sm text-muted-foreground">{fromEpoch(ts)}</span>;
+        },
+        size: 140,
+      },
+    ],
+    [],
+  );
+
+  const table = useReactTable({
+    data: filteredSales,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-destructive">
+        <p className="font-medium">Error loading DAICO sales</p>
+        <p className="text-sm mt-1">{(error as Error).message}</p>
+      </div>
+    );
+  }
+
+  const handleToggleChain = (chainId: number, checked: boolean) => {
+    setSelectedChains(
+      checked ? [...new Set([...selectedChains, chainId])] : selectedChains.filter((id) => id !== chainId),
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Search bar and chain selector */}
+      <div className="flex items-center justify-between gap-3 w-full">
+        <div className="relative w-full max-w-xl">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search DAO name, symbol, or address..."
+            className="w-full pl-9 pr-3"
+          />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        </div>
+
+        {/* Chain Selector */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Filter className="size-4" />
+              <span>Chains {selectedChains.length > 0 && `(${selectedChains.length})`}</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56">
+            <div className="space-y-3">
+              <div className="text-sm font-medium">Filter by Chain</div>
+              <div className="space-y-2">
+                {CHAIN_OPTIONS.map((chain) => (
+                  <label
+                    key={chain.id}
+                    className="flex items-center gap-3 cursor-pointer hover:bg-accent/50 rounded-md px-2 py-1.5 transition-colors"
+                  >
+                    <Checkbox
+                      checked={selectedChains.includes(chain.id)}
+                      onCheckedChange={(checked) => handleToggleChain(chain.id, checked === true)}
+                    />
+                    <span className="text-sm">{chain.name}</span>
+                  </label>
+                ))}
+              </div>
+              {selectedChains.length === 0 && (
+                <div className="text-xs text-muted-foreground pt-1 border-t">
+                  Select at least one chain to view sales
+                </div>
+              )}
+              {selectedChains.length === CHAIN_OPTIONS.length && (
+                <div className="text-xs text-muted-foreground pt-1 border-t">All chains selected</div>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : filteredSales.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          {query ? "No sales found matching your search" : "No DAICO sales yet"}
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          {/* Header */}
+          <div
+            className="grid bg-muted/50 border-b font-medium text-sm"
+            style={{
+              gridTemplateColumns: table
+                .getFlatHeaders()
+                .map((h) => `${h.getSize()}px`)
+                .join(" "),
+            }}
+          >
+            {table.getFlatHeaders().map((header) => (
+              <div
+                key={header.id}
+                className="px-3 py-2 cursor-pointer hover:bg-muted/70 transition-colors"
+                onClick={header.column.getToggleSortingHandler()}
+              >
+                <div className="flex items-center gap-1">
+                  {flexRender(header.column.columnDef.header, header.getContext())}
+                  {{
+                    asc: " ↑",
+                    desc: " ↓",
+                  }[header.column.getIsSorted() as string] ?? null}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Rows */}
+          <div className="max-h-[70vh] overflow-auto">
+            {table.getRowModel().rows.map((row) => (
+              <div
+                key={row.id}
+                className="grid items-center border-b hover:bg-muted/30 transition-colors"
+                style={{
+                  gridTemplateColumns: table
+                    .getFlatHeaders()
+                    .map((h) => `${h.getSize()}px`)
+                    .join(" "),
+                }}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <div key={cell.id} className="px-3 py-3">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

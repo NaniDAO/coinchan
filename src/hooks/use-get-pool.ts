@@ -79,11 +79,7 @@ type GetPoolResponse = {
 };
 
 // ----- Fetcher -----
-export const fetchPool = async (
-  poolId: string,
-  source: CoinSource,
-  chainId: string,
-): Promise<Pool | null> => {
+export const fetchPool = async (poolId: string, source: CoinSource, chainId: string): Promise<Pool | null> => {
   const response = await fetch(`${import.meta.env.VITE_INDEXER_URL}/graphql`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -108,11 +104,7 @@ export const fetchPool = async (
 };
 
 // ----- React Query hook -----
-export const useGetPool = (
-  poolId: string,
-  source: CoinSource,
-  chainId: string = "1",
-) => {
+export const useGetPool = (poolId: string, source: CoinSource, chainId: string = "1") => {
   return useQuery({
     queryKey: ["get-pool", poolId, chainId],
     queryFn: () => fetchPool(poolId, source, chainId),

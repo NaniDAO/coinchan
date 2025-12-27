@@ -177,6 +177,12 @@ export const Route = createRootRoute({
                         <span>{t("common.orders")}</span>
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/explore/daicos" className={itemClasses}>
+                        <Rocket className="h-4 w-4" />
+                        <span>{t("common.daicos")}</span>
+                      </Link>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -334,6 +340,10 @@ export const Route = createRootRoute({
                     {
                       to: "/explore/curve_coins",
                       label: "Curve Coins",
+                    },
+                    {
+                      to: "/explore/daicos",
+                      label: "DAICOs",
                     },
                     {
                       to: "/positions",

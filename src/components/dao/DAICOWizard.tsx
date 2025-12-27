@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type React from "react";
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
 import { DaicoAbi, DaicoAddress } from "@/constants/DAICO";
 import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
-import { parseUnits, parseEther, Address } from "viem";
+import { parseUnits, parseEther, Address, decodeEventLog } from "viem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +25,7 @@ import {
   Calendar,
   DollarSign,
   Info,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ import { pinJsonToPinata, pinImageToPinata } from "@/lib/pinata";
 import { Badge } from "@/components/ui/badge";
 import { ImageInput } from "@/components/ui/image-input";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { useNavigate } from "@tanstack/react-router";
 
 // Default addresses from user
 const DEFAULT_SUMMON_CONFIG = {
@@ -391,13 +393,50 @@ export default function DAICOWizard() {
   const [isUploading, setIsUploading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [summonedDaoAddress, setSummonedDaoAddress] = useState<Address | null>(null);
+  const navigate = useNavigate();
 
   const { data: ethUsdPrice } = useEthUsdPrice();
   const { writeContractAsync, isPending: isWritePending } = useWriteContract();
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
-  const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isTxLoading,
+    isSuccess: isTxSuccess,
+    data: txReceipt,
+  } = useWaitForTransactionReceipt({
     hash: txHash || undefined,
   });
+
+  // Extract DAO address from transaction receipt
+  useEffect(() => {
+    if (txReceipt && isTxSuccess) {
+      // Look for SaleSet event which includes the DAO address
+      const saleSetEvent = txReceipt.logs.find((log) => {
+        try {
+          const decoded = decodeEventLog({
+            abi: DaicoAbi,
+            data: log.data,
+            topics: log.topics,
+          });
+          return decoded.eventName === "SaleSet";
+        } catch {
+          return false;
+        }
+      });
+
+      if (saleSetEvent) {
+        const decoded = decodeEventLog({
+          abi: DaicoAbi,
+          data: saleSetEvent.data,
+          topics: saleSetEvent.topics,
+        });
+        const daoAddress = (decoded.args as any)?.dao as Address;
+        if (daoAddress) {
+          setSummonedDaoAddress(daoAddress);
+        }
+      }
+    }
+  }, [txReceipt, isTxSuccess]);
 
   const handleImageChange = (file: File | File[] | undefined) => {
     if (file && !Array.isArray(file)) {
@@ -1085,16 +1124,45 @@ export default function DAICOWizard() {
                     <CheckCircle className="w-6 h-6" />
                     <span className="text-lg font-semibold">DAICO Summoned Successfully!</span>
                   </div>
-                  {txHash && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => window.open(getEtherscanTxUrl(txHash), "_blank")}
-                    >
-                      View on Etherscan
-                    </Button>
+
+                  {summonedDaoAddress && (
+                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                      <div className="text-sm text-muted-foreground mb-2">DAO Address</div>
+                      <div className="font-mono text-sm break-all">{summonedDaoAddress}</div>
+                    </div>
                   )}
+
+                  <div className="flex gap-2">
+                    {txHash && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => window.open(getEtherscanTxUrl(txHash), "_blank")}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        View on Etherscan
+                      </Button>
+                    )}
+
+                    {summonedDaoAddress && (
+                      <Button
+                        type="button"
+                        className="flex-1"
+                        onClick={() => {
+                          navigate({
+                            to: "/org/$chainId/$daoAddress",
+                            params: {
+                              chainId: "1", // Ethereum mainnet
+                              daoAddress: summonedDaoAddress,
+                            },
+                          });
+                        }}
+                      >
+                        View Organization
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
