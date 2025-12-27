@@ -91,8 +91,8 @@ export function DAICOSalesTable() {
           const r = row.original;
           return (
             <Link
-              to="/orgs/$daoAddress"
-              params={{ daoAddress: r.daoAddress }}
+              to="/orgs/$chainId/$daoAddress"
+              params={{ chainId: r.chainId.toString(), daoAddress: r.daoAddress }}
               className="flex flex-col min-w-0 hover:opacity-80 transition-opacity"
             >
               <div className="text-sm font-medium truncate">{r.daoName || "Unnamed DAO"}</div>

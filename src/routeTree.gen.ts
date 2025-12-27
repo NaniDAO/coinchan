@@ -31,7 +31,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PositionsIndexRouteImport } from './routes/positions/index'
 import { Route as FarmIndexRouteImport } from './routes/farm/index'
 import { Route as PositionsCreateRouteImport } from './routes/positions/create'
-import { Route as OrgsDaoAddressRouteImport } from './routes/orgs.$daoAddress'
 import { Route as FarmCreateRouteImport } from './routes/farm/create'
 import { Route as ExploreTokensRouteImport } from './routes/explore/tokens'
 import { Route as ExploreTokenRouteImport } from './routes/explore/token'
@@ -41,6 +40,7 @@ import { Route as ExploreDaicosRouteImport } from './routes/explore/daicos'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 import { Route as PredictMarketTypeMarketIdRouteImport } from './routes/predict.$marketType.$marketId'
 import { Route as PChainIdPoolIdRouteImport } from './routes/p.$chainId.$poolId'
+import { Route as OrgsChainIdDaoAddressRouteImport } from './routes/orgs.$chainId.$daoAddress'
 import { Route as OrgChainIdDaoAddressRouteImport } from './routes/org.$chainId.$daoAddress'
 import { Route as EmbedPoolChainIdPoolIdRouteImport } from './routes/embed/pool.$chainId.$poolId'
 
@@ -154,11 +154,6 @@ const PositionsCreateRoute = PositionsCreateRouteImport.update({
   path: '/create',
   getParentRoute: () => PositionsRoute,
 } as any)
-const OrgsDaoAddressRoute = OrgsDaoAddressRouteImport.update({
-  id: '/orgs/$daoAddress',
-  path: '/orgs/$daoAddress',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const FarmCreateRoute = FarmCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -205,6 +200,11 @@ const PChainIdPoolIdRoute = PChainIdPoolIdRouteImport.update({
   path: '/p/$chainId/$poolId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrgsChainIdDaoAddressRoute = OrgsChainIdDaoAddressRouteImport.update({
+  id: '/orgs/$chainId/$daoAddress',
+  path: '/orgs/$chainId/$daoAddress',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrgChainIdDaoAddressRoute = OrgChainIdDaoAddressRouteImport.update({
   id: '/org/$chainId/$daoAddress',
   path: '/org/$chainId/$daoAddress',
@@ -243,11 +243,11 @@ export interface FileRoutesByFullPath {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
-  '/orgs/$daoAddress': typeof OrgsDaoAddressRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
   '/org/$chainId/$daoAddress': typeof OrgChainIdDaoAddressRoute
+  '/orgs/$chainId/$daoAddress': typeof OrgsChainIdDaoAddressRoute
   '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
   '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
@@ -277,11 +277,11 @@ export interface FileRoutesByTo {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
-  '/orgs/$daoAddress': typeof OrgsDaoAddressRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm': typeof FarmIndexRoute
   '/positions': typeof PositionsIndexRoute
   '/org/$chainId/$daoAddress': typeof OrgChainIdDaoAddressRoute
+  '/orgs/$chainId/$daoAddress': typeof OrgsChainIdDaoAddressRoute
   '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
   '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
@@ -314,11 +314,11 @@ export interface FileRoutesById {
   '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
-  '/orgs/$daoAddress': typeof OrgsDaoAddressRoute
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
   '/org/$chainId/$daoAddress': typeof OrgChainIdDaoAddressRoute
+  '/orgs/$chainId/$daoAddress': typeof OrgsChainIdDaoAddressRoute
   '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
   '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
@@ -352,11 +352,11 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
-    | '/orgs/$daoAddress'
     | '/positions/create'
     | '/farm/'
     | '/positions/'
     | '/org/$chainId/$daoAddress'
+    | '/orgs/$chainId/$daoAddress'
     | '/p/$chainId/$poolId'
     | '/predict/$marketType/$marketId'
     | '/embed/pool/$chainId/$poolId'
@@ -386,11 +386,11 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
-    | '/orgs/$daoAddress'
     | '/positions/create'
     | '/farm'
     | '/positions'
     | '/org/$chainId/$daoAddress'
+    | '/orgs/$chainId/$daoAddress'
     | '/p/$chainId/$poolId'
     | '/predict/$marketType/$marketId'
     | '/embed/pool/$chainId/$poolId'
@@ -422,11 +422,11 @@ export interface FileRouteTypes {
     | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
-    | '/orgs/$daoAddress'
     | '/positions/create'
     | '/farm/'
     | '/positions/'
     | '/org/$chainId/$daoAddress'
+    | '/orgs/$chainId/$daoAddress'
     | '/p/$chainId/$poolId'
     | '/predict/$marketType/$marketId'
     | '/embed/pool/$chainId/$poolId'
@@ -453,8 +453,8 @@ export interface RootRouteChildren {
   UserRoute: typeof UserRoute
   WlfiRoute: typeof WlfiRoute
   CCoinIdRoute: typeof CCoinIdRoute
-  OrgsDaoAddressRoute: typeof OrgsDaoAddressRoute
   OrgChainIdDaoAddressRoute: typeof OrgChainIdDaoAddressRoute
+  OrgsChainIdDaoAddressRoute: typeof OrgsChainIdDaoAddressRoute
   PChainIdPoolIdRoute: typeof PChainIdPoolIdRoute
   EmbedPoolChainIdPoolIdRoute: typeof EmbedPoolChainIdPoolIdRoute
 }
@@ -615,13 +615,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PositionsCreateRouteImport
       parentRoute: typeof PositionsRoute
     }
-    '/orgs/$daoAddress': {
-      id: '/orgs/$daoAddress'
-      path: '/orgs/$daoAddress'
-      fullPath: '/orgs/$daoAddress'
-      preLoaderRoute: typeof OrgsDaoAddressRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/farm/create': {
       id: '/farm/create'
       path: '/create'
@@ -683,6 +676,13 @@ declare module '@tanstack/react-router' {
       path: '/p/$chainId/$poolId'
       fullPath: '/p/$chainId/$poolId'
       preLoaderRoute: typeof PChainIdPoolIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orgs/$chainId/$daoAddress': {
+      id: '/orgs/$chainId/$daoAddress'
+      path: '/orgs/$chainId/$daoAddress'
+      fullPath: '/orgs/$chainId/$daoAddress'
+      preLoaderRoute: typeof OrgsChainIdDaoAddressRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/org/$chainId/$daoAddress': {
@@ -779,8 +779,8 @@ const rootRouteChildren: RootRouteChildren = {
   UserRoute: UserRoute,
   WlfiRoute: WlfiRoute,
   CCoinIdRoute: CCoinIdRoute,
-  OrgsDaoAddressRoute: OrgsDaoAddressRoute,
   OrgChainIdDaoAddressRoute: OrgChainIdDaoAddressRoute,
+  OrgsChainIdDaoAddressRoute: OrgsChainIdDaoAddressRoute,
   PChainIdPoolIdRoute: PChainIdPoolIdRoute,
   EmbedPoolChainIdPoolIdRoute: EmbedPoolChainIdPoolIdRoute,
 }

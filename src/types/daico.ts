@@ -44,6 +44,11 @@ export interface DAICOOrg {
   updatedAt: number;
   lastActivityAt: number | null;
 
+  // Metadata
+  image: string | null;
+  description: string | null;
+  contractURI: string | null;
+
   // Relations
   sales: DAICOSale[];
   purchases: DAICOPurchase[];
