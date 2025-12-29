@@ -225,7 +225,7 @@ export function DAICOTradeCard({
                                 Token Balance
                             </div>
                             <div className="font-mono text-sm">
-                                {tokenBalance
+                                {tokenBalance !== undefined && tokenBalance > 0n
                                     ? parseFloat(
                                           formatEther(tokenBalance),
                                       ).toFixed(2)
@@ -265,7 +265,7 @@ export function DAICOTradeCard({
                 </div>
 
                 {/* Estimated Output */}
-                {quotedAmount && amount && (
+                {quotedAmount !== undefined && quotedAmount > 0n && amount && (
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30">
                         <ArrowDownUp className="w-4 h-4 text-muted-foreground" />
                         <div className="flex-1">
