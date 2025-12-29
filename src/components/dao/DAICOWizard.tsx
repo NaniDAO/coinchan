@@ -1151,7 +1151,7 @@ export default function DAICOWizard() {
                         className="flex-1"
                         onClick={() => {
                           navigate({
-                            to: "/org/$chainId/$daoAddress",
+                            to: "/orgs/$chainId/$daoAddress",
                             params: {
                               chainId: "1", // Ethereum mainnet
                               daoAddress: summonedDaoAddress,
