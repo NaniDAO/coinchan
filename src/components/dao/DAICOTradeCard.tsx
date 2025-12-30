@@ -148,7 +148,7 @@ export function DAICOTradeCard({
 
     if (!sale || sale.status !== "ACTIVE") {
         return (
-            <Card className="p-6 backdrop-blur-xl bg-background/60 border-primary/10 w-full h-full max-h-[600px] flex items-center justify-center">
+            <Card className="p-6 backdrop-blur-xl bg-background/60 border-primary/10 w-full flex items-center justify-center">
                 <div className="flex flex-col items-center justify-center gap-3 text-center">
                     <div className="p-3 rounded-full bg-muted/50">
                         <Wallet className="w-6 h-6 text-muted-foreground" />
@@ -169,8 +169,8 @@ export function DAICOTradeCard({
     }
 
     return (
-        <Card className="p-6 backdrop-blur-xl bg-background/60 border-primary/10 w-full h-full max-h-[600px] flex flex-col">
-            <div className="space-y-4 flex-1 flex flex-col">
+        <Card className="p-6 backdrop-blur-xl bg-background/60 border-primary/10 w-full flex flex-col">
+            <div className="space-y-4 flex flex-col">
                 {/* Header */}
                 <div>
                     <h3 className="font-semibold text-lg mb-1">
@@ -281,9 +281,6 @@ export function DAICOTradeCard({
                         </div>
                     </div>
                 )}
-
-                {/* Spacer */}
-                <div className="flex-1" />
 
                 {/* Error Message */}
                 {errorMessage && (

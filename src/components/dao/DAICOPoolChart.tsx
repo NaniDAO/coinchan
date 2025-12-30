@@ -15,12 +15,12 @@ export function DAICOPoolChart({
 }: DAICOPoolChartProps) {
     if (poolId) {
         return (
-            <Card className="p-6 backdrop-blur-xl bg-background/60 border-primary/10 shadow-lg w-full h-full max-h-[600px] flex flex-col">
+            <Card className="p-6 backdrop-blur-xl bg-background/60 border-primary/10 shadow-lg w-full flex flex-col overflow-hidden">
                 <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-primary" />
                     Liquidity Pool Chart
                 </h3>
-                <div className="flex-1 min-h-0">
+                <div className="flex-1 min-h-0 overflow-hidden">
                     <EnhancedPoolChart
                         poolId={poolId}
                         coinSymbol={coinSymbol || "TOKEN"}
@@ -32,7 +32,7 @@ export function DAICOPoolChart({
     }
 
     return (
-        <Card className="p-12 backdrop-blur-xl bg-gradient-to-br from-background/60 via-primary/5 to-background/40 border-primary/20 shadow-lg w-full h-full max-h-[600px] flex items-center justify-center">
+        <Card className="p-12 backdrop-blur-xl bg-gradient-to-br from-background/60 via-primary/5 to-background/40 border-primary/20 shadow-lg w-full flex items-center justify-center">
             <div className="flex flex-col items-center justify-center gap-4 text-center">
                 <div className="p-4 rounded-full bg-muted/50 backdrop-blur-sm">
                     <Droplet className="w-8 h-8 text-muted-foreground" />
