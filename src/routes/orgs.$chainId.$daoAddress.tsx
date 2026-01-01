@@ -15,8 +15,10 @@ import { DAICOPurchasesTab } from "@/components/dao/DAICOPurchasesTab";
 import { DAICOTapTab } from "@/components/dao/DAICOTapTab";
 import { DAICOLPsTab } from "@/components/dao/DAICOLPsTab";
 import { DAICOTradeCard } from "@/components/dao/DAICOTradeCard";
+import { DAICOTapClaimCard } from "@/components/dao/DAICOTapClaimCard";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPoolPricePoints } from "@/lib/indexer";
+import { useAccount } from "wagmi";
 
 export const Route = createFileRoute("/orgs/$chainId/$daoAddress")({
   component: OrgPage,
@@ -38,6 +40,7 @@ function OrgPage() {
   const chainId = chainIdParam ? parseInt(chainIdParam) : 1;
   const { data: org, isLoading, error } = useDAICOOrg(daoAddress, chainId);
   const { data: ethUsdPrice } = useEthUsdPrice();
+  const { address: connectedAddress } = useAccount();
 
   // Fetch governance data (quorum) from chain
   const { data: quorumBps } = useReadContract({
@@ -107,6 +110,9 @@ function OrgPage() {
 
   const hasSwaps = pricePoints && pricePoints.length > 0;
 
+  // Check if connected user is ops beneficiary
+  const isOps = org.tap && connectedAddress && connectedAddress.toLowerCase() === org.tap.ops.toLowerCase();
+
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8 space-y-6">
       {/* Back Button */}
@@ -134,6 +140,15 @@ function OrgPage() {
         }}
         quorumBps={quorumBps}
       />
+
+      {/* Tap Claim Card (only visible to ops beneficiary) */}
+      {isOps && org.tap && (
+        <DAICOTapClaimCard
+          daoAddress={daoAddress}
+          opsAddress={org.tap.ops}
+          chainId={chainId}
+        />
+      )}
 
       {/* Pool Chart & Trade Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
