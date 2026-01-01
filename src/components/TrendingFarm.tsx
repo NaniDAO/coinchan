@@ -34,6 +34,10 @@ export const TrendingFarm: React.FC<TrendingFarmProps> = ({ chefId, url, color, 
   }, [data?.lpToken?.symbol, data?.lpToken?.imageUrl]);
 
   if (!farmColor || !ticker || !combinedAprData) return null;
+
+  // Only show APR if it's loaded and greater than 0
+  const showApr = !combinedAprData.isLoading && combinedAprData.totalApr > 0;
+
   return (
     <div className="w-fit text-lg">
       <Link to={url} className={"flex flex-row items-center hover:underline"}>
@@ -42,7 +46,7 @@ export const TrendingFarm: React.FC<TrendingFarmProps> = ({ chefId, url, color, 
         <span className="font-bold" style={{ color: farmColor }}>
           {ticker.toUpperCase()}
         </span>
-        <span className="text-muted-foreground">({combinedAprData.totalApr.toFixed(3)}%)</span>
+        {showApr && <span className="text-muted-foreground">({combinedAprData.totalApr.toFixed(3)}%)</span>}
       </Link>
     </div>
   );
