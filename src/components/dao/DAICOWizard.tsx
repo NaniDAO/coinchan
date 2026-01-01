@@ -1,38 +1,35 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import type React from "react";
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
 import { DaicoAbi, DaicoAddress } from "@/constants/DAICO";
-import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
-import { parseUnits, parseEther, Address } from "viem";
+import { parseUnits, parseEther, Address, decodeEventLog } from "viem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
 import {
-  AlertCircle,
   CheckCircle,
   Loader2,
-  Plus,
-  Trash2,
   Coins,
-  Users,
-  TrendingUp,
-  Droplet,
   Shield,
   Calendar,
   DollarSign,
   Info,
+  ExternalLink,
+  TrendingUp,
+  Upload,
+  X,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { getEtherscanTxUrl } from "@/lib/explorer";
 import { pinJsonToPinata, pinImageToPinata } from "@/lib/pinata";
 import { Badge } from "@/components/ui/badge";
 import { ImageInput } from "@/components/ui/image-input";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { useNavigate } from "@tanstack/react-router";
 
 // Default addresses from user
 const DEFAULT_SUMMON_CONFIG = {
@@ -42,22 +39,40 @@ const DEFAULT_SUMMON_CONFIG = {
   lootImpl: "0x6f1f2aF76a3aDD953277e9F369242697C87bc6A5" as Address,
 };
 
+// BUTERIN Template - Fixed configuration
+// "Raise 10 ETH selling 1,000,000,000 Shares. 10% quorum. 30-day sale. Tap 100% over 90 days"
+const BUTERIN_TEMPLATE = {
+  saleSupply: "1000000000", // 1 billion tokens
+  tribAmt: "0.00000001", // 0.01 ETH per 1M tokens
+  forAmt: "1", // 1 token per price unit
+  totalRaise: "10", // 10 ETH total
+  quorumBps: "1000", // 10% quorum
+  ragequittable: true, // Ragequit enabled
+  sellLoot: false, // Selling shares (voting tokens)
+  ratePerSec: "0.000001286", // ≈ 0.1111 ETH/day (100% over 90 days)
+  tapAllowance: "10", // 10 ETH budget (100% of raise)
+  saleDurationDays: 30, // 30-day max sale duration
+  tapDurationDays: 90, // 90-day tap release period
+  // Passive income always enabled
+  enablePassiveIncome: true,
+  // Auto LP and initial members disabled
+  enableAutoLP: false,
+  enableInitialMembers: false,
+  sharesLocked: false,
+  lootLocked: false,
+} as const;
+
 // Feature info for hover cards
 const FEATURE_INFO = {
   governance: {
     title: "Token Governance",
     description:
-      "Token holders can vote on proposals to control the DAO. Each token represents voting power, allowing the community to make decisions about fund allocation, parameter changes, and other governance matters.",
+      "Token holders can vote on proposals to control the DAO. Each token represents voting power (10% quorum), allowing the community to make decisions about fund allocation and governance matters.",
   },
   passiveIncome: {
-    title: "Operator Passive Income",
+    title: "Automated Tap",
     description:
-      "The tap mechanism allows funds to be released gradually to an operator address over time. Token holders can vote to adjust or freeze the tap rate, ensuring accountability and controlled spending.",
-  },
-  autoLP: {
-    title: "Auto LP",
-    description:
-      "Automatically create a liquidity pool with a portion of raised funds. This ensures immediate trading liquidity for your token while maintaining price stability through decentralized market-making.",
+      "The tap mechanism automatically releases funds to an operator address over 90 days. Token holders can vote to adjust or freeze the tap rate, ensuring accountability and controlled spending.",
   },
 };
 
@@ -92,101 +107,46 @@ function FeaturePill({
   );
 }
 
-interface InitialHolder {
-  address: string;
-  shares: string;
-}
-
+// Simplified interface - only editable metadata fields
 interface DAICOFormState {
-  // DAO basics
+  // Core identity
   orgName: string;
   orgSymbol: string;
-  orgURI: string;
-  quorumBps: string; // basis points (e.g., 5000 = 50%)
-  ragequittable: boolean;
 
-  // Sale configuration
-  tribTkn: Address; // Payment token (address(0) for ETH)
-  tribAmt: string; // How much payment token for forAmt of shares
-  saleSupply: string; // Amount of shares/loot to mint for sale
-  forAmt: string; // How many shares/loot buyer gets for tribAmt payment
-  deadline: string; // Unix timestamp (0 = no deadline)
-  sellLoot: boolean; // true = sell loot, false = sell shares
+  // Pointed questions for transparency
+  whatDescription: string; // What is this DAO/project?
+  whyDescription: string; // Why should people participate?
+  howDescription: string; // How will funds be used?
 
-  // Optional modules
-  enableAutoLP: boolean;
-  lpBps: string; // Portion to LP (0-9999 bps)
-  maxSlipBps: string; // Max slippage (default 100 = 1%)
-  feeOrHook: string; // Pool fee in bps
+  // Organization socials
+  website: string; // Optional
+  twitter: string; // Optional (handle without @)
 
-  enableInitialMembers: boolean;
-  initialHolders: InitialHolder[];
-
-  enablePassiveIncome: boolean;
-  opsAddress: string; // Tap beneficiary
-  ratePerSec: string; // Tap rate per second
-  tapAllowance: string; // Total tap budget
-
-  // Transfer locks
-  sharesLocked: boolean;
-  lootLocked: boolean;
+  // Operator information
+  opsAddress: string; // Where tap payments go (required)
+  opsName: string; // Operator name (can be pseudonym)
+  opsTwitter: string; // Optional (handle without @)
 }
 
 const defaultFormState: DAICOFormState = {
   orgName: "",
   orgSymbol: "",
-  orgURI: "",
-  quorumBps: "5000", // 50% default
-  ragequittable: true,
-
-  tribTkn: "0x0000000000000000000000000000000000000000" as Address, // ETH
-  tribAmt: "0.0001", // Price per token in ETH
-  saleSupply: "1000000", // 1M tokens for sale
-  forAmt: "1", // 1 token (tribAmt is the price per token)
-  deadline: "0",
-  sellLoot: false,
-
-  enableAutoLP: false,
-  lpBps: "5000", // 50% to LP
-  maxSlipBps: "100", // 1% slippage
-  feeOrHook: "30", // 0.3% fee (30 bps)
-
-  enableInitialMembers: false,
-  initialHolders: [],
-
-  enablePassiveIncome: false,
+  whatDescription: "",
+  whyDescription: "",
+  howDescription: "",
+  website: "",
+  twitter: "",
   opsAddress: "",
-  ratePerSec: "0.001", // ETH per second
-  tapAllowance: "10", // 10 ETH total budget
-
-  sharesLocked: false,
-  lootLocked: false,
+  opsName: "",
+  opsTwitter: "",
 };
 
 // Preview Component
 function DAICOPreview({ formState, imagePreview }: { formState: DAICOFormState; imagePreview: string | null }) {
-  const tokenPrice = useMemo(() => {
-    const trib = parseFloat(formState.tribAmt) || 0;
-    const forAmt = parseFloat(formState.forAmt) || 1;
-    return trib / forAmt;
-  }, [formState.tribAmt, formState.forAmt]);
-
-  const totalRaise = useMemo(() => {
-    const supply = parseFloat(formState.saleSupply) || 0;
-    return supply * tokenPrice;
-  }, [formState.saleSupply, tokenPrice]);
-
-  const dailyTapRate = useMemo(() => {
-    if (!formState.enablePassiveIncome) return 0;
-    const rate = parseFloat(formState.ratePerSec) || 0;
-    return rate * 86400; // seconds per day
-  }, [formState.enablePassiveIncome, formState.ratePerSec]);
-
-  const enabledModulesCount = [
-    formState.enableAutoLP,
-    formState.enableInitialMembers,
-    formState.enablePassiveIncome,
-  ].filter(Boolean).length;
+  // All values come from BUTERIN_TEMPLATE (fixed)
+  const tokenPrice = parseFloat(BUTERIN_TEMPLATE.tribAmt);
+  const totalRaise = parseFloat(BUTERIN_TEMPLATE.totalRaise);
+  const dailyTapRate = parseFloat(BUTERIN_TEMPLATE.ratePerSec) * 86400; // seconds per day
 
   return (
     <div className="flex flex-col space-y-4 h-full min-h-[600px]">
@@ -212,7 +172,10 @@ function DAICOPreview({ formState, imagePreview }: { formState: DAICOFormState; 
                 {formState.orgSymbol || "TKN"}
               </Badge>
               <Badge variant="outline" className="text-xs">
-                {formState.sellLoot ? "Loot Sale" : "Shares Sale"}
+                Shares Sale
+              </Badge>
+              <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
+                BUTERIN Template
               </Badge>
             </div>
           </div>
@@ -231,13 +194,14 @@ function DAICOPreview({ formState, imagePreview }: { formState: DAICOFormState; 
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">{formState.orgSymbol || "TKN"} Price</span>
-            <span className="font-semibold">{tokenPrice.toFixed(6)} ETH</span>
+            <span className="font-semibold">{tokenPrice.toFixed(8)} ETH</span>
           </div>
+          <p className="text-xs text-muted-foreground -mt-1">0.01 ETH per 1M tokens</p>
 
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Sale Supply</span>
             <span className="font-semibold">
-              {parseFloat(formState.saleSupply || "0").toLocaleString()} {formState.orgSymbol || "TKN"}
+              {parseFloat(BUTERIN_TEMPLATE.saleSupply).toLocaleString()} {formState.orgSymbol || "TKN"}
             </span>
           </div>
 
@@ -245,143 +209,61 @@ function DAICOPreview({ formState, imagePreview }: { formState: DAICOFormState; 
 
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Total Raise</span>
-            <span className="font-bold text-lg text-primary">{totalRaise.toFixed(2)} ETH</span>
+            <span className="font-bold text-lg text-primary">{totalRaise} ETH</span>
           </div>
 
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Quorum</span>
-            <span className="font-semibold">{(parseInt(formState.quorumBps) / 100).toFixed(0)}%</span>
+            <span className="font-semibold">{parseInt(BUTERIN_TEMPLATE.quorumBps) / 100}%</span>
           </div>
 
-          {formState.ragequittable && (
-            <Badge variant="outline" className="w-full justify-center">
-              <Shield className="w-3 h-3 mr-1" />
-              Ragequit Enabled
-            </Badge>
-          )}
+          <Badge variant="outline" className="w-full justify-center">
+            <Shield className="w-3 h-3 mr-1" />
+            Ragequit Enabled
+          </Badge>
         </div>
       </Card>
 
-      {/* Active Modules */}
-      {enabledModulesCount > 0 && (
-        <Card className="p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <TrendingUp className="w-4 h-4 text-primary" />
+      {/* Tap Configuration (Always enabled in BUTERIN template) */}
+      <Card className="p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Calendar className="w-4 h-4 text-primary" />
+          </div>
+          <h3 className="font-semibold">Tap Configuration</h3>
+        </div>
+
+        <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 space-y-2">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-green-500" />
+            <span className="font-medium text-sm">Automated Fund Release</span>
+          </div>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <div>• Release rate: ≈ {dailyTapRate.toFixed(4)} ETH/day</div>
+            <div>• Total budget: {parseFloat(BUTERIN_TEMPLATE.tapAllowance)} ETH (100% of raise)</div>
+            <div>• Duration: {BUTERIN_TEMPLATE.tapDurationDays} days</div>
+            <div>• All holders vote. Tap releases funds automatically to ops.</div>
+          </div>
+          {formState.opsAddress && (
+            <div className="mt-2 pt-2 border-t border-green-500/20">
+              <div className="text-xs text-muted-foreground">Operator address:</div>
+              <div className="font-mono text-xs break-all text-foreground">{formState.opsAddress}</div>
             </div>
-            <h3 className="font-semibold">Active Modules</h3>
-            <Badge variant="secondary" className="ml-auto text-xs">
-              {enabledModulesCount}
-            </Badge>
-          </div>
-
-          <div className="space-y-3">
-            {formState.enableAutoLP && (
-              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Droplet className="w-4 h-4 text-blue-500" />
-                  <span className="font-medium text-sm">Auto Liquidity Pool</span>
-                </div>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <div>• {(parseInt(formState.lpBps) / 100).toFixed(1)}% to LP</div>
-                  <div>• {(parseInt(formState.feeOrHook) / 100).toFixed(2)}% pool fee</div>
-                </div>
-              </div>
-            )}
-
-            {formState.enableInitialMembers && formState.initialHolders.length > 0 && (
-              <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="w-4 h-4 text-purple-500" />
-                  <span className="font-medium text-sm">Initial Members</span>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {formState.initialHolders.length} founding member(s)
-                </div>
-              </div>
-            )}
-
-            {formState.enablePassiveIncome && formState.opsAddress && (
-              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="w-4 h-4 text-green-500" />
-                  <span className="font-medium text-sm">Passive Income</span>
-                </div>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <div>• {dailyTapRate.toFixed(4)} ETH/day</div>
-                  <div>• {parseFloat(formState.tapAllowance)} ETH budget</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* Transfer Locks */}
-      {(formState.sharesLocked || formState.lootLocked) && (
-        <Card className="p-4 bg-amber-500/10 border-amber-500/20">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5" />
-            <div className="text-sm">
-              <div className="font-medium text-amber-500 mb-1">Transfer Locks Active</div>
-              <div className="text-xs text-muted-foreground">
-                {formState.sharesLocked && "Shares locked"}
-                {formState.sharesLocked && formState.lootLocked && " • "}
-                {formState.lootLocked && "Loot locked"}
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
+          )}
+        </div>
+      </Card>
 
       {/* Info Footer - fills remaining space */}
       <div className="mt-auto pt-6">
         <div className="p-4 rounded-lg bg-muted/50 border border-border">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Your DAICO will be deployed to Ethereum mainnet. Token holders will be able to vote on governance proposals
-            and control fund release through the tap mechanism.
+            <strong>BUTERIN Template:</strong> Your DAICO will be deployed to Ethereum mainnet with 10% quorum, ragequit
+            enabled, 30-day sale deadline, and automated tap releasing 100% of raise over 90 days. Token holders vote on governance proposals
+            and control the fund release.
           </p>
         </div>
       </div>
     </div>
-  );
-}
-
-function ModuleCard({
-  title,
-  description,
-  enabled,
-  onToggle,
-  children,
-}: {
-  title: string;
-  description: string;
-  enabled: boolean;
-  onToggle: (enabled: boolean) => void;
-  children?: React.ReactNode;
-}) {
-  return (
-    <Card
-      className={cn(
-        "p-6 transition-all duration-300 shadow-sm",
-        enabled ? "border-primary/50 bg-primary/5 shadow-md" : "border-border",
-      )}
-    >
-      <div className="flex items-start justify-between gap-4 mb-4">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold mb-1">{title}</h3>
-          <p className="text-sm text-muted-foreground">{description}</p>
-        </div>
-        <Switch checked={enabled} onCheckedChange={onToggle} className="mt-1" />
-      </div>
-
-      {enabled && children && (
-        <div className="mt-4 space-y-4 animate-in fade-in duration-300">
-          <Separator />
-          {children}
-        </div>
-      )}
-    </Card>
   );
 }
 
@@ -391,13 +273,50 @@ export default function DAICOWizard() {
   const [isUploading, setIsUploading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [summonedDaoAddress, setSummonedDaoAddress] = useState<Address | null>(null);
+  const navigate = useNavigate();
 
-  const { data: ethUsdPrice } = useEthUsdPrice();
   const { writeContractAsync, isPending: isWritePending } = useWriteContract();
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
-  const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isTxLoading,
+    isSuccess: isTxSuccess,
+    data: txReceipt,
+  } = useWaitForTransactionReceipt({
     hash: txHash || undefined,
   });
+
+  // Extract DAO address from transaction receipt
+  useEffect(() => {
+    if (txReceipt && isTxSuccess) {
+      // Look for SaleSet event which includes the DAO address
+      const saleSetEvent = txReceipt.logs.find((log) => {
+        try {
+          const decoded = decodeEventLog({
+            abi: DaicoAbi,
+            data: log.data,
+            topics: log.topics,
+          });
+          return decoded.eventName === "SaleSet";
+        } catch {
+          return false;
+        }
+      });
+
+      if (saleSetEvent) {
+        const decoded = decodeEventLog({
+          abi: DaicoAbi,
+          data: saleSetEvent.data,
+          topics: saleSetEvent.topics,
+        });
+        const daoAddress = (decoded.args as any)?.dao as Address;
+        if (daoAddress) {
+          setSummonedDaoAddress(daoAddress);
+        }
+      }
+    }
+  }, [txReceipt, isTxSuccess]);
 
   const handleImageChange = (file: File | File[] | undefined) => {
     if (file && !Array.isArray(file)) {
@@ -413,61 +332,42 @@ export default function DAICOWizard() {
     }
   };
 
+  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const fileArray = Array.from(files);
+      // Validate file sizes (max 10MB per file)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      const validFiles = fileArray.filter((file) => {
+        if (file.size > maxSize) {
+          toast.error(`${file.name} exceeds 10MB limit`);
+          return false;
+        }
+        return true;
+      });
+
+      setAttachmentFiles((prev) => [...prev, ...validFiles]);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const updateField = <K extends keyof DAICOFormState>(key: K, value: DAICOFormState[K]) => {
     setFormState((prev) => ({ ...prev, [key]: value }));
   };
 
-  const addInitialHolder = () => {
-    setFormState((prev) => ({
-      ...prev,
-      initialHolders: [...prev.initialHolders, { address: "", shares: "" }],
-    }));
-  };
-
-  const removeInitialHolder = (index: number) => {
-    setFormState((prev) => ({
-      ...prev,
-      initialHolders: prev.initialHolders.filter((_, i) => i !== index),
-    }));
-  };
-
-  const updateInitialHolder = (index: number, field: keyof InitialHolder, value: string) => {
-    setFormState((prev) => ({
-      ...prev,
-      initialHolders: prev.initialHolders.map((holder, i) => (i === index ? { ...holder, [field]: value } : holder)),
-    }));
-  };
-
-  // Validation function
+  // Simplified validation for BUTERIN template
   const validateForm = (): string | null => {
     if (!formState.orgName.trim()) return "Organization name is required";
     if (!formState.orgSymbol.trim()) return "Symbol is required";
-    if (!formState.tribAmt || parseFloat(formState.tribAmt) <= 0) return "Price per batch must be greater than 0";
-    if (!formState.forAmt || parseFloat(formState.forAmt) <= 0) return "Tokens per batch must be greater than 0";
-    if (!formState.saleSupply || parseFloat(formState.saleSupply) <= 0) return "Sale supply must be greater than 0";
-
-    const quorum = parseInt(formState.quorumBps);
-    if (isNaN(quorum) || quorum < 0 || quorum > 10000) return "Quorum must be between 0 and 10000 bps";
-
-    if (formState.enableAutoLP) {
-      const lpBps = parseInt(formState.lpBps);
-      if (isNaN(lpBps) || lpBps < 0 || lpBps >= 10000) return "LP portion must be between 0 and 9999 bps";
-    }
-
-    if (formState.enableInitialMembers && formState.initialHolders.length > 0) {
-      for (const holder of formState.initialHolders) {
-        if (!holder.address.match(/^0x[a-fA-F0-9]{40}$/)) return "Invalid holder address";
-        if (!holder.shares || parseFloat(holder.shares) <= 0) return "Holder shares must be greater than 0";
-      }
-    }
-
-    if (formState.enablePassiveIncome) {
-      if (!formState.opsAddress.match(/^0x[a-fA-F0-9]{40}$/)) return "Invalid operator address";
-      if (!formState.ratePerSec || parseFloat(formState.ratePerSec) <= 0) return "Tap rate must be greater than 0";
-      if (!formState.tapAllowance || parseFloat(formState.tapAllowance) <= 0)
-        return "Tap budget must be greater than 0";
-    }
-
+    if (!formState.whatDescription.trim()) return "Please describe what this DAO/project is about";
+    if (!formState.whyDescription.trim()) return "Please explain why people should participate";
+    if (!formState.howDescription.trim()) return "Please explain how funds will be used";
+    if (!formState.opsAddress.match(/^0x[a-fA-F0-9]{40}$/))
+      return "Valid operator address is required for tap payments";
+    if (!formState.opsName.trim()) return "Operator name is required";
     return null;
   };
 
@@ -502,11 +402,47 @@ export default function DAICOWizard() {
         });
       }
 
+      // Upload attachment files to IPFS (if provided)
+      const attachmentUris: Array<{ name: string; uri: string; size: number }> = [];
+      if (attachmentFiles.length > 0) {
+        for (const file of attachmentFiles) {
+          const fileBuffer = await file.arrayBuffer();
+          const uri = await pinImageToPinata(fileBuffer, file.name, {
+            keyvalues: {
+              orgName: formState.orgName,
+              type: "attachment",
+            },
+          });
+          attachmentUris.push({
+            name: file.name,
+            uri,
+            size: file.size,
+          });
+        }
+      }
+
       // Upload metadata to IPFS
       const metadata = {
         name: formState.orgName,
         symbol: formState.orgSymbol,
-        description: `DAICO for ${formState.orgName}`,
+        description: formState.whatDescription,
+        // Extended metadata for transparency
+        what: formState.whatDescription,
+        why: formState.whyDescription,
+        how: formState.howDescription,
+        // Socials
+        ...(formState.website && { website: formState.website }),
+        ...(formState.twitter && { twitter: formState.twitter.replace(/^@/, "") }),
+        // Operator info
+        operator: {
+          address: formState.opsAddress,
+          name: formState.opsName,
+          ...(formState.opsTwitter && { twitter: formState.opsTwitter.replace(/^@/, "") }),
+        },
+        // Supporting documents
+        ...(attachmentUris.length > 0 && { attachments: attachmentUris }),
+        // Template info
+        template: "BUTERIN",
         ...(imageUri && { image: imageUri }),
       };
 
@@ -515,83 +451,64 @@ export default function DAICOWizard() {
 
       setIsUploading(false);
 
-      // Prepare contract arguments
+      // Prepare contract arguments using BUTERIN_TEMPLATE
       const summonConfig = DEFAULT_SUMMON_CONFIG;
 
-      // Parse initial holders and shares
-      const initHolders =
-        formState.enableInitialMembers && formState.initialHolders.length > 0
-          ? formState.initialHolders.map((h) => h.address as Address)
-          : [];
-      const initShares =
-        formState.enableInitialMembers && formState.initialHolders.length > 0
-          ? formState.initialHolders.map((h) => parseUnits(h.shares, 18))
-          : [];
+      // No initial holders in BUTERIN template
+      const initHolders: Address[] = [];
+      const initShares: bigint[] = [];
 
       // Generate salt (random bytes32)
       const salt = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(
         "",
       )}` as `0x${string}`;
 
-      // DAICO config
+      // DAICO config using BUTERIN_TEMPLATE
+      // Calculate deadline: 30 days from now
+      const deadline = Math.floor(Date.now() / 1000) + (BUTERIN_TEMPLATE.saleDurationDays * 24 * 60 * 60);
+
       const daicoConfig = {
-        tribTkn: formState.tribTkn,
-        tribAmt: parseEther(formState.tribAmt),
-        saleSupply: parseUnits(formState.saleSupply, 18),
-        forAmt: parseUnits(formState.forAmt, 18),
-        deadline: Number(formState.deadline),
-        sellLoot: formState.sellLoot,
-        lpBps: formState.enableAutoLP ? parseInt(formState.lpBps) : 0,
-        maxSlipBps: formState.enableAutoLP ? parseInt(formState.maxSlipBps) : 100,
-        feeOrHook: formState.enableAutoLP ? BigInt(formState.feeOrHook) : 0n,
+        tribTkn: "0x0000000000000000000000000000000000000000" as Address, // ETH
+        tribAmt: parseEther(BUTERIN_TEMPLATE.tribAmt),
+        saleSupply: parseUnits(BUTERIN_TEMPLATE.saleSupply, 18),
+        forAmt: parseUnits(BUTERIN_TEMPLATE.forAmt, 18),
+        deadline: deadline, // 30-day deadline
+        sellLoot: BUTERIN_TEMPLATE.sellLoot,
+        lpBps: 0, // No auto LP in BUTERIN
+        maxSlipBps: 100,
+        feeOrHook: 0n,
       };
 
-      // Tap config (only if enabled)
-      const tapConfig =
-        formState.enablePassiveIncome && formState.opsAddress
-          ? {
-              ops: formState.opsAddress as Address,
-              ratePerSec: parseEther(formState.ratePerSec),
-              tapAllowance: parseEther(formState.tapAllowance),
-            }
-          : {
-              ops: "0x0000000000000000000000000000000000000000" as Address,
-              ratePerSec: 0n,
-              tapAllowance: 0n,
-            };
-
-      // Determine which function to call
-      const hasPassiveIncome = formState.enablePassiveIncome && formState.opsAddress;
+      // Tap config (always enabled in BUTERIN template)
+      const tapConfig = {
+        ops: formState.opsAddress as Address,
+        ratePerSec: parseEther(BUTERIN_TEMPLATE.ratePerSec),
+        tapAllowance: parseEther(BUTERIN_TEMPLATE.tapAllowance),
+      };
 
       const baseArgs = [
         summonConfig,
         formState.orgName,
         formState.orgSymbol,
         uri,
-        parseInt(formState.quorumBps),
-        formState.ragequittable,
+        parseInt(BUTERIN_TEMPLATE.quorumBps),
+        BUTERIN_TEMPLATE.ragequittable,
         "0x0000000000000000000000000000000000000000" as Address, // renderer (optional)
         salt,
         initHolders,
         initShares,
-        formState.sharesLocked,
-        formState.lootLocked,
+        BUTERIN_TEMPLATE.sharesLocked,
+        BUTERIN_TEMPLATE.lootLocked,
         daicoConfig,
       ] as const;
 
-      const hash = hasPassiveIncome
-        ? await writeContractAsync({
-            address: DaicoAddress,
-            abi: DaicoAbi,
-            functionName: "summonDAICOWithTap",
-            args: [...baseArgs, tapConfig],
-          })
-        : await writeContractAsync({
-            address: DaicoAddress,
-            abi: DaicoAbi,
-            functionName: "summonDAICO",
-            args: baseArgs,
-          });
+      // Always use summonDAICOWithTap for BUTERIN template
+      const hash = await writeContractAsync({
+        address: DaicoAddress,
+        abi: DaicoAbi,
+        functionName: "summonDAICOWithTap",
+        args: [...baseArgs, tapConfig],
+      });
 
       setTxHash(hash);
       toast.success("DAICO summoning transaction submitted!");
@@ -610,8 +527,11 @@ export default function DAICOWizard() {
       <div className="text-center space-y-6 mb-12 md:mb-16">
         <div className="space-y-4">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">Launch Your DAICO</h1>
+          <Badge variant="secondary" className="text-lg px-6 py-2 bg-primary/10 text-primary">
+            BUTERIN Template
+          </Badge>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-light">
-            Community-governed fundraising with built-in transparency and accountability
+            Raise 10 ETH selling 1 billion shares with 10% quorum, 30-day sale, automated tap releasing funds over 90 days
           </p>
         </div>
 
@@ -627,7 +547,6 @@ export default function DAICOWizard() {
             title={FEATURE_INFO.passiveIncome.title}
             description={FEATURE_INFO.passiveIncome.description}
           />
-          <FeaturePill icon={Droplet} title={FEATURE_INFO.autoLP.title} description={FEATURE_INFO.autoLP.description} />
         </div>
       </div>
 
@@ -638,23 +557,24 @@ export default function DAICOWizard() {
           <DAICOPreview formState={formState} imagePreview={imagePreview} />
         </div>
 
-        {/* Right Column: Form (Bottom on mobile) */}
+        {/* Right Column: Simplified Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic DAO Information */}
+          {/* Basic Identity */}
           <div className="space-y-3">
             <div className="px-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">DAO Information</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Basic Identity</p>
+              <p className="text-sm text-muted-foreground mt-1">How will people know your DAO?</p>
             </div>
             <Card className="p-6 space-y-4 shadow-sm">
               <div className="space-y-2">
-                <Label>Organization Logo</Label>
+                <Label>Organization Logo *</Label>
                 <ImageInput onChange={handleImageChange} />
                 <p className="text-xs text-muted-foreground">Upload an image to represent your DAO</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="orgName">Organization Name</Label>
+                  <Label htmlFor="orgName">Organization Name *</Label>
                   <Input
                     id="orgName"
                     placeholder="My DAO"
@@ -665,22 +585,211 @@ export default function DAICOWizard() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="orgSymbol">Symbol</Label>
+                  <Label htmlFor="orgSymbol">Token Symbol *</Label>
                   <Input
                     id="orgSymbol"
-                    placeholder="TKN"
+                    placeholder="DAO"
                     value={formState.orgSymbol}
                     onChange={(e) => updateField("orgSymbol", e.target.value.toUpperCase())}
                     required
+                    maxLength={10}
                   />
-                  <p className="text-xs text-muted-foreground">Token symbol (e.g., TKN, DAO, SHARE)</p>
+                  <p className="text-xs text-muted-foreground">Max 10 characters (e.g., DAO, CLUB, BUILD)</p>
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="website">Website</Label>
+                  <Input
+                    id="website"
+                    type="url"
+                    placeholder="https://..."
+                    value={formState.website}
+                    onChange={(e) => updateField("website", e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Optional - Your project website</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="twitter">Twitter/X Handle</Label>
+                  <Input
+                    id="twitter"
+                    placeholder="username (without @)"
+                    value={formState.twitter}
+                    onChange={(e) => updateField("twitter", e.target.value.replace(/^@/, ""))}
+                  />
+                  <p className="text-xs text-muted-foreground">Optional - Without the @ symbol</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Transparency Questions */}
+          <div className="space-y-3">
+            <div className="px-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Transparency & Trust</p>
+              <p className="text-sm text-muted-foreground mt-1">Help participants understand your project</p>
+            </div>
+            <Card className="p-6 space-y-4 shadow-sm">
+              <div className="space-y-2">
+                <Label htmlFor="whatDescription">What is this DAO/project about? *</Label>
+                <Textarea
+                  id="whatDescription"
+                  placeholder="Describe what you're building, the problem you're solving, or the community you're creating..."
+                  value={formState.whatDescription}
+                  onChange={(e) => updateField("whatDescription", e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Be clear and specific about your project's purpose</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="whyDescription">Why should people participate? *</Label>
+                <Textarea
+                  id="whyDescription"
+                  placeholder="Explain the value proposition, benefits for token holders, or the vision participants will be supporting..."
+                  value={formState.whyDescription}
+                  onChange={(e) => updateField("whyDescription", e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">What's in it for participants? Why join this DAO?</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="howDescription">How will the raised funds be used? *</Label>
+                <Textarea
+                  id="howDescription"
+                  placeholder="Break down planned spending: development, marketing, operations, team, etc..."
+                  value={formState.howDescription}
+                  onChange={(e) => updateField("howDescription", e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Be specific about how the 10 ETH raise will be allocated</p>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label htmlFor="attachments">Supporting Documents (Optional)</Label>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="attachments"
+                      type="file"
+                      multiple
+                      onChange={handleAttachmentChange}
+                      className="cursor-pointer"
+                      accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                    />
+                    <Button type="button" size="sm" variant="outline" className="whitespace-nowrap">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Add Files
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Upload roadmaps, budgets, whitepapers, etc. Max 10MB per file
+                  </p>
+
+                  {attachmentFiles.length > 0 && (
+                    <div className="space-y-2">
+                      {attachmentFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 rounded-md bg-muted/50 border border-border"
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-sm truncate">{file.name}</span>
+                            <span className="text-xs text-muted-foreground flex-shrink-0">
+                              ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 flex-shrink-0"
+                            onClick={() => removeAttachment(index)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Operator Information */}
+          <div className="space-y-3">
+            <div className="px-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Operator Information</p>
+              <p className="text-sm text-muted-foreground mt-1">Who will manage operations and receive tap payments?</p>
+            </div>
+            <Card className="p-6 space-y-4 shadow-sm">
+              <div className="space-y-2">
+                <Label htmlFor="opsName">Operator Name *</Label>
+                <Input
+                  id="opsName"
+                  placeholder="Your name or pseudonym"
+                  value={formState.opsName}
+                  onChange={(e) => updateField("opsName", e.target.value)}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Can be a pseudonym - but accountability matters</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="opsTwitter">Operator Twitter/X Handle</Label>
+                <Input
+                  id="opsTwitter"
+                  placeholder="username (without @)"
+                  value={formState.opsTwitter}
+                  onChange={(e) => updateField("opsTwitter", e.target.value.replace(/^@/, ""))}
+                />
+                <p className="text-xs text-muted-foreground">Optional - Social verification helps build trust</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="opsAddress">Operator Wallet Address *</Label>
+                <Input
+                  id="opsAddress"
+                  placeholder="0x..."
+                  value={formState.opsAddress}
+                  onChange={(e) => updateField("opsAddress", e.target.value)}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Receives automated tap payments (≈ 0.1111 ETH/day for 90 days)
+                </p>
+              </div>
+            </Card>
+          </div>
+
+          {/* BUTERIN Template Configuration (View-Only) */}
+          <div className="space-y-3">
+            <div className="px-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                BUTERIN Template Configuration
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Fixed settings optimized for governance + automated funding
+              </p>
+            </div>
+            <Card className="p-6 space-y-4 shadow-sm bg-muted/30">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Label htmlFor="quorumBps">Voting Quorum</Label>
+                    <Label>Voting Quorum</Label>
                     <HoverCard openDelay={200}>
                       <HoverCardTrigger asChild>
                         <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
@@ -689,384 +798,110 @@ export default function DAICOWizard() {
                         <div className="space-y-2">
                           <h4 className="font-semibold text-sm">Voting Quorum</h4>
                           <p className="text-sm text-muted-foreground leading-relaxed">
-                            The minimum percentage of voting shares that must participate for a proposal to pass. Higher
-                            quorum (60-80%) provides more security and ensures broader consensus, while lower quorum
-                            (20-40%) enables faster decision-making. 50% is a common balanced choice.
+                            The minimum percentage of voting shares that must participate for a proposal to pass.
+                            BUTERIN template uses 10% for faster decision-making while maintaining community oversight.
                           </p>
                         </div>
                       </HoverCardContent>
                     </HoverCard>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold text-primary">
-                      {(parseInt(formState.quorumBps) / 100).toFixed(0)}%
-                    </span>
-                  </div>
+                  <span className="text-2xl font-bold text-primary">10%</span>
                 </div>
-                <Slider
-                  id="quorumBps"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={[parseInt(formState.quorumBps) / 100]}
-                  onValueChange={(values) => updateField("quorumBps", (values[0] * 100).toString())}
-                  className="py-4"
-                />
-                <p className="text-xs text-muted-foreground">Percentage of shares needed to approve proposals</p>
-              </div>
+                <p className="text-xs text-muted-foreground">
+                  ✓ Fixed at 10% - All holders vote on governance proposals
+                </p>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="ragequittable"
-                  checked={formState.ragequittable}
-                  onCheckedChange={(checked) => updateField("ragequittable", checked)}
-                />
-                <Label htmlFor="ragequittable" className="cursor-pointer flex items-center gap-2">
-                  Allow ragequit
-                  <HoverCard openDelay={200}>
-                    <HoverCardTrigger asChild>
-                      <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80" side="right">
-                      <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">Ragequit</h4>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          Allows members to exit the DAO at any time by burning their tokens in exchange for their
-                          proportional share of the treasury. This provides an exit mechanism and protects minority
-                          token holders from malicious proposals.
-                        </p>
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
-                </Label>
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Label>Ragequit</Label>
+                    <HoverCard openDelay={200}>
+                      <HoverCardTrigger asChild>
+                        <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-80" side="right">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-sm">Ragequit</h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            Allows members to exit the DAO at any time by burning their tokens in exchange for their
+                            proportional share of the treasury. This protects minority token holders.
+                          </p>
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
+                  </div>
+                  <Badge variant="outline" className="text-green-600 border-green-600">
+                    Enabled
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">✓ Members can exit anytime with their share of treasury</p>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <Label>Token Type</Label>
+                  <Badge variant="secondary">Voting Shares</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">✓ Shares with voting rights (not non-voting loot)</p>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <Label>Transfer Locks</Label>
+                  <Badge variant="outline">None</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">✓ Tokens are transferable - no locks</p>
               </div>
             </Card>
           </div>
 
-          {/* Sale Configuration */}
+          {/* Sale Configuration (View-Only) */}
           <div className="space-y-3">
             <div className="px-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Token Sale Configuration
-              </p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Token Sale Details</p>
+              <p className="text-sm text-muted-foreground mt-1">Pre-configured sale parameters</p>
             </div>
-            <Card className="p-6 space-y-4 shadow-sm">
-              <div className="space-y-2">
-                <Label htmlFor="tokenPrice">Price per token (ETH)</Label>
-                <Input
-                  id="tokenPrice"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="0.0001"
-                  value={formState.tribAmt}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    // Allow empty, numbers, and decimals
-                    if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                      updateField("forAmt", "1");
-                      updateField("tribAmt", val);
-                    }
-                  }}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">How much ETH each token costs</p>
-              </div>
+            <Card className="p-6 space-y-4 shadow-sm bg-muted/30">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Price per Token</Label>
+                  <span className="font-mono font-bold">{parseFloat(BUTERIN_TEMPLATE.tribAmt).toFixed(8)} ETH</span>
+                </div>
+                <p className="text-xs text-muted-foreground">✓ Fixed at 0.01 ETH per 1M tokens</p>
 
-              {/* Price in USD */}
-              {formState.tribAmt && parseFloat(formState.tribAmt) > 0 && ethUsdPrice ? (
-                <p className="text-xs text-muted-foreground -mt-1">
-                  ≈ $
-                  {(parseFloat(formState.tribAmt) * ethUsdPrice).toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 6,
-                  })}{" "}
-                  per token
-                </p>
-              ) : null}
+                <Separator />
 
-              <div className="space-y-2">
-                <Label htmlFor="saleSupply">Total sale supply</Label>
-                <Input
-                  id="saleSupply"
-                  type="number"
-                  placeholder="1000000"
-                  value={formState.saleSupply}
-                  onChange={(e) => updateField("saleSupply", e.target.value)}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">Total tokens allocated for the sale</p>
-              </div>
+                <div className="flex items-center justify-between">
+                  <Label>Sale Supply</Label>
+                  <span className="font-mono font-bold">
+                    {parseFloat(BUTERIN_TEMPLATE.saleSupply).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">✓ 1 billion voting shares for sale</p>
 
-              {/* Total raise summary */}
-              {formState.tribAmt &&
-                formState.saleSupply &&
-                parseFloat(formState.tribAmt) > 0 &&
-                parseFloat(formState.saleSupply) > 0 &&
-                (() => {
-                  const pricePerToken = parseFloat(formState.tribAmt);
-                  const totalRaiseEth = parseFloat(formState.saleSupply) * pricePerToken;
-                  const totalRaiseUsd = ethUsdPrice ? totalRaiseEth * ethUsdPrice : 0;
+                <Separator />
 
-                  return (
-                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-                      <p className="text-sm text-center">
-                        <span className="text-muted-foreground">If sold out, you'll raise </span>
-                        <span className="font-bold text-primary">
-                          {totalRaiseEth.toLocaleString(undefined, { maximumFractionDigits: 4 })} ETH
-                        </span>
-                        {ethUsdPrice ? (
-                          <span className="text-muted-foreground">
-                            {" "}
-                            (${totalRaiseUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })})
-                          </span>
-                        ) : null}
-                      </p>
-                    </div>
-                  );
-                })()}
-
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="sellLoot"
-                  checked={formState.sellLoot}
-                  onCheckedChange={(checked) => updateField("sellLoot", checked)}
-                />
-                <Label htmlFor="sellLoot" className="cursor-pointer flex items-center gap-2">
-                  Sell Loot tokens (non-voting shares) instead of Shares
-                  <HoverCard openDelay={200}>
-                    <HoverCardTrigger asChild>
-                      <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80" side="right">
-                      <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">Loot vs Shares</h4>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          <strong>Shares</strong> provide voting rights and treasury claims. <strong>Loot</strong> only
-                          provides treasury claims without voting power. Use Loot for passive investors who want
-                          treasury exposure without governance participation.
-                        </p>
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
-                </Label>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="sharesLocked"
-                    checked={formState.sharesLocked}
-                    onCheckedChange={(checked) => updateField("sharesLocked", checked)}
-                  />
-                  <Label htmlFor="sharesLocked" className="cursor-pointer text-sm flex items-center gap-2">
-                    Lock Shares (non-transferable)
-                    <HoverCard openDelay={200}>
-                      <HoverCardTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-72" side="top">
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-sm">Lock Shares</h4>
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            When locked, shares cannot be transferred between addresses. This prevents token trading and
-                            ensures voting power stays with committed members.
-                          </p>
-                        </div>
-                      </HoverCardContent>
-                    </HoverCard>
-                  </Label>
+                <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Total Raise (if sold out)</span>
+                    <span className="text-2xl font-bold text-primary">{BUTERIN_TEMPLATE.totalRaise} ETH</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Selling {parseFloat(BUTERIN_TEMPLATE.saleSupply).toLocaleString()} tokens at{" "}
+                    {parseFloat(BUTERIN_TEMPLATE.tribAmt).toFixed(8)} ETH each
+                  </p>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="lootLocked"
-                    checked={formState.lootLocked}
-                    onCheckedChange={(checked) => updateField("lootLocked", checked)}
-                  />
-                  <Label htmlFor="lootLocked" className="cursor-pointer text-sm flex items-center gap-2">
-                    Lock Loot (non-transferable)
-                    <HoverCard openDelay={200}>
-                      <HoverCardTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-72" side="top">
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-sm">Lock Loot</h4>
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            When locked, loot tokens cannot be transferred between addresses. This ensures treasury
-                            claims stay with original contributors.
-                          </p>
-                        </div>
-                      </HoverCardContent>
-                    </HoverCard>
-                  </Label>
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <Label>Sale Deadline</Label>
+                  <Badge variant="outline">{BUTERIN_TEMPLATE.saleDurationDays} Days</Badge>
                 </div>
+                <p className="text-xs text-muted-foreground">✓ Sale closes after {BUTERIN_TEMPLATE.saleDurationDays} days or when sold out</p>
               </div>
             </Card>
-          </div>
-
-          {/* Optional Modules */}
-          <div className="space-y-4">
-            <div className="px-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                Optional Features
-              </p>
-              <p className="text-sm text-muted-foreground">Add advanced functionality to your DAICO</p>
-            </div>
-
-            {/* Auto LP Module */}
-            <ModuleCard
-              title="Enable auto LP from raise"
-              description="Automatically create a liquidity pool with a portion of raised funds"
-              enabled={formState.enableAutoLP}
-              onToggle={(enabled) => updateField("enableAutoLP", enabled)}
-            >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="lpBps">LP portion (bps)</Label>
-                  <Input
-                    id="lpBps"
-                    type="number"
-                    placeholder="5000"
-                    value={formState.lpBps}
-                    onChange={(e) => updateField("lpBps", e.target.value)}
-                    min="0"
-                    max="9999"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {(parseInt(formState.lpBps) / 100).toFixed(1)}% to liquidity
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="maxSlipBps">Max slippage (bps)</Label>
-                  <Input
-                    id="maxSlipBps"
-                    type="number"
-                    placeholder="100"
-                    value={formState.maxSlipBps}
-                    onChange={(e) => updateField("maxSlipBps", e.target.value)}
-                    min="0"
-                    max="10000"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {(parseInt(formState.maxSlipBps) / 100).toFixed(1)}% max slippage
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="feeOrHook">Pool fee (bps)</Label>
-                  <Input
-                    id="feeOrHook"
-                    type="number"
-                    placeholder="30"
-                    value={formState.feeOrHook}
-                    onChange={(e) => updateField("feeOrHook", e.target.value)}
-                    min="0"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {(parseInt(formState.feeOrHook) / 100).toFixed(2)}% fee
-                  </p>
-                </div>
-              </div>
-            </ModuleCard>
-
-            {/* Initial Members Module */}
-            <ModuleCard
-              title="Add initial members"
-              description="Allocate initial shares to founding members"
-              enabled={formState.enableInitialMembers}
-              onToggle={(enabled) => updateField("enableInitialMembers", enabled)}
-            >
-              <div className="space-y-3">
-                {formState.initialHolders.map((holder, index) => (
-                  <div key={index} className="flex gap-3">
-                    <div className="flex-1 space-y-2">
-                      <Label className="text-xs">Address</Label>
-                      <Input
-                        placeholder="0x..."
-                        value={holder.address}
-                        onChange={(e) => updateInitialHolder(index, "address", e.target.value)}
-                      />
-                    </div>
-                    <div className="w-32 space-y-2">
-                      <Label className="text-xs">Shares</Label>
-                      <Input
-                        type="number"
-                        placeholder="1000"
-                        value={holder.shares}
-                        onChange={(e) => updateInitialHolder(index, "shares", e.target.value)}
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="mt-6"
-                      onClick={() => removeInitialHolder(index)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-
-                <Button type="button" variant="outline" size="sm" onClick={addInitialHolder} className="w-full">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Member
-                </Button>
-              </div>
-            </ModuleCard>
-
-            {/* Passive Income Module */}
-            <ModuleCard
-              title="Add passive income for operator"
-              description="Set up a tap mechanism for periodic fund release to operations team"
-              enabled={formState.enablePassiveIncome}
-              onToggle={(enabled) => updateField("enablePassiveIncome", enabled)}
-            >
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="opsAddress">Operator address</Label>
-                  <Input
-                    id="opsAddress"
-                    placeholder="0x..."
-                    value={formState.opsAddress}
-                    onChange={(e) => updateField("opsAddress", e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">Address that can claim the periodic payments</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="ratePerSec">Rate per second (ETH)</Label>
-                    <Input
-                      id="ratePerSec"
-                      type="number"
-                      step="0.000001"
-                      placeholder="0.001"
-                      value={formState.ratePerSec}
-                      onChange={(e) => updateField("ratePerSec", e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      ≈ {(parseFloat(formState.ratePerSec) * 86400).toFixed(4)} ETH/day
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="tapAllowance">Total budget (ETH)</Label>
-                    <Input
-                      id="tapAllowance"
-                      type="number"
-                      step="0.1"
-                      placeholder="10"
-                      value={formState.tapAllowance}
-                      onChange={(e) => updateField("tapAllowance", e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">Maximum funds operator can claim</p>
-                  </div>
-                </div>
-              </div>
-            </ModuleCard>
           </div>
 
           {/* Submit Button */}
@@ -1085,16 +920,45 @@ export default function DAICOWizard() {
                     <CheckCircle className="w-6 h-6" />
                     <span className="text-lg font-semibold">DAICO Summoned Successfully!</span>
                   </div>
-                  {txHash && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => window.open(getEtherscanTxUrl(txHash), "_blank")}
-                    >
-                      View on Etherscan
-                    </Button>
+
+                  {summonedDaoAddress && (
+                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                      <div className="text-sm text-muted-foreground mb-2">DAO Address</div>
+                      <div className="font-mono text-sm break-all">{summonedDaoAddress}</div>
+                    </div>
                   )}
+
+                  <div className="flex gap-2">
+                    {txHash && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => window.open(getEtherscanTxUrl(txHash), "_blank")}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        View on Etherscan
+                      </Button>
+                    )}
+
+                    {summonedDaoAddress && (
+                      <Button
+                        type="button"
+                        className="flex-1"
+                        onClick={() => {
+                          navigate({
+                            to: "/orgs/$chainId/$daoAddress",
+                            params: {
+                              chainId: "1", // Ethereum mainnet
+                              daoAddress: summonedDaoAddress,
+                            },
+                          });
+                        }}
+                      >
+                        View Organization
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <Button type="submit" size="lg" className="w-full" disabled={isLoading}>

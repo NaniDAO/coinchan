@@ -36,9 +36,11 @@ import { Route as ExploreTokensRouteImport } from './routes/explore/tokens'
 import { Route as ExploreTokenRouteImport } from './routes/explore/token'
 import { Route as ExplorePoolsRouteImport } from './routes/explore/pools'
 import { Route as ExploreOrdersRouteImport } from './routes/explore/orders'
+import { Route as ExploreDaicosRouteImport } from './routes/explore/daicos'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 import { Route as PredictMarketTypeMarketIdRouteImport } from './routes/predict.$marketType.$marketId'
 import { Route as PChainIdPoolIdRouteImport } from './routes/p.$chainId.$poolId'
+import { Route as OrgsChainIdDaoAddressRouteImport } from './routes/orgs.$chainId.$daoAddress'
 import { Route as EmbedPoolChainIdPoolIdRouteImport } from './routes/embed/pool.$chainId.$poolId'
 
 const WlfiRoute = WlfiRouteImport.update({
@@ -176,6 +178,11 @@ const ExploreOrdersRoute = ExploreOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => ExploreRoute,
 } as any)
+const ExploreDaicosRoute = ExploreDaicosRouteImport.update({
+  id: '/daicos',
+  path: '/daicos',
+  getParentRoute: () => ExploreRoute,
+} as any)
 const CCoinIdRoute = CCoinIdRouteImport.update({
   id: '/c/$coinId',
   path: '/c/$coinId',
@@ -190,6 +197,11 @@ const PredictMarketTypeMarketIdRoute =
 const PChainIdPoolIdRoute = PChainIdPoolIdRouteImport.update({
   id: '/p/$chainId/$poolId',
   path: '/p/$chainId/$poolId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrgsChainIdDaoAddressRoute = OrgsChainIdDaoAddressRouteImport.update({
+  id: '/orgs/$chainId/$daoAddress',
+  path: '/orgs/$chainId/$daoAddress',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmbedPoolChainIdPoolIdRoute = EmbedPoolChainIdPoolIdRouteImport.update({
@@ -219,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
+  '/explore/daicos': typeof ExploreDaicosRoute
   '/explore/orders': typeof ExploreOrdersRoute
   '/explore/pools': typeof ExplorePoolsRoute
   '/explore/token': typeof ExploreTokenRoute
@@ -227,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
+  '/orgs/$chainId/$daoAddress': typeof OrgsChainIdDaoAddressRoute
   '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
   '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
@@ -250,6 +264,7 @@ export interface FileRoutesByTo {
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
+  '/explore/daicos': typeof ExploreDaicosRoute
   '/explore/orders': typeof ExploreOrdersRoute
   '/explore/pools': typeof ExplorePoolsRoute
   '/explore/token': typeof ExploreTokenRoute
@@ -258,6 +273,7 @@ export interface FileRoutesByTo {
   '/positions/create': typeof PositionsCreateRoute
   '/farm': typeof FarmIndexRoute
   '/positions': typeof PositionsIndexRoute
+  '/orgs/$chainId/$daoAddress': typeof OrgsChainIdDaoAddressRoute
   '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
   '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
@@ -284,6 +300,7 @@ export interface FileRoutesById {
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
+  '/explore/daicos': typeof ExploreDaicosRoute
   '/explore/orders': typeof ExploreOrdersRoute
   '/explore/pools': typeof ExplorePoolsRoute
   '/explore/token': typeof ExploreTokenRoute
@@ -292,6 +309,7 @@ export interface FileRoutesById {
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
+  '/orgs/$chainId/$daoAddress': typeof OrgsChainIdDaoAddressRoute
   '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
   '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
   '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
@@ -319,6 +337,7 @@ export interface FileRouteTypes {
     | '/user'
     | '/wlfi'
     | '/c/$coinId'
+    | '/explore/daicos'
     | '/explore/orders'
     | '/explore/pools'
     | '/explore/token'
@@ -327,6 +346,7 @@ export interface FileRouteTypes {
     | '/positions/create'
     | '/farm/'
     | '/positions/'
+    | '/orgs/$chainId/$daoAddress'
     | '/p/$chainId/$poolId'
     | '/predict/$marketType/$marketId'
     | '/embed/pool/$chainId/$poolId'
@@ -350,6 +370,7 @@ export interface FileRouteTypes {
     | '/user'
     | '/wlfi'
     | '/c/$coinId'
+    | '/explore/daicos'
     | '/explore/orders'
     | '/explore/pools'
     | '/explore/token'
@@ -358,6 +379,7 @@ export interface FileRouteTypes {
     | '/positions/create'
     | '/farm'
     | '/positions'
+    | '/orgs/$chainId/$daoAddress'
     | '/p/$chainId/$poolId'
     | '/predict/$marketType/$marketId'
     | '/embed/pool/$chainId/$poolId'
@@ -383,6 +405,7 @@ export interface FileRouteTypes {
     | '/user'
     | '/wlfi'
     | '/c/$coinId'
+    | '/explore/daicos'
     | '/explore/orders'
     | '/explore/pools'
     | '/explore/token'
@@ -391,6 +414,7 @@ export interface FileRouteTypes {
     | '/positions/create'
     | '/farm/'
     | '/positions/'
+    | '/orgs/$chainId/$daoAddress'
     | '/p/$chainId/$poolId'
     | '/predict/$marketType/$marketId'
     | '/embed/pool/$chainId/$poolId'
@@ -417,6 +441,7 @@ export interface RootRouteChildren {
   UserRoute: typeof UserRoute
   WlfiRoute: typeof WlfiRoute
   CCoinIdRoute: typeof CCoinIdRoute
+  OrgsChainIdDaoAddressRoute: typeof OrgsChainIdDaoAddressRoute
   PChainIdPoolIdRoute: typeof PChainIdPoolIdRoute
   EmbedPoolChainIdPoolIdRoute: typeof EmbedPoolChainIdPoolIdRoute
 }
@@ -612,6 +637,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreOrdersRouteImport
       parentRoute: typeof ExploreRoute
     }
+    '/explore/daicos': {
+      id: '/explore/daicos'
+      path: '/daicos'
+      fullPath: '/explore/daicos'
+      preLoaderRoute: typeof ExploreDaicosRouteImport
+      parentRoute: typeof ExploreRoute
+    }
     '/c/$coinId': {
       id: '/c/$coinId'
       path: '/c/$coinId'
@@ -633,6 +665,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PChainIdPoolIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orgs/$chainId/$daoAddress': {
+      id: '/orgs/$chainId/$daoAddress'
+      path: '/orgs/$chainId/$daoAddress'
+      fullPath: '/orgs/$chainId/$daoAddress'
+      preLoaderRoute: typeof OrgsChainIdDaoAddressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/embed/pool/$chainId/$poolId': {
       id: '/embed/pool/$chainId/$poolId'
       path: '/embed/pool/$chainId/$poolId'
@@ -644,6 +683,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface ExploreRouteChildren {
+  ExploreDaicosRoute: typeof ExploreDaicosRoute
   ExploreOrdersRoute: typeof ExploreOrdersRoute
   ExplorePoolsRoute: typeof ExplorePoolsRoute
   ExploreTokenRoute: typeof ExploreTokenRoute
@@ -651,6 +691,7 @@ interface ExploreRouteChildren {
 }
 
 const ExploreRouteChildren: ExploreRouteChildren = {
+  ExploreDaicosRoute: ExploreDaicosRoute,
   ExploreOrdersRoute: ExploreOrdersRoute,
   ExplorePoolsRoute: ExplorePoolsRoute,
   ExploreTokenRoute: ExploreTokenRoute,
@@ -718,6 +759,7 @@ const rootRouteChildren: RootRouteChildren = {
   UserRoute: UserRoute,
   WlfiRoute: WlfiRoute,
   CCoinIdRoute: CCoinIdRoute,
+  OrgsChainIdDaoAddressRoute: OrgsChainIdDaoAddressRoute,
   PChainIdPoolIdRoute: PChainIdPoolIdRoute,
   EmbedPoolChainIdPoolIdRoute: EmbedPoolChainIdPoolIdRoute,
 }

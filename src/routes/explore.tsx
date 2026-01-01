@@ -48,6 +48,7 @@ const tabs = [
   { to: "/explore/tokens", labelKey: "common.tokens" },
   { to: "/explore/pools", labelKey: "common.pools" },
   { to: "/explore/orders", labelKey: "common.orders" },
+  { to: "/explore/daicos", labelKey: "common.daicos" },
 ];
 
 function NavLink({
