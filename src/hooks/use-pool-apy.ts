@@ -22,7 +22,7 @@ export const usePoolApy = (poolId?: string, source?: CoinSource) => {
         body: JSON.stringify({
           query: `
               query GetSwapAmounts {
-                pool(id: "${poolId}", source: "${normalizedSource}") {
+                pool(id: "${poolId}", source: "${normalizedSource}", chainId: 1) {
                   reserve0,
                   reserve1,
                   price0,
