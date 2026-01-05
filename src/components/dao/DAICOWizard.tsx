@@ -258,8 +258,8 @@ function DAICOPreview({ formState, imagePreview }: { formState: DAICOFormState; 
         <div className="p-4 rounded-lg bg-muted/50 border border-border">
           <p className="text-xs text-muted-foreground leading-relaxed">
             <strong>BUTERIN Template:</strong> Your DAICO will be deployed to Ethereum mainnet with 10% quorum, ragequit
-            enabled, 30-day sale deadline, and automated tap releasing 100% of raise over 90 days. Token holders vote on governance proposals
-            and control the fund release.
+            enabled, 30-day sale deadline, and automated tap releasing 100% of raise over 90 days. Token holders vote on
+            governance proposals and control the fund release.
           </p>
         </div>
       </div>
@@ -465,7 +465,7 @@ export default function DAICOWizard() {
 
       // DAICO config using BUTERIN_TEMPLATE
       // Calculate deadline: 30 days from now
-      const deadline = Math.floor(Date.now() / 1000) + (BUTERIN_TEMPLATE.saleDurationDays * 24 * 60 * 60);
+      const deadline = Math.floor(Date.now() / 1000) + BUTERIN_TEMPLATE.saleDurationDays * 24 * 60 * 60;
 
       const daicoConfig = {
         tribTkn: "0x0000000000000000000000000000000000000000" as Address, // ETH
@@ -531,7 +531,8 @@ export default function DAICOWizard() {
             BUTERIN Template
           </Badge>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-light">
-            Raise 10 ETH selling 1 billion shares with 10% quorum, 30-day sale, automated tap releasing funds over 90 days
+            Raise 10 ETH selling 1 billion shares with 10% quorum, 30-day sale, automated tap releasing funds over 90
+            days
           </p>
         </div>
 
@@ -671,7 +672,9 @@ export default function DAICOWizard() {
                   className="resize-none"
                   required
                 />
-                <p className="text-xs text-muted-foreground">Be specific about how the 10 ETH raise will be allocated</p>
+                <p className="text-xs text-muted-foreground">
+                  Be specific about how the 10 ETH raise will be allocated
+                </p>
               </div>
 
               <Separator />
@@ -899,7 +902,9 @@ export default function DAICOWizard() {
                   <Label>Sale Deadline</Label>
                   <Badge variant="outline">{BUTERIN_TEMPLATE.saleDurationDays} Days</Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">✓ Sale closes after {BUTERIN_TEMPLATE.saleDurationDays} days or when sold out</p>
+                <p className="text-xs text-muted-foreground">
+                  ✓ Sale closes after {BUTERIN_TEMPLATE.saleDurationDays} days or when sold out
+                </p>
               </div>
             </Card>
           </div>

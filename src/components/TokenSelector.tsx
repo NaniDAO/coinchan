@@ -120,8 +120,7 @@ export const TokenSelector = memo(
           toast.success(t("tokenSelector.custom_token_added"));
         }
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Failed to add token";
+        const message = error instanceof Error ? error.message : "Failed to add token";
         toast.error(message);
       }
     };
@@ -185,9 +184,7 @@ export const TokenSelector = memo(
         const name = token.name?.toLowerCase() ?? "";
         const id = token.id?.toString() ?? "eth";
         const queryIsNumber = !isNaN(Number(q));
-        const idMatches = queryIsNumber
-          ? id.startsWith(q)
-          : id.toLowerCase().includes(q);
+        const idMatches = queryIsNumber ? id.startsWith(q) : id.toLowerCase().includes(q);
         return symbol.includes(q) || name.includes(q) || idMatches;
       });
     }, [items, query]);
@@ -289,11 +286,8 @@ export const TokenSelector = memo(
                       address={detectedAddress}
                       onAdd={handleAddCustomToken}
                       existsInList={
-                        items.some(
-                          (i) =>
-                            i.token.token1?.toLowerCase() ===
-                            detectedAddress.toLowerCase(),
-                        ) || isCustomToken(detectedAddress)
+                        items.some((i) => i.token.token1?.toLowerCase() === detectedAddress.toLowerCase()) ||
+                        isCustomToken(detectedAddress)
                       }
                     />
                   ) : (
