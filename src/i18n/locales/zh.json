@@ -1183,7 +1183,13 @@
     "select_token": "选择代币",
     "selected": "已选择",
     "balance": "余额",
-    "no_balance": "无余额"
+    "no_balance": "无余额",
+    "add_custom_token": "添加自定义代币",
+    "custom_token_added": "自定义代币已成功添加",
+    "invalid_address": "无效的以太坊地址",
+    "not_erc20": "该地址不是有效的ERC20代币",
+    "already_added": "代币已在列表中",
+    "validating_token": "正在验证代币..."
   },
   "orders": {
     "title": "订单",

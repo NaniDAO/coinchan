@@ -23,6 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
 import { erc20Abi } from "viem";
+import { useCustomTokens } from "@/hooks/use-custom-tokens";
 
 /**
  * Local helpers (filtering rules)
@@ -606,6 +607,7 @@ async function originalFetchOtherCoins(
 export function useAllCoins() {
   const publicClient = usePublicClient();
   const { address } = useAccount();
+  const { customTokens } = useCustomTokens();
 
   // ETH balance
   const {
@@ -640,7 +642,7 @@ export function useAllCoins() {
 
   // Combine & sort again across ETH and others to ensure global ordering
   const ethWithBalance = ethToken || ETH_TOKEN;
-  const combined = [ethWithBalance, ...(otherTokens || [])];
+  const combined = [ethWithBalance, ...(otherTokens || []), ...customTokens];
 
   const loading = isEthBalanceFetching || isOtherLoading;
   const error = ethError || otherError ? "Failed to load tokens" : null;
