@@ -75,7 +75,7 @@
         "viem": "2.29.0",
         "wagmi": "2.16.5",
         "zod": "3.25.63",
-        "zrouter-sdk": "0.0.27"
+        "zrouter-sdk": "0.0.30"
     },
     "devDependencies": {
         "@biomejs/biome": "1.8.0",
