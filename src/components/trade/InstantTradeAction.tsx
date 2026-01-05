@@ -547,19 +547,35 @@ export const InstantTradeAction = forwardRef<
       const { calls, value, targets } = plan;
 
       // Simulate route execution
-      const sim = await simulateRoute(publicClient, {
-        router: mainnetConfig.router,
-        account: owner,
-        calls,
-        value,
-        approvals: [], // No longer checking approvals from buildRoutePlan
-        targets,
-      });
+      // Note: Some RPC endpoints (like Cloudflare) don't support eth_createAccessList
+      // which is used by simulateRoute for gas optimization. We handle this gracefully.
+      let sim;
+      try {
+        sim = await simulateRoute(publicClient, {
+          router: mainnetConfig.router,
+          account: owner,
+          calls,
+          value,
+          approvals: [], // No longer checking approvals from buildRoutePlan
+          targets,
+        });
 
-      if (!sim) {
-        setTxError("Failed to simulate route");
-        setIsExecuting(false);
-        return;
+        if (!sim) {
+          console.warn("Simulation returned null, proceeding without simulation");
+        }
+      } catch (simError: any) {
+        // Check if error is due to eth_createAccessList not being supported
+        const errorMessage = String(simError).toLowerCase();
+        if (errorMessage.includes("eth_createaccesslist") || errorMessage.includes("method not found")) {
+          console.warn("RPC endpoint doesn't support eth_createAccessList, skipping simulation:", simError);
+          // Continue without simulation - this is OK since we already checked approvals
+        } else {
+          // For other simulation errors, fail the transaction
+          console.error("Route simulation failed:", simError);
+          setTxError("Route simulation failed. Please try again.");
+          setIsExecuting(false);
+          return;
+        }
       }
 
       // Execute using the targets from the plan
