@@ -4,6 +4,7 @@ import { zeroAddress, type Address } from "viem";
 import { usePublicClient } from "wagmi";
 import { getTokenBalances } from "@/lib/get-token-balances";
 import { useCustomTokens } from "@/hooks/use-custom-tokens";
+import { useMemo } from "react";
 
 type TokenListItem = {
   address: Address;
@@ -99,19 +100,28 @@ export const useGetTokens = (owner?: Address) => {
   });
 
   // Convert custom tokens to TokenMetadata format and merge
-  const customTokensAsMetadata: TokenMetadata[] = customTokens.map((t) => ({
-    address: t.token1 as Address,
-    id: t.id ?? 0n,
-    name: t.name,
-    symbol: t.symbol,
-    imageUrl: t.imageUrl || "",
-    decimals: t.decimals || 18,
-    standard: "ERC20" as const,
-    balance: t.balance ?? 0n,
-  }));
+  const customTokensAsMetadata: TokenMetadata[] = useMemo(
+    () =>
+      customTokens.map((t) => ({
+        address: t.token1 as Address,
+        id: t.id ?? 0n,
+        name: t.name,
+        symbol: t.symbol,
+        imageUrl: t.imageUrl || "",
+        decimals: t.decimals || 18,
+        standard: "ERC20" as const,
+        balance: t.balance ?? 0n,
+      })),
+    [customTokens],
+  );
+
+  const mergedData = useMemo(
+    () => (queryResult.data ? [...queryResult.data, ...customTokensAsMetadata] : customTokensAsMetadata),
+    [queryResult.data, customTokensAsMetadata],
+  );
 
   return {
     ...queryResult,
-    data: queryResult.data ? [...queryResult.data, ...customTokensAsMetadata] : customTokensAsMetadata,
+    data: mergedData,
   };
 };

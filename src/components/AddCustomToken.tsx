@@ -39,7 +39,7 @@ export const AddCustomToken = memo(({ address, onAdd, existsInList }: AddCustomT
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center gap-3 py-6">
+      <div className="flex flex-col items-center gap-3 py-3">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">{t("tokenSelector.validating_token")}</p>
       </div>
@@ -48,7 +48,7 @@ export const AddCustomToken = memo(({ address, onAdd, existsInList }: AddCustomT
 
   if (error) {
     return (
-      <div className="flex flex-col items-center gap-3 py-6">
+      <div className="flex flex-col items-center gap-3 py-3">
         <AlertCircle className="h-8 w-8 text-destructive" />
         <p className="text-sm text-destructive">{error}</p>
       </div>
@@ -57,7 +57,7 @@ export const AddCustomToken = memo(({ address, onAdd, existsInList }: AddCustomT
 
   if (isValidErc20 && symbol && name) {
     return (
-      <div className="flex flex-col items-center gap-4 py-6 px-4">
+      <div className="flex flex-col items-center gap-3 py-3 px-4">
         <div className="flex items-center gap-3 p-4 bg-muted rounded-lg w-full">
           <TokenImage symbol={symbol} imageUrl={null} />
           <div className="flex flex-col min-w-0 flex-1">

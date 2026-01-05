@@ -301,16 +301,11 @@ export const TokenSelector = memo(
 
               {/* Let CommandList handle its own scrolling */}
               <CommandList className="max-h-[60vh] sm:max-h-[50vh] overflow-y-auto">
-                <CommandEmpty className="py-10 text-center">
-                  {detectedAddress ? (
-                    <AddCustomToken
-                      address={detectedAddress}
-                      onAdd={handleAddCustomToken}
-                      existsInList={
-                        items.some((i) => String(i.token.address).toLowerCase() === detectedAddress.toLowerCase()) ||
-                        isCustomToken(detectedAddress)
-                      }
-                    />
+                <CommandEmpty className="py-4 text-center">
+                  {detectedAddress &&
+                  !items.some((i) => String(i.token.address).toLowerCase() === detectedAddress.toLowerCase()) &&
+                  !isCustomToken(detectedAddress) ? (
+                    <AddCustomToken address={detectedAddress} onAdd={handleAddCustomToken} existsInList={false} />
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       {t("tokenSelector.no_results", {

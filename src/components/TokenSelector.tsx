@@ -183,9 +183,10 @@ export const TokenSelector = memo(
         const symbol = token.symbol?.toLowerCase() ?? "";
         const name = token.name?.toLowerCase() ?? "";
         const id = token.id?.toString() ?? "eth";
+        const addr = token.token1?.toLowerCase() ?? "";
         const queryIsNumber = !isNaN(Number(q));
         const idMatches = queryIsNumber ? id.startsWith(q) : id.toLowerCase().includes(q);
-        return symbol.includes(q) || name.includes(q) || idMatches;
+        return symbol.includes(q) || name.includes(q) || idMatches || addr.includes(q);
       });
     }, [items, query]);
 
@@ -280,16 +281,11 @@ export const TokenSelector = memo(
 
               {/* Let CommandList handle its own scrolling */}
               <CommandList className="max-h-[60vh] sm:max-h-[50vh] overflow-y-auto">
-                <CommandEmpty className="py-10 text-center">
-                  {detectedAddress ? (
-                    <AddCustomToken
-                      address={detectedAddress}
-                      onAdd={handleAddCustomToken}
-                      existsInList={
-                        items.some((i) => i.token.token1?.toLowerCase() === detectedAddress.toLowerCase()) ||
-                        isCustomToken(detectedAddress)
-                      }
-                    />
+                <CommandEmpty className="py-4 text-center">
+                  {detectedAddress &&
+                  !items.some((i) => i.token.token1?.toLowerCase() === detectedAddress.toLowerCase()) &&
+                  !isCustomToken(detectedAddress) ? (
+                    <AddCustomToken address={detectedAddress} onAdd={handleAddCustomToken} existsInList={false} />
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       {t("tokenSelector.no_results", {
