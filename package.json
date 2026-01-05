@@ -23,7 +23,8 @@
             "@metamask/sdk": "0.33.1",
             "@metamask/sdk-communication-layer": "0.33.1",
             "debug": "4.3.4",
-            "mdast-util-to-hast": ">=13.2.1"
+            "mdast-util-to-hast": ">=13.2.1",
+            "viem": "2.29.0"
         }
     },
     "dependencies": {
