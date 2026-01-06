@@ -25,3 +25,5 @@ dist-ssr
 .vercel
 
 .env*
+
+ANALYTICS_SETUP.md
