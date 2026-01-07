@@ -126,7 +126,6 @@ const truncateTitle = (title: string, maxLength: number = 35): string => {
 };
 
 export const GovernanceProposals: React.FC = () => {
-    const { t } = useTranslation();
     const { data: proposals, isLoading, error } = useSnapshotProposals();
 
     if (isLoading) {

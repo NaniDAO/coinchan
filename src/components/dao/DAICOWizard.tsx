@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { ImageInput } from "@/components/ui/image-input";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { useNavigate } from "@tanstack/react-router";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 // Default addresses from user
 const DEFAULT_SUMMON_CONFIG = {
@@ -276,6 +277,7 @@ export default function DAICOWizard() {
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [summonedDaoAddress, setSummonedDaoAddress] = useState<Address | null>(null);
   const navigate = useNavigate();
+  const { trackEvent } = useAnalytics();
 
   const { writeContractAsync, isPending: isWritePending } = useWriteContract();
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
@@ -313,10 +315,24 @@ export default function DAICOWizard() {
         const daoAddress = (decoded.args as any)?.dao as Address;
         if (daoAddress) {
           setSummonedDaoAddress(daoAddress);
+
+          // Track DAICO launch success (catch errors to prevent breaking the flow)
+          try {
+            trackEvent("daico-launched", {
+              template: "BUTERIN",
+              orgSymbol: formState.orgSymbol || "UNKNOWN",
+              totalRaise: BUTERIN_TEMPLATE.totalRaise,
+              quorum: `${parseInt(BUTERIN_TEMPLATE.quorumBps) / 100}%`,
+              saleDuration: `${BUTERIN_TEMPLATE.saleDurationDays}d`,
+              tapDuration: `${BUTERIN_TEMPLATE.tapDurationDays}d`,
+            });
+          } catch (analyticsError) {
+            console.error("Analytics tracking error (non-critical):", analyticsError);
+          }
         }
       }
     }
-  }, [txReceipt, isTxSuccess]);
+  }, [txReceipt, isTxSuccess, formState.orgSymbol, trackEvent]);
 
   const handleImageChange = (file: File | File[] | undefined) => {
     if (file && !Array.isArray(file)) {

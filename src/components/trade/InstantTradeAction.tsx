@@ -23,6 +23,7 @@ import { RouteOptions } from "./RouteOptions";
 
 import { useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 import { encodeTokenQ, parseTokenQ, findTokenFlexible, isCanonicalTokenQ } from "@/lib/token-query";
+import { useAnalytics, getTokenSymbol, mapVenueToAnalytics } from "@/hooks/useAnalytics";
 
 /** ----------------------------------------------------------------
  * URL token helpers
@@ -117,6 +118,7 @@ export const InstantTradeAction = forwardRef<
   const { data: tokens = [] } = useGetTokens(owner);
   const publicClient = usePublicClient();
   const chainId = useChainId();
+  const { trackSwap, trackSwapError } = useAnalytics();
 
   // Prevent errors during initialization when publicClient isn't ready
   if (!publicClient) {
@@ -645,11 +647,54 @@ export const InstantTradeAction = forwardRef<
         hash,
       });
       if (receipt.status !== "success") throw new Error("Transaction failed");
+
+      // Track successful swap (catch errors to prevent breaking the flow)
+      try {
+        if (sellToken && buyToken && selectedRoute) {
+          const firstStep = selectedRoute.route.steps[0];
+          trackSwap({
+            tokenInSymbol: getTokenSymbol(sellToken),
+            tokenOutSymbol: getTokenSymbol(buyToken),
+            venue: firstStep ? mapVenueToAnalytics(firstStep.kind) : "UNKNOWN",
+            side,
+            routeType: selectedRoute.route.steps.length > 1 ? "multi-hop" : "single-hop",
+            steps: selectedRoute.route.steps.length,
+          });
+        }
+      } catch (analyticsError) {
+        console.error("Analytics tracking error (non-critical):", analyticsError);
+      }
+
       setTxHash(hash);
       setIsExecuting(false);
     } catch (err) {
       console.error("Caught error:", err);
       const msg = handleWalletError(err);
+
+      // Track swap error (catch analytics errors to prevent breaking the flow)
+      try {
+        if (sellToken && buyToken && !isUserRejectionError(err)) {
+          // Determine error type based on error message
+          let errorType = "transaction-failed";
+          const errorMsg = String(err).toLowerCase();
+          if (errorMsg.includes("slippage")) {
+            errorType = "slippage-exceeded";
+          } else if (errorMsg.includes("insufficient")) {
+            errorType = "insufficient-balance";
+          } else if (errorMsg.includes("approval")) {
+            errorType = "approval-failed";
+          } else if (errorMsg.includes("simulation")) {
+            errorType = "simulation-failed";
+          }
+
+          trackSwapError(errorType, {
+            pair: `${getTokenSymbol(sellToken)}/${getTokenSymbol(buyToken)}`,
+          });
+        }
+      } catch (analyticsError) {
+        console.error("Analytics tracking error (non-critical):", analyticsError);
+      }
+
       // Only set error if it's not a user rejection (handleWalletError returns null for rejections)
       if (msg !== null) {
         setTxError(msg);
