@@ -1,0 +1,84 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Grid pattern for background -->
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+    </pattern>
+
+    <!-- Gradient for subtle depth -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1a1a;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+
+  <!-- Retro grid overlay -->
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Safe zone guide (centered 80%): 120px margin on each side, 63px top/bottom -->
+  <!-- Content area: x=120 to x=1080 (960px wide), y=63 to y=567 (504px tall) -->
+
+  <!-- Logo in top-left corner -->
+  <image href="zammzamm.png" x="120" y="50" width="180" height="180" />
+
+  <!-- Primary Headline - Centered vertically around 40% from top -->
+  <text
+    x="600"
+    y="220"
+    font-family="'JetBrains Mono', 'Courier New', monospace"
+    font-size="72"
+    font-weight="700"
+    fill="#ffffff"
+    text-anchor="middle"
+    letter-spacing="0">
+    Cheapest DEX on Ethereum
+  </text>
+
+  <!-- Secondary Line - Below headline -->
+  <text
+    x="600"
+    y="290"
+    font-family="'JetBrains Mono', 'Courier New', monospace"
+    font-size="42"
+    font-weight="500"
+    fill="#a855f7"
+    text-anchor="middle"
+    letter-spacing="1">
+    Native DAICO Launchpad
+  </text>
+
+  <!-- Subtext - Feature bullets -->
+  <text
+    x="600"
+    y="370"
+    font-family="'JetBrains Mono', 'Courier New', monospace"
+    font-size="28"
+    font-weight="400"
+    fill="#9ca3af"
+    text-anchor="middle"
+    letter-spacing="2">
+    Gas-optimized · On-chain · No custody
+  </text>
+
+  <!-- Purple accent bar (subtle design element) -->
+  <rect x="400" y="400" width="400" height="2" fill="#a855f7" opacity="0.6"/>
+
+  <!-- ZAMM Brand Mark - Bottom Right -->
+  <text
+    x="1050"
+    y="580"
+    font-family="'JetBrains Mono', 'Courier New', monospace"
+    font-size="32"
+    font-weight="700"
+    fill="#a855f7"
+    text-anchor="end"
+    letter-spacing="4">
+    ZAMM
+  </text>
+
+  <!-- Terminal cursor (subtle branding element) -->
+  <rect x="1055" y="560" width="12" height="24" fill="#a855f7" opacity="0.8"/>
+</svg>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1200, height=630">
+  <title>ZAMM OG Image Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 1200px;
+      height: 630px;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+    }
+
+    .og-container {
+      width: 1200px;
+      height: 630px;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 63px 120px;
+    }
+
+    /* Retro grid background */
+    .og-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      max-width: 960px;
+    }
+
+    .headline {
+      font-size: 72px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+    }
+
+    .subheadline {
+      font-size: 42px;
+      font-weight: 500;
+      color: #a855f7;
+      line-height: 1.2;
+      letter-spacing: 0.02em;
+      margin-bottom: 40px;
+    }
+
+    .features {
+      font-size: 28px;
+      font-weight: 400;
+      color: #9ca3af;
+      letter-spacing: 0.05em;
+      margin-bottom: 30px;
+    }
+
+    .divider {
+      width: 400px;
+      height: 2px;
+      background: #a855f7;
+      opacity: 0.6;
+      margin: 0 auto 40px;
+    }
+
+    .brand {
+      position: absolute;
+      bottom: 50px;
+      right: 120px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .brand-text {
+      font-size: 32px;
+      font-weight: 700;
+      color: #a855f7;
+      letter-spacing: 0.15em;
+    }
+
+    .cursor {
+      width: 12px;
+      height: 24px;
+      background: #a855f7;
+      opacity: 0.8;
+      animation: blink 1s step-end infinite;
+    }
+
+    .logo {
+      position: absolute;
+      top: 50px;
+      left: 120px;
+      width: 180px;
+      height: 180px;
+      z-index: 2;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 0.8; }
+      51%, 100% { opacity: 0; }
+    }
+
+    /* Instructions overlay (remove before screenshot) */
+    .instructions {
+      position: fixed;
+      top: 650px;
+      left: 0;
+      right: 0;
+      background: #1a1a1a;
+      color: #fff;
+      padding: 20px;
+      font-family: system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .instructions h3 {
+      color: #a855f7;
+      margin-bottom: 10px;
+    }
+
+    .instructions code {
+      background: #0a0a0a;
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: #a855f7;
+    }
+  </style>
+</head>
+<body>
+  <div class="og-container">
+    <!-- Logo in top-left -->
+    <img src="zammzamm.png" alt="ZAMM Logo" class="logo" />
+
+    <div class="content">
+      <div class="headline">
+        Cheapest DEX on Ethereum
+      </div>
+      <div class="subheadline">
+        Native DAICO Launchpad
+      </div>
+      <div class="features">
+        Gas-optimized · On-chain · No custody
+      </div>
+      <div class="divider"></div>
+    </div>
+    <div class="brand">
+      <span class="brand-text">ZAMM</span>
+      <div class="cursor"></div>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <h3>To generate the PNG:</h3>
+    <p><strong>Option 1 (Chrome DevTools):</strong></p>
+    <ol>
+      <li>Open Chrome DevTools (F12)</li>
+      <li>Press <code>Ctrl+Shift+P</code> (Cmd+Shift+P on Mac)</li>
+      <li>Type "screenshot" and select "Capture full size screenshot"</li>
+      <li>Crop to exactly 1200×630 if needed</li>
+      <li>Save as <code>og-image.png</code> in the <code>public/</code> folder</li>
+    </ol>
+    <p><strong>Option 2 (Screenshot tool):</strong></p>
+    <ol>
+      <li>Zoom to 100%</li>
+      <li>Use a screenshot tool to capture exactly the top 1200×630px area</li>
+      <li>Save as <code>og-image.png</code></li>
+    </ol>
+    <p><strong>Option 3 (Automated - recommended):</strong></p>
+    <p>Use a headless browser tool like Playwright or Puppeteer to capture at exact dimensions.</p>
+  </div>
+</body>
+</html>
