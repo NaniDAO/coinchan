@@ -604,3 +604,30 @@ body {
 .chart-update-transition {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Retro grid background for landing page */
+.retro-grid {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.dark .retro-grid {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+/* Cursor blink animation for landing page */
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
