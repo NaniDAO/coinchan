@@ -209,7 +209,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                             {/* Social Links - Below CTA */}
                             <div className="pt-3 flex items-center justify-center gap-4 text-xs text-muted-foreground">
                                 <a
-                                    href="https://github.com/zamm-labs"
+                                    href="https://github.com/zammdefi"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="hover:text-foreground transition-colors"
@@ -402,7 +402,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                         </p>
                         <div className="flex flex-wrap gap-6 text-sm">
                             <a
-                                href="https://github.com/zamm-labs"
+                                href="https://github.com/zammdefi"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-muted-foreground hover:text-foreground transition-colors"
@@ -420,7 +420,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                             </a>
                             <span className="text-muted-foreground">·</span>
                             <a
-                                href="https://docs.zamm.fi"
+                                href="https://docs.zamm.eth.limo/"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-muted-foreground hover:text-foreground transition-colors"
