@@ -50,6 +50,7 @@ import {
 import { InfoIcon, Loader2 } from "lucide-react";
 import { SlippageSettings } from "../SlippageSettings";
 import { RouteOptions } from "./RouteOptions";
+import { TransactionStatus } from "./TransactionStatus";
 
 import { useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 import {
@@ -1149,10 +1150,15 @@ export const InstantTradeAction = forwardRef<
                 {txError && !suppressErrors && (
                     <div className="mt-2 text-sm text-red-500">{txError}</div>
                 )}
-                {isSuccess && (
-                    <div className="mt-2 text-sm text-green-500">
-                        Transaction confirmed! Hash: {txHash}
-                    </div>
+                {txHash && (
+                    <TransactionStatus
+                        hash={txHash}
+                        chainId={chainId}
+                        onComplete={() => {
+                            // Optional: Add any cleanup or notification logic after finalization
+                            console.log("Transaction finalized:", txHash);
+                        }}
+                    />
                 )}
             </div>
         );
