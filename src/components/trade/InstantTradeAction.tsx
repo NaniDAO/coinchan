@@ -239,7 +239,7 @@ export const InstantTradeAction = forwardRef<
             error: writeError,
         } = useSendTransaction();
         const [txHash, setTxHash] = useState<`0x${string}`>();
-        const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+        useWaitForTransactionReceipt({ hash: txHash });
 
         // Local UI error + suppression
         const [txError, setTxError] = useState<string | null>(null);

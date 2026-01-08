@@ -173,7 +173,7 @@ export function TransactionStatus({
             )}
 
             {/* Block info */}
-            {receipt?.blockNumber && (
+            {receipt?.blockNumber !== undefined && (
                 <div className="text-xs text-muted-foreground pt-1 border-t border-border">
                     Block: {receipt.blockNumber.toString()}
                 </div>

@@ -119,26 +119,23 @@ export function useZRouterQuote({
   const tokenOut = useMemo(() => toZRouterToken(buyToken || undefined), [buyToken]);
 
   // Helper to safely get token address (handles both TokenMeta and TokenMetadata)
-  const getSellTokenAddress = (): string | undefined => {
+  const sellTokenAddress = useMemo((): string | undefined => {
     if (!sellToken) return undefined;
     // TokenMetadata has address property
     if ('address' in sellToken) return sellToken.address;
     // TokenMeta - derive from token1 for ERC20, or use special addresses
     if ('source' in sellToken && sellToken.source === 'ERC20') return sellToken.token1;
     return undefined;
-  };
+  }, [sellToken]);
 
-  const getBuyTokenAddress = (): string | undefined => {
+  const buyTokenAddress = useMemo((): string | undefined => {
     if (!buyToken) return undefined;
     // TokenMetadata has address property
     if ('address' in buyToken) return buyToken.address;
     // TokenMeta - derive from token1 for ERC20, or use special addresses
     if ('source' in buyToken && buyToken.source === 'ERC20') return buyToken.token1;
     return undefined;
-  };
-
-  const sellTokenAddress = getSellTokenAddress();
-  const buyTokenAddress = getBuyTokenAddress();
+  }, [buyToken]);
 
   // Check if token is ERC6909 (those always have 18 decimals)
   const isSellTokenERC6909 = sellToken && 'standard' in sellToken && sellToken.standard === "ERC6909";
@@ -177,40 +174,24 @@ export function useZRouterQuote({
   const buyDecimals = buyToken?.decimals ?? buyDecimalsOnChain ?? 18;
 
   // Warn if decimals are missing and we're defaulting to 18 (could cause incorrect quotes)
-  if (process.env.NODE_ENV === "development") {
-    if (sellToken && !sellToken.decimals && !sellDecimalsOnChain) {
-      console.warn(
-        `[use-zrouter-quote] Sell token ${sellToken.symbol || sellTokenAddress} has no decimals, defaulting to 18. This may cause incorrect quotes!`
-      );
-    }
-    if (buyToken && !buyToken.decimals && !buyDecimalsOnChain) {
-      console.warn(
-        `[use-zrouter-quote] Buy token ${buyToken.symbol || buyTokenAddress} has no decimals, defaulting to 18. This may cause incorrect quotes!`
-      );
-    }
-  }
+  // Disabled to reduce console noise - decimals are now auto-fetched
+  // if (sellToken && !sellToken.decimals && !sellDecimalsOnChain) {
+  //   console.warn(`[use-zrouter-quote] Sell token missing decimals, defaulting to 18`);
+  // }
+  // if (buyToken && !buyToken.decimals && !buyDecimalsOnChain) {
+  //   console.warn(`[use-zrouter-quote] Buy token missing decimals, defaulting to 18`);
+  // }
 
   // Compute the viem "amount" input up-front (to freeze the queryKey precisely on what matters)
   const parsedAmount = useMemo(() => {
     if (!isValidNumberLike(rawAmount)) return undefined;
     const dec = side === "EXACT_IN" ? sellDecimals : buyDecimals;
     try {
-      const parsed = parseUnits(rawAmount!, dec);
-      // Debug logging for decimal issues
-      console.log(`[use-zrouter-quote] Parsing ${side}:`, {
-        rawAmount,
-        sellToken: sellToken?.symbol || sellTokenAddress,
-        buyToken: buyToken?.symbol || buyTokenAddress,
-        sellDecimals,
-        buyDecimals,
-        usedDecimals: dec,
-        parsedAmount: parsed.toString(),
-      });
-      return parsed;
+      return parseUnits(rawAmount!, dec);
     } catch {
       return undefined;
     }
-  }, [rawAmount, side, sellDecimals, buyDecimals, sellToken, buyToken]);
+  }, [rawAmount, side, sellDecimals, buyDecimals]);
   // Build a stable query key so React Query only runs when any part changes
   const queryKey = useMemo(
     () =>
@@ -232,7 +213,10 @@ export function useZRouterQuote({
   );
 
   // Don't run quote until decimals are loaded (to avoid wasting API calls with wrong amounts)
-  const decimalsReady = !sellDecimalsLoading && !buyDecimalsLoading;
+  // Only wait for decimals if we're actually trying to fetch them
+  const waitingForSellDecimals = !sellToken?.decimals && !isSellTokenERC6909 && sellDecimalsLoading;
+  const waitingForBuyDecimals = !buyToken?.decimals && !isBuyTokenERC6909 && buyDecimalsLoading;
+  const decimalsReady = !waitingForSellDecimals && !waitingForBuyDecimals;
   const autoEnabled = !!publicClient && !!tokenIn && !!tokenOut && !!parsedAmount && decimalsReady;
 
   return useQuery<ZRouterQuoteResult>({
@@ -292,18 +276,6 @@ export function useZRouterQuote({
                 } else {
                   amountIn = formatUnits(route.expectedAmount, sellDecimals);
                   amountOut = rawAmount!;
-                  // Debug logging for EXACT_OUT formatting
-                  console.log(`[use-zrouter-quote] Formatting EXACT_OUT result (API):`, {
-                    venue: route.venue,
-                    isMultiHop: route.metadata.isMultiHop,
-                    steps: route.steps.length,
-                    expectedAmount: route.expectedAmount.toString(),
-                    sellDecimals,
-                    buyDecimals,
-                    formattedAmountIn: amountIn,
-                    sellToken: sellToken?.symbol || sellTokenAddress,
-                    buyToken: buyToken?.symbol || buyTokenAddress,
-                  });
                 }
 
                 return {
@@ -323,16 +295,25 @@ export function useZRouterQuote({
                   const expectedIn = parseFloat(routeUI.amountIn);
                   const expectedOut = parseFloat(routeUI.amountOut);
 
-                  // Sanity check: expected input shouldn't be orders of magnitude smaller than output
-                  // For stablecoins or similar priced assets, ratio should be close to 1
-                  // Even for volatile pairs, if we want $3100 worth, we shouldn't need $3 worth of input
-                  if (expectedOut > 100 && expectedIn < expectedOut / 100) {
-                    console.warn(`[use-zrouter-quote] Filtering out route with suspicious decimals:`, {
+                  // Multi-tier filtering for decimal bugs:
+                  // 1. Very small inputs (< 0.01) are always suspicious
+                  if (expectedIn < 0.01 && expectedIn > 0) {
+                    console.warn(`[use-zrouter-quote] Filtering route - input too small:`, {
+                      venue: routeUI.venue,
+                      amountIn: routeUI.amountIn,
+                    });
+                    return false;
+                  }
+
+                  // 2. For large output amounts (1000+), input should be reasonable (> 0.5)
+                  // Example: For 3100 USDC out, needing 0.04 ETH is clearly wrong (decimal bug)
+                  // but needing 1.0 ETH is reasonable (actual price)
+                  if (expectedOut > 1000 && expectedIn < 0.5) {
+                    console.warn(`[use-zrouter-quote] Filtering route - input too small for large output:`, {
                       venue: routeUI.venue,
                       isMultiHop: routeUI.isMultiHop,
                       amountIn: routeUI.amountIn,
                       amountOut: routeUI.amountOut,
-                      ratio: expectedIn / expectedOut,
                     });
                     return false;
                   }
@@ -424,18 +405,6 @@ export function useZRouterQuote({
         } else {
           amountIn = formatUnits(route.expectedAmount, sellDecimals);
           amountOut = rawAmount!;
-          // Debug logging for EXACT_OUT formatting (SDK fallback)
-          console.log(`[use-zrouter-quote] Formatting EXACT_OUT result (SDK fallback):`, {
-            venue: route.venue,
-            isMultiHop: route.metadata.isMultiHop,
-            steps: route.steps.length,
-            expectedAmount: route.expectedAmount.toString(),
-            sellDecimals,
-            buyDecimals,
-            formattedAmountIn: amountIn,
-            sellToken: sellToken?.symbol || sellTokenAddress,
-            buyToken: buyToken?.symbol || buyTokenAddress,
-          });
         }
 
         return {
@@ -454,13 +423,23 @@ export function useZRouterQuote({
           const expectedIn = parseFloat(routeUI.amountIn);
           const expectedOut = parseFloat(routeUI.amountOut);
 
-          if (expectedOut > 100 && expectedIn < expectedOut / 100) {
-            console.warn(`[use-zrouter-quote] Filtering out route with suspicious decimals (SDK):`, {
+          // Multi-tier filtering for decimal bugs:
+          // 1. Very small inputs (< 0.01) are always suspicious
+          if (expectedIn < 0.01 && expectedIn > 0) {
+            console.warn(`[use-zrouter-quote] Filtering route - input too small (SDK):`, {
+              venue: routeUI.venue,
+              amountIn: routeUI.amountIn,
+            });
+            return false;
+          }
+
+          // 2. For large output amounts (1000+), input should be reasonable (> 0.5)
+          if (expectedOut > 1000 && expectedIn < 0.5) {
+            console.warn(`[use-zrouter-quote] Filtering route - input too small for large output (SDK):`, {
               venue: routeUI.venue,
               isMultiHop: routeUI.isMultiHop,
               amountIn: routeUI.amountIn,
               amountOut: routeUI.amountOut,
-              ratio: expectedIn / expectedOut,
             });
             return false;
           }
