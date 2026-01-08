@@ -674,21 +674,48 @@ export const InstantTradeAction = forwardRef<
       // Track swap error (catch analytics errors to prevent breaking the flow)
       try {
         if (sellToken && buyToken && !isUserRejectionError(err)) {
-          // Determine error type based on error message
-          let errorType = "transaction-failed";
+          // Get error details
           const errorMsg = String(err).toLowerCase();
+          const errorName = (err as any)?.name || "Unknown";
+          const errorCode = (err as any)?.code || (err as any)?.error?.code;
+
+          // Determine error type and stage
+          let errorType = "transaction-failed";
+          let errorStage = "execution";
+
           if (errorMsg.includes("slippage")) {
             errorType = "slippage-exceeded";
           } else if (errorMsg.includes("insufficient")) {
             errorType = "insufficient-balance";
-          } else if (errorMsg.includes("approval")) {
+            errorStage = "pre-flight";
+          } else if (errorMsg.includes("approval") || errorMsg.includes("approve")) {
             errorType = "approval-failed";
-          } else if (errorMsg.includes("simulation")) {
+            errorStage = "approval";
+          } else if (errorMsg.includes("simulation") || errorMsg.includes("simulate")) {
             errorType = "simulation-failed";
+            errorStage = "simulation";
+          } else if (errorMsg.includes("route") || errorMsg.includes("no route")) {
+            errorType = "no-route-found";
+            errorStage = "routing";
+          } else if (errorMsg.includes("gas")) {
+            errorType = "gas-estimation-failed";
+            errorStage = "gas-estimation";
+          } else if (errorMsg.includes("reverted")) {
+            errorType = "transaction-reverted";
           }
+
+          // Extract meaningful error snippet (first 100 chars, sanitized)
+          const errorSnippet = String(err)
+            .replace(/0x[a-fA-F0-9]{40}/g, "[ADDRESS]") // Remove addresses
+            .replace(/\d{10,}/g, "[NUMBER]") // Remove large numbers
+            .substring(0, 100);
 
           trackSwapError(errorType, {
             pair: `${getTokenSymbol(sellToken)}/${getTokenSymbol(buyToken)}`,
+            stage: errorStage,
+            errorName: errorName,
+            ...(errorCode && { code: String(errorCode) }),
+            snippet: errorSnippet,
           });
         }
       } catch (analyticsError) {
