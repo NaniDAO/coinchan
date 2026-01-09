@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { zeroAddress, type Address } from "viem";
 import { usePublicClient } from "wagmi";
 import { getTokenBalances } from "@/lib/get-token-balances";
+import { useCustomTokens } from "@/hooks/use-custom-tokens";
+import { useMemo } from "react";
 
 type TokenListItem = {
   address: Address;
@@ -21,8 +23,9 @@ const keyOf = (t: Pick<TokenMetadata, "address" | "id">) => `${t.address.toLower
 
 export const useGetTokens = (owner?: Address) => {
   const publicClient = usePublicClient();
+  const { customTokens } = useCustomTokens();
 
-  return useQuery({
+  const queryResult = useQuery({
     queryKey: ["token-list-with-balances", owner],
     queryFn: async (): Promise<TokenMetadata[]> => {
       const response = await fetch("https://assets.zamm.finance/tokenlist.json");
@@ -95,4 +98,30 @@ export const useGetTokens = (owner?: Address) => {
     staleTime: 60_000,
     gcTime: 30 * 60_000,
   });
+
+  // Convert custom tokens to TokenMetadata format and merge
+  const customTokensAsMetadata: TokenMetadata[] = useMemo(
+    () =>
+      customTokens.map((t) => ({
+        address: t.token1 as Address,
+        id: t.id ?? 0n,
+        name: t.name,
+        symbol: t.symbol,
+        imageUrl: t.imageUrl || "",
+        decimals: t.decimals || 18,
+        standard: "ERC20" as const,
+        balance: t.balance ?? 0n,
+      })),
+    [customTokens],
+  );
+
+  const mergedData = useMemo(
+    () => (queryResult.data ? [...queryResult.data, ...customTokensAsMetadata] : customTokensAsMetadata),
+    [queryResult.data, customTokensAsMetadata],
+  );
+
+  return {
+    ...queryResult,
+    data: mergedData,
+  };
 };

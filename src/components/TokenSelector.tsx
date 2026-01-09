@@ -1,11 +1,14 @@
 import { memo, useMemo, useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDownIcon, SearchIcon, Clock4, Check } from "lucide-react";
-import { formatEther, formatUnits } from "viem";
+import { formatEther, formatUnits, getAddress, type Address } from "viem";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { getCoinKey, type TokenMeta } from "@/lib/coins";
 import { TokenImage } from "./TokenImage";
+import { useCustomTokens } from "@/hooks/use-custom-tokens";
+import { AddCustomToken } from "./AddCustomToken";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -94,8 +97,10 @@ export const TokenSelector = memo(
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
+    const [detectedAddress, setDetectedAddress] = useState<Address | null>(null);
 
     const { recentTokens, addRecent } = useRecentTokens(tokens);
+    const { addCustomToken, isCustomToken } = useCustomTokens();
 
     const isDisabled = tokens.length <= 1;
 
@@ -103,6 +108,21 @@ export const TokenSelector = memo(
       onSelect(token);
       addRecent(token);
       setOpen(false);
+    };
+
+    const handleAddCustomToken = async () => {
+      if (!detectedAddress) return;
+
+      try {
+        const added = await addCustomToken(detectedAddress);
+        if (added) {
+          handleSelect(added);
+          toast.success(t("tokenSelector.custom_token_added"));
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to add token";
+        toast.error(message);
+      }
     };
 
     const formatBalance = (token: TokenMeta) => {
@@ -145,14 +165,28 @@ export const TokenSelector = memo(
 
     const filtered = useMemo(() => {
       const q = query.trim().toLowerCase();
+
+      // Detect if query is a valid Ethereum address
+      if (q.startsWith("0x") && q.length === 42) {
+        try {
+          const addr = getAddress(q as Address);
+          setDetectedAddress(addr);
+        } catch {
+          setDetectedAddress(null);
+        }
+      } else {
+        setDetectedAddress(null);
+      }
+
       if (!q) return items;
       return items.filter(({ token }) => {
         const symbol = token.symbol?.toLowerCase() ?? "";
         const name = token.name?.toLowerCase() ?? "";
         const id = token.id?.toString() ?? "eth";
+        const addr = token.token1?.toLowerCase() ?? "";
         const queryIsNumber = !isNaN(Number(q));
         const idMatches = queryIsNumber ? id.startsWith(q) : id.toLowerCase().includes(q);
-        return symbol.includes(q) || name.includes(q) || idMatches;
+        return symbol.includes(q) || name.includes(q) || idMatches || addr.includes(q);
       });
     }, [items, query]);
 
@@ -247,10 +281,18 @@ export const TokenSelector = memo(
 
               {/* Let CommandList handle its own scrolling */}
               <CommandList className="max-h-[60vh] sm:max-h-[50vh] overflow-y-auto">
-                <CommandEmpty className="py-10 text-center text-sm text-muted-foreground">
-                  {t("tokenSelector.no_results", {
-                    defaultValue: "No tokens found",
-                  })}
+                <CommandEmpty className="py-4 text-center">
+                  {detectedAddress &&
+                  !items.some((i) => i.token.token1?.toLowerCase() === detectedAddress.toLowerCase()) &&
+                  !isCustomToken(detectedAddress) ? (
+                    <AddCustomToken address={detectedAddress} onAdd={handleAddCustomToken} existsInList={false} />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {t("tokenSelector.no_results", {
+                        defaultValue: "No tokens found",
+                      })}
+                    </p>
+                  )}
                 </CommandEmpty>
 
                 <CommandGroup className="px-0">

@@ -1047,7 +1047,13 @@
     "select_token": "Select a token",
     "selected": "Selected",
     "balance": "Balance",
-    "no_balance": "No balance"
+    "no_balance": "No balance",
+    "add_custom_token": "Add Custom Token",
+    "custom_token_added": "Custom token added successfully",
+    "invalid_address": "Invalid Ethereum address",
+    "not_erc20": "Address is not a valid ERC20 token",
+    "already_added": "Token already in list",
+    "validating_token": "Validating token..."
   },
   "orders": {
     "title": "Orders",
