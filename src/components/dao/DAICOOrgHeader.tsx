@@ -15,9 +15,10 @@ interface DAICOOrgHeaderProps {
   explorerUrl: string;
   shortenAddress: (addr: string) => string;
   tokenAddress?: string; // Share or Loot token address
+  chainId: number; // Chain ID for Majeur DAO link
 }
 
-export function DAICOOrgHeader({ org, chainName, explorerUrl, shortenAddress, tokenAddress }: DAICOOrgHeaderProps) {
+export function DAICOOrgHeader({ org, chainName, explorerUrl, shortenAddress, tokenAddress, chainId }: DAICOOrgHeaderProps) {
   return (
     <Card className="p-8 bg-gradient-to-br from-primary/5 via-purple-500/5 to-background border-primary/20">
       <div className="flex items-start gap-6">
@@ -40,7 +41,7 @@ export function DAICOOrgHeader({ org, chainName, explorerUrl, shortenAddress, to
             </Badge>
             <span>•</span>
             <a
-              href={`${explorerUrl}/address/${org.id}`}
+              href={`https://majeurdao.eth.limo/#/dao/${chainId}/${org.id}`}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-foreground transition-colors inline-flex items-center gap-1"

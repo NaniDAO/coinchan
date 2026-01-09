@@ -55,6 +55,19 @@ function OrgPage() {
     chainId,
   });
 
+  // Prepare poolId for the query - extract it before early returns to prevent hook order issues
+  const poolId = org?.lps && org.lps.length > 0 && org.lps[0]?.poolId ? org.lps[0].poolId : undefined;
+
+  // Check if any swaps have occurred by fetching price points
+  // IMPORTANT: This hook must be called before any early returns to maintain consistent hook order
+  const { data: pricePoints } = useQuery({
+    queryKey: ["poolPricePoints", poolId],
+    queryFn: () => fetchPoolPricePoints(poolId!, undefined, undefined, 1),
+    enabled: !!poolId,
+    staleTime: 60_000,
+    retry: false,
+  });
+
   const chainName = chainId === 1 ? "Mainnet" : chainId === 11155111 ? "Sepolia" : `Chain ${chainId}`;
   const explorerUrl = chainId === 11155111 ? "https://sepolia.etherscan.io" : "https://etherscan.io";
 
@@ -87,23 +100,11 @@ function OrgPage() {
   console.log("LPs:", org.lps);
   console.log("Pool ID:", org.lps && org.lps.length > 0 ? org.lps[0].poolId : "No LP");
 
-  const hasPool = org.lps && org.lps.length > 0 && org.lps[0]?.poolId;
-  const poolId = hasPool ? org.lps[0].poolId : undefined;
-
   // Get token address from the first sale (this is the DAO's Share or Loot token being sold)
   const tokenAddress = org.sales && org.sales.length > 0 ? org.sales[0].forTkn : undefined;
 
   // Create swap link with pre-filled token
   const swapLink = tokenAddress ? `/swap?buyToken=${tokenAddress}` : undefined;
-
-  // Check if any swaps have occurred by fetching price points
-  const { data: pricePoints } = useQuery({
-    queryKey: ["poolPricePoints", poolId],
-    queryFn: () => fetchPoolPricePoints(poolId!, undefined, undefined, 1),
-    enabled: !!poolId,
-    staleTime: 60_000,
-    retry: false,
-  });
 
   const hasSwaps = pricePoints && pricePoints.length > 0;
 
@@ -122,6 +123,7 @@ function OrgPage() {
         explorerUrl={explorerUrl}
         shortenAddress={shortenAddress}
         tokenAddress={tokenAddress}
+        chainId={chainId}
       />
 
       {/* Stats Overview */}
