@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { SEO } from "@/components/SEO";
 
 export const Route = createFileRoute("/explore")({
   component: ExploreLayout,
@@ -12,6 +13,11 @@ function ExploreLayout() {
 
   return (
     <div className="min-h-screen w-screen bg-background text-foreground">
+      <SEO
+        title="Explore Tokens & Pools"
+        description="Explore tokens, liquidity pools, orders, and DAICOs on ZAMM. Discover new trading opportunities on Ethereum's most gas-efficient DEX."
+        url="/explore"
+      />
       {/* Top tabs nav */}
       <nav
         aria-label="Explore navigation"

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LoadingLogo } from "@/components/ui/loading-logo";
+import { SEO } from "@/components/SEO";
 import { TokenSelectionProvider } from "../contexts/TokenSelectionContext";
 
 import { useTranslation } from "react-i18next";
@@ -26,6 +27,11 @@ function RouteComponent() {
 
   return (
     <TokenSelectionProvider>
+      <SEO
+        title="Limit Orders"
+        description="Place limit orders on ZAMM DEX. Set your price and let the order execute automatically when the market reaches your target. Gas-efficient on-chain orders."
+        url="/limit"
+      />
       <div className="w-full !mb-10 mt-5 mx-auto !p-4 bg-background ">
         {/* Load error notification */}
         {loadError && (

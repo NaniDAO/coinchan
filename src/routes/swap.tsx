@@ -1,4 +1,5 @@
 import { LoadingLogo } from "@/components/ui/loading-logo";
+import { SEO } from "@/components/SEO";
 import { TokenSelectionProvider } from "../contexts/TokenSelectionContext";
 
 import { createFileRoute } from "@tanstack/react-router";
@@ -57,6 +58,11 @@ function RouteComponent() {
 
   return (
     <TokenSelectionProvider>
+      <SEO
+        title="Swap Tokens"
+        description="Swap ETH and ERC-20 tokens instantly on ZAMM. The cheapest gas fees on Ethereum with no custody and instant execution."
+        url="/swap"
+      />
       <div className="w-full !mb-10 mt-5 mx-auto !p-4 bg-background">
         {/* Load error notification */}
         {loadError && (

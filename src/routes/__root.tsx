@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link, Outlet, createRootRoute, useMatchRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { SEO } from "@/components/SEO";
 import { useState } from "react";
 import {
   Menu,
@@ -47,6 +48,9 @@ export const Route = createRootRoute({
       return <Outlet />;
     }
 
+    // Default SEO for all pages (can be overridden by individual routes)
+    const defaultSEO = <SEO />;
+
     const handleLogoClick = () => {
       // Always navigate to landing page
       navigate({ to: "/" });
@@ -72,6 +76,7 @@ export const Route = createRootRoute({
 
     return (
       <>
+        {defaultSEO}
         <main className="flex flex-col items-center justify-center !space-y-0 bg-foreground overflow-x-hidden">
           {/* Header */}
           <div

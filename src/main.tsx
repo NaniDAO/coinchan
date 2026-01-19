@@ -3,6 +3,7 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "sonner";
+import { HelmetProvider } from "react-helmet-async";
 
 import { ThemeProvider, useTheme } from "./lib/theme";
 import { routeTree } from "./routeTree.gen";
@@ -77,12 +78,14 @@ declare module "@tanstack/react-router" {
 // Application with all providers
 const AppWithProviders = () => {
   return (
-    <ThemeProvider>
-      <WalletProviders>
-        <RouterProvider router={router} />
-        <Toaster />
-      </WalletProviders>
-    </ThemeProvider>
+    <HelmetProvider>
+      <ThemeProvider>
+        <WalletProviders>
+          <RouterProvider router={router} />
+          <Toaster />
+        </WalletProviders>
+      </ThemeProvider>
+    </HelmetProvider>
   );
 };
 
