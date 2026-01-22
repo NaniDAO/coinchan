@@ -9,21 +9,26 @@ import {
   useSendTransaction,
   useConnectorClient,
 } from "wagmi";
-import { ZORG_ADDRESS, ZORG_ABI, ZORG_SHARES } from "@/constants/ZORG";
+import { ZORG_ADDRESS, ZORG_ABI, ZORG_SHARES, ZORG_SHARES_ABI } from "@/constants/ZORG";
 import { ZRouterAddress, ZRouterAbi } from "@/constants/ZRouter";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { encodeFunctionData, parseUnits, formatUnits, formatEther, maxUint256 } from "viem";
 import { mainnet } from "viem/chains";
 import { useGetTokens } from "@/hooks/use-get-tokens";
 import { useZRouterQuote } from "@/hooks/use-zrouter-quote";
 import { TradePanel } from "@/components/trade/TradePanel";
+import { ZorgNFTBanner } from "./ZorgNFTBanner";
 import { ETH_TOKEN, ZAMM_TOKEN, ZAMM_ERC20_TOKEN, type TokenMetadata } from "@/lib/pools";
 import { buildRoutePlan, checkRouteApprovals, erc20Abi, zRouterAbi } from "zrouter-sdk";
 import { CoinsAbi } from "@/constants/Coins";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowRight, Shield, Coins } from "lucide-react";
 import { handleWalletError } from "@/lib/errors";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import {
+  SystemPanel,
+  StepsList,
+  VHSButton,
+} from "./vhs-ui";
 
 export const JoinDAO = () => {
   const { t } = useTranslation();
@@ -81,6 +86,18 @@ export const JoinDAO = () => {
     }, 500);
     return () => clearTimeout(timer);
   }, [inputAmount]);
+
+  // Fetch user's current ZORG shares balance
+  const { data: zorgSharesBalance, isLoading: isSharesBalanceLoading } = useReadContract({
+    address: ZORG_SHARES,
+    abi: ZORG_SHARES_ABI,
+    functionName: "balanceOf",
+    args: owner ? [owner] : undefined,
+    query: {
+      enabled: !!owner,
+      staleTime: 30_000,
+    },
+  });
 
   // Fetch sale config for ZAMM token
   const { data: zammSaleConfig, isLoading: isSaleConfigLoading } = useReadContract({
@@ -301,56 +318,219 @@ export const JoinDAO = () => {
   const cap = saleConfig ? saleConfig[1] : 0n;
 
   const estimatedShares = quote?.ok && quote.amountOut ? quote.amountOut : "0";
+  const isLoading = isExecuting || isPending;
+  const hasValidInput = inputAmount && Number(inputAmount) > 0 && quote?.ok;
 
   return (
     <ConnectButton.Custom>
       {({ openConnectModal }) => (
-        <div className="p-3 sm:p-6 max-w-md mx-auto">
+        <div className="p-4 sm:p-6 max-w-md mx-auto">
+          {/* ====== NFT BANNER ====== */}
+          <ZorgNFTBanner />
+
+          {/* ====== CURRENT SHARES BALANCE (if connected) ====== */}
+          {owner && (
+            <div
+              className="mb-5 p-3 sm:p-4 border border-cyan-600/25"
+              style={{
+                background: "linear-gradient(180deg, rgba(34, 211, 238, 0.06) 0%, rgba(34, 211, 238, 0.02) 100%)",
+                borderRadius: "3px",
+              }}
+            >
+              <div className="flex justify-between items-center">
+                <span
+                  style={{
+                    fontFamily: "ui-monospace, monospace",
+                    fontSize: "10px",
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "rgba(148, 163, 184, 0.8)",
+                  }}
+                >
+                  YOUR ZORG SHARES
+                </span>
+                <span
+                  style={{
+                    fontFamily: "'Courier New', ui-monospace, monospace",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: "#22d3ee",
+                    textShadow: "0 0 8px rgba(34, 211, 238, 0.3)",
+                  }}
+                >
+                  {isSharesBalanceLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin inline" />
+                  ) : (
+                    formatEther(zorgSharesBalance ?? 0n)
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* ====== LOADING STATE ====== */}
           {isSaleConfigLoading && (
-            <div className="mb-4 p-3 bg-muted border border-border rounded text-xs sm:text-sm flex items-center justify-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading sale information...</span>
+            <div
+              className="mb-5 p-4 border border-neutral-700/40 flex items-center justify-center gap-2"
+              style={{
+                background: "rgba(15, 15, 15, 0.6)",
+                borderRadius: "2px",
+              }}
+            >
+              <Loader2 className="h-4 w-4 animate-spin text-neutral-500" />
+              <span
+                style={{
+                  fontFamily: "ui-monospace, monospace",
+                  fontSize: "11px",
+                  color: "rgba(161, 161, 170, 0.8)",
+                }}
+              >
+                LOADING SALE DATA...
+              </span>
             </div>
           )}
 
+          {/* ====== SALE NOT ACTIVE ====== */}
           {!isSaleConfigLoading && !isActive && (
-            <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded text-xs sm:text-sm text-yellow-400">
-              {t("dao.sale_not_active")}
+            <div
+              className="mb-5 p-4 border border-orange-600/30"
+              style={{
+                background: "rgba(249, 115, 22, 0.08)",
+                borderRadius: "2px",
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block h-2 w-2 rounded-full"
+                  style={{ background: "#f97316", boxShadow: "0 0 6px #f97316" }}
+                />
+                <span
+                  style={{
+                    fontFamily: "'Courier New', ui-monospace, monospace",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "#f97316",
+                  }}
+                >
+                  {t("dao.sale_not_active")}
+                </span>
+              </div>
             </div>
           )}
 
+          {/* ====== MAIN ACTION PANEL ====== */}
           {!isSaleConfigLoading && isActive && (
-            <div className="space-y-3 sm:space-y-4">
-              {/* Sale Info Card */}
-              <div className="p-3 sm:p-4 border border-white/20 rounded-xl bg-white/5">
-                <div className="flex justify-between items-center text-xs sm:text-sm mb-2">
-                  <span className="text-muted-foreground">{t("dao.price_per_share")}</span>
-                  <span className="font-mono font-semibold">
+            <div className="space-y-4">
+              {/* Sale Info */}
+              <div
+                className="p-3 sm:p-4 border border-neutral-700/40"
+                style={{
+                  background: "linear-gradient(180deg, rgba(20,20,20,0.8) 0%, rgba(12,12,12,0.9) 100%)",
+                  borderRadius: "2px",
+                }}
+              >
+                <div className="flex justify-between items-center mb-2">
+                  <span
+                    style={{
+                      fontFamily: "ui-monospace, monospace",
+                      fontSize: "9px",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      color: "rgba(113, 113, 122, 0.8)",
+                    }}
+                  >
+                    {t("dao.price_per_share")}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "'Courier New', ui-monospace, monospace",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      color: "#e5e5e5",
+                    }}
+                  >
                     {pricePerShare.toString()} {payTokenSymbol}
                   </span>
                 </div>
                 {cap > 0n && (
-                  <div className="flex justify-between items-center text-xs sm:text-sm">
-                    <span className="text-muted-foreground">{t("dao.remaining_shares")}</span>
-                    <span className="font-mono font-semibold">{formatEther(cap)}</span>
+                  <div className="flex justify-between items-center">
+                    <span
+                      style={{
+                        fontFamily: "ui-monospace, monospace",
+                        fontSize: "9px",
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                        color: "rgba(113, 113, 122, 0.8)",
+                      }}
+                    >
+                      {t("dao.remaining_shares")}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Courier New', ui-monospace, monospace",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: "#e5e5e5",
+                      }}
+                    >
+                      {formatEther(cap)}
+                    </span>
                   </div>
                 )}
               </div>
 
-              {/* Input Token Panel */}
+              {/* ====== TOKEN INPUT PANEL ====== */}
               {isTokensLoading || !hasBalances ? (
                 <div className="z-10 text-foreground">
-                  <label className="block text-xs sm:text-sm font-medium mb-2">Pay with</label>
-                  <div className="flex items-center justify-center gap-2 py-6 sm:py-8 text-xs sm:text-sm text-muted-foreground border border-white/20 rounded-xl bg-black/40">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Loading token balances...</span>
+                  <label
+                    className="block mb-2"
+                    style={{
+                      fontFamily: "ui-monospace, monospace",
+                      fontSize: "10px",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      color: "rgba(148, 163, 184, 0.8)",
+                    }}
+                  >
+                    PAY WITH
+                  </label>
+                  <div
+                    className="flex items-center justify-center gap-2 py-8 border border-neutral-700/40"
+                    style={{
+                      background: "rgba(10, 10, 10, 0.6)",
+                      borderRadius: "3px",
+                    }}
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin text-neutral-500" />
+                    <span
+                      style={{
+                        fontFamily: "ui-monospace, monospace",
+                        fontSize: "11px",
+                        color: "rgba(161, 161, 170, 0.7)",
+                      }}
+                    >
+                      Loading token balances...
+                    </span>
                   </div>
                 </div>
               ) : (
                 <div className="z-10 text-foreground">
-                  <label className="block text-xs sm:text-sm font-medium mb-2">Pay with</label>
+                  <label
+                    className="block mb-2"
+                    style={{
+                      fontFamily: "ui-monospace, monospace",
+                      fontSize: "10px",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      color: "rgba(148, 163, 184, 0.8)",
+                    }}
+                  >
+                    PAY WITH
+                  </label>
                   <TradePanel
-                    className="rounded-xl"
+                    className="rounded-[3px] border-neutral-700/50"
                     title="Sell"
                     selectedToken={inputToken}
                     tokens={tokens}
@@ -375,56 +555,182 @@ export const JoinDAO = () => {
 
               {/* Quote loading indicator */}
               {isQuoteFetching && (
-                <div className="flex items-center justify-center gap-2 py-2 text-xs sm:text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Finding best route...</span>
+                <div className="flex items-center justify-center gap-2 py-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-500" />
+                  <span
+                    style={{
+                      fontFamily: "ui-monospace, monospace",
+                      fontSize: "10px",
+                      letterSpacing: "0.04em",
+                      color: "rgba(34, 211, 238, 0.8)",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Finding best route...
+                  </span>
                 </div>
               )}
 
-              {/* Estimated output */}
+              {/* ====== ESTIMATED OUTPUT ====== */}
               {quote?.ok && !isQuoteFetching && inputAmount && Number(inputAmount) > 0 && (
-                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-xs sm:text-sm">
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
-                    <span className="text-muted-foreground">You will receive</span>
-                    <span className="font-mono font-semibold text-green-400">~{estimatedShares} ZORG Shares</span>
+                <div
+                  className="p-3 sm:p-4 border border-green-600/30"
+                  style={{
+                    background: "linear-gradient(180deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.03) 100%)",
+                    borderRadius: "3px",
+                  }}
+                >
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span
+                      style={{
+                        fontFamily: "ui-monospace, monospace",
+                        fontSize: "10px",
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                        color: "rgba(148, 163, 184, 0.7)",
+                      }}
+                    >
+                      YOU WILL RECEIVE
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Courier New', ui-monospace, monospace",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#22c55e",
+                        textShadow: "0 0 8px rgba(34, 197, 94, 0.4)",
+                      }}
+                    >
+                      ~{estimatedShares} ZORG SHARES
+                    </span>
                   </div>
                 </div>
               )}
 
-              <Button
+              {/* ====== PRIMARY CTA BUTTON ====== */}
+              <VHSButton
+                variant="primary"
+                size="lg"
                 onClick={!owner ? openConnectModal : handleJoinDAO}
                 disabled={
                   owner &&
-                  (isExecuting ||
-                    isPending ||
+                  (isLoading ||
                     isConnectorLoading ||
                     !isWalletReady ||
                     !inputAmount ||
                     Number(inputAmount) <= 0 ||
                     !quote?.ok)
                 }
-                className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold"
+                loading={isLoading}
+                className="w-full"
               >
-                {!owner
-                  ? t("common.connect_wallet")
-                  : isConnectorLoading
-                    ? "Connecting..."
-                    : isExecuting || isPending
-                      ? "Processing..."
-                      : "Join DAO"}
-              </Button>
+                {!owner ? (
+                  <>
+                    <Shield className="h-4 w-4" />
+                    CONNECT WALLET
+                  </>
+                ) : isConnectorLoading ? (
+                  "CONNECTING..."
+                ) : isLoading ? (
+                  "PROCESSING..."
+                ) : (
+                  <>
+                    <Coins className="h-4 w-4" />
+                    JOIN DAO
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </VHSButton>
 
-              {/* Errors / Success */}
-              {txError && <div className="text-xs sm:text-sm text-red-500 text-center">{txError}</div>}
+              {/* ====== ERROR/SUCCESS MESSAGES ====== */}
+              {txError && (
+                <div
+                  className="p-3 border border-red-600/30"
+                  style={{
+                    background: "rgba(239, 68, 68, 0.08)",
+                    borderRadius: "2px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "ui-monospace, monospace",
+                      fontSize: "11px",
+                      color: "#ef4444",
+                    }}
+                  >
+                    {txError}
+                  </span>
+                </div>
+              )}
+
               {isSuccess && (
-                <div className="text-xs sm:text-sm text-green-500 text-center">
-                  Successfully joined the DAO! TX: {txHash?.slice(0, 10)}...
+                <div
+                  className="p-3 border border-green-600/30"
+                  style={{
+                    background: "rgba(34, 197, 94, 0.08)",
+                    borderRadius: "2px",
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-2 w-2 rounded-full"
+                      style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }}
+                    />
+                    <span
+                      style={{
+                        fontFamily: "ui-monospace, monospace",
+                        fontSize: "11px",
+                        color: "#22c55e",
+                      }}
+                    >
+                      Successfully joined the DAO! TX: {txHash?.slice(0, 10)}...
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
           )}
 
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-4 text-center">{t("dao.buy_shares_note")}</p>
+          {/* ====== REQUIREMENTS/STEPS PANEL ====== */}
+          <div className="mt-6">
+            <SystemPanel title="HOW IT WORKS" level="INFO">
+              <StepsList
+                steps={[
+                  {
+                    number: "01",
+                    title: "SELECT PAYMENT",
+                    description: "Choose ETH or ZAMM to purchase shares",
+                    status: hasValidInput ? "complete" : owner ? "active" : "pending",
+                  },
+                  {
+                    number: "02",
+                    title: "CONFIRM TRANSACTION",
+                    description: "Approve and execute the purchase",
+                    status: isSuccess ? "complete" : hasValidInput ? "active" : "pending",
+                  },
+                  {
+                    number: "03",
+                    title: "RECEIVE SHARES",
+                    description: "Governance shares transfer to your wallet",
+                    status: isSuccess ? "complete" : "pending",
+                  },
+                ]}
+              />
+            </SystemPanel>
+          </div>
+
+          {/* ====== FOOTER NOTE ====== */}
+          <p
+            className="mt-4 text-center"
+            style={{
+              fontFamily: "ui-monospace, monospace",
+              fontSize: "9px",
+              letterSpacing: "0.04em",
+              color: "rgba(113, 113, 122, 0.6)",
+            }}
+          >
+            {t("dao.buy_shares_note")}
+          </p>
         </div>
       )}
     </ConnectButton.Custom>
