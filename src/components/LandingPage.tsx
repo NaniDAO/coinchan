@@ -147,7 +147,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                                     </div>
                                     <div className="flex items-center gap-2 group cursor-pointer hover:bg-accent p-1 rounded transition">
                                         <a
-                                            href="https://pnkpm.eth.limo/"
+                                            href="https://ethpm.eth.limo/"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="flex items-center gap-2"
@@ -163,7 +163,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                                     </div>
                                     <div className="flex items-center gap-2 group cursor-pointer hover:bg-accent p-1 rounded transition">
                                         <a
-                                            href="https://gaspm.eth.limo/"
+                                            href="https://ethpm.eth.limo/"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="flex items-center gap-2"
