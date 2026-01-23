@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLandingData } from "../hooks/use-landing-data";
+import { useProtocolStats } from "../hooks/use-protocol-stats";
 import { useNavigate } from "@tanstack/react-router";
 import { SortedTrendingFarms } from "./SortedTrendingFarms";
 import { GovernanceProposals } from "./GovernanceProposals";
@@ -16,6 +17,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const { data: landingData } = useLandingData();
+    const { data: protocolStats } = useProtocolStats();
 
     const [terminalLines, setTerminalLines] = useState<string[]>([]);
     const [systemReady, setSystemReady] = useState(false);
@@ -123,6 +125,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                                 </div>
                             </div>
 
+                            {/* Protocol Stats */}
+                            <div className="space-y-2 font-bold pt-4 border-t border-border">
+                                <div className="flex flex-col">
+                                    <span className="text-muted-foreground text-xs">swapped</span>
+                                    <span>
+                                        {protocolStats?.totalEthSwapped || "loading..."}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between w-48">
+                                    <span>swaps</span>
+                                    <span>
+                                        {protocolStats?.totalSwaps || "loading..."}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between w-48">
+                                    <span>coins</span>
+                                    <span>
+                                        {protocolStats?.totalCoins || "loading..."}
+                                    </span>
+                                </div>
+                            </div>
+
                             {/* Predictions */}
                             <div className="pt-6">
                                 <h3 className="font-bold text-foreground mb-3 text-base">
@@ -130,50 +154,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                                 </h3>
                                 <div className="space-y-2 border-l border-border ml-1 pl-3 relative">
                                     <div className="flex items-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                navigate({ to: "/predict" })
-                                            }
+                                        <a
+                                            href="https://ethpm.eth.limo/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
                                             className="flex items-center gap-2 hover:bg-accent p-1 rounded transition"
                                         >
                                             <span className="font-bold text-foreground">
-                                                Onchain Events
+                                                ethPM
                                             </span>
                                             <span className="opacity-50 text-[10px]">
-                                                (View all)
-                                            </span>
-                                        </button>
-                                    </div>
-                                    <div className="flex items-center gap-2 group cursor-pointer hover:bg-accent p-1 rounded transition">
-                                        <a
-                                            href="https://ethpm.eth.limo/"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-2"
-                                        >
-                                            <div className="w-4 h-4 bg-pink-500 rounded-sm" />
-                                            <span className="font-bold text-foreground">
-                                                PnkPM
-                                            </span>
-                                            <span className="opacity-50 text-[10px]">
-                                                (PAMM Market)
-                                            </span>
-                                        </a>
-                                    </div>
-                                    <div className="flex items-center gap-2 group cursor-pointer hover:bg-accent p-1 rounded transition">
-                                        <a
-                                            href="https://ethpm.eth.limo/"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-2"
-                                        >
-                                            <div className="w-4 h-4 bg-green-500 rounded-sm" />
-                                            <span className="font-bold text-foreground">
-                                                GasPM
-                                            </span>
-                                            <span className="opacity-50 text-[10px]">
-                                                (PAMM Market)
+                                                (Prediction Markets)
                                             </span>
                                         </a>
                                     </div>
@@ -257,7 +248,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                                     Launchpad
                                 </h1>
                                 <span className="px-2 py-1 bg-foreground text-background text-xs font-mono rounded">
-                                    v2.0
+                                    v1.0
                                 </span>
                             </div>
                             <div className="prose prose-lg dark:prose-invert text-muted-foreground font-sans leading-relaxed">

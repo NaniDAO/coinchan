@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import PoolPriceChart from "@/components/PoolPriceChart";
-import PredictionMarketOddsChart from "@/components/pools/PredictionMarketOddsChart";
 import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
 import { useGetPool } from "@/hooks/use-get-pool";
-import { usePAMMMarket } from "@/hooks/use-pamm-market";
 import { useEffect } from "react";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 
@@ -27,15 +25,11 @@ function EmbedPoolChart() {
   const { theme, range } = Route.useSearch() as EmbedSearchParams;
   const { data: ethUsdPrice } = useEthUsdPrice();
 
-  // Fetch pool to get ticker and check if it's a prediction market
+  // Fetch pool to get ticker
   const { data: cookbookPool, isLoading: cookbookLoading } = useGetPool(poolId, "COOKBOOK", chainId);
   const { data: zammPool, isLoading: zammLoading } = useGetPool(poolId, "ZAMM", chainId);
   const pool = cookbookPool || zammPool;
   const isLoading = cookbookLoading && zammLoading;
-
-  // Check if this is a PAMM prediction market pool
-  const { data: pammData } = usePAMMMarket(pool ?? null);
-  const isPredictionMarket = pammData?.isPAMMPool && pammData?.marketId !== null;
 
   // Apply theme from query param
   useEffect(() => {
@@ -61,16 +55,6 @@ function EmbedPoolChart() {
     );
   }
 
-  // Render prediction market odds chart for PAMM pools
-  if (isPredictionMarket && pammData) {
-    return (
-      <div className="h-screen w-full bg-background p-4">
-        <PredictionMarketOddsChart poolId={poolId} yesIsId0={pammData.yesIsId0} defaultTimeRange={range || "1w"} />
-      </div>
-    );
-  }
-
-  // Render standard price chart for regular pools
   return (
     <div className="h-screen w-full bg-background p-4">
       <PoolPriceChart

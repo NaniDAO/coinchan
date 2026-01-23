@@ -13,32 +13,26 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, ArrowUpRight, ArrowDownRight, ExternalLink, Users, Activity, Droplets } from "lucide-react";
 import type { Pool } from "@/hooks/use-get-pool";
-import type { PAMMMarketData } from "@/hooks/use-pamm-market";
 
 interface PoolActivityPanelProps {
   pool: Pool;
-  pammData?: PAMMMarketData | null;
   className?: string;
 }
 
 type ActivityTab = "trades" | "holders" | "lp";
 
-export function PoolActivityPanel({ pool, pammData, className }: PoolActivityPanelProps) {
+export function PoolActivityPanel({ pool, className }: PoolActivityPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ActivityTab>("trades");
-
-  const isPredictionMarket = pammData?.isPAMMPool && pammData?.marketId !== null;
 
   // Fetch swaps - use the pool's source for the query
   const { data: swaps, isLoading: swapsLoading } = usePoolSwaps(pool.id, pool.source as "ZAMM" | "COOKBOOK", 30);
 
-  // Fetch LP providers for ALL pools (including PAMM) - derived from liquidity events
+  // Fetch LP providers - derived from liquidity events
   const { data: lpProviders, isLoading: lpProvidersLoading } = usePoolLpProviders(pool.id, 20);
 
-  // For prediction markets, token symbols depend on yesIsId0 (which position is YES)
-  // ZAMM doesn't know YES/NO - we get that from PAMM's identifyYesNoIds
-  const token0Symbol = isPredictionMarket ? (pammData?.yesIsId0 ? "YES" : "NO") : pool.coin0?.symbol || "Token0";
-  const token1Symbol = isPredictionMarket ? (pammData?.yesIsId0 ? "NO" : "YES") : pool.coin1?.symbol || "Token1";
+  const token0Symbol = pool.coin0?.symbol || "Token0";
+  const token1Symbol = pool.coin1?.symbol || "Token1";
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className={className}>
@@ -91,16 +85,12 @@ export function PoolActivityPanel({ pool, pammData, className }: PoolActivityPan
                 isLoading={swapsLoading}
                 token0Symbol={token0Symbol}
                 token1Symbol={token1Symbol}
-                yesIsId0={pammData?.yesIsId0}
-                isPredictionMarket={isPredictionMarket}
               />
             )}
             {activeTab === "holders" && (
               <LpProvidersTab lpProviders={lpProviders || []} isLoading={lpProvidersLoading} />
             )}
-            {activeTab === "lp" && (
-              <LiquidityTab pool={pool} isPredictionMarket={isPredictionMarket} yesIsId0={pammData?.yesIsId0} />
-            )}
+            {activeTab === "lp" && <LiquidityTab pool={pool} />}
           </div>
         </div>
       </CollapsibleContent>
@@ -143,15 +133,11 @@ function TradesTab({
   isLoading,
   token0Symbol,
   token1Symbol,
-  yesIsId0,
-  isPredictionMarket,
 }: {
   swaps: SwapEvent[];
   isLoading: boolean;
   token0Symbol: string;
   token1Symbol: string;
-  yesIsId0?: boolean;
-  isPredictionMarket?: boolean;
 }) {
   if (isLoading) {
     return (
@@ -175,7 +161,7 @@ function TradesTab({
   return (
     <div className="space-y-1">
       {swaps.map((swap) => {
-        const formatted = formatSwapEvent(swap, token0Symbol, token1Symbol, yesIsId0);
+        const formatted = formatSwapEvent(swap, token0Symbol, token1Symbol);
         const isBuy = formatted.type === "buy";
 
         return (
@@ -200,7 +186,7 @@ function TradesTab({
                       isBuy ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
                     )}
                   >
-                    {isPredictionMarket && formatted.side ? `Buy ${formatted.side}` : isBuy ? "Buy" : "Sell"}
+                    {isBuy ? "Buy" : "Sell"}
                   </span>
                   <span className="text-sm text-muted-foreground">
                     {Number(formatted.amountOut).toFixed(4)} {formatted.tokenOut}
@@ -307,22 +293,13 @@ function LpProviderRow({
   );
 }
 
-function LiquidityTab({
-  pool,
-  isPredictionMarket,
-  yesIsId0,
-}: {
-  pool: Pool;
-  isPredictionMarket?: boolean;
-  yesIsId0?: boolean;
-}) {
+function LiquidityTab({ pool }: { pool: Pool }) {
   const reserve0 = pool.reserve0 ? Number(formatEther(BigInt(pool.reserve0))) : 0;
   const reserve1 = pool.reserve1 ? Number(formatEther(BigInt(pool.reserve1))) : 0;
   const totalLiquidity = reserve0 + reserve1;
 
-  // For prediction markets, token symbols depend on yesIsId0
-  const token0Symbol = isPredictionMarket ? (yesIsId0 ? "YES" : "NO") : pool.coin0?.symbol || "Token0";
-  const token1Symbol = isPredictionMarket ? (yesIsId0 ? "NO" : "YES") : pool.coin1?.symbol || "Token1";
+  const token0Symbol = pool.coin0?.symbol || "Token0";
+  const token1Symbol = pool.coin1?.symbol || "Token1";
 
   return (
     <div className="space-y-4">
@@ -347,11 +324,11 @@ function LiquidityTab({
           {totalLiquidity > 0 && (
             <>
               <div
-                className={cn("transition-all", isPredictionMarket ? "bg-emerald-500" : "bg-blue-500")}
+                className="transition-all bg-blue-500"
                 style={{ width: `${(reserve0 / totalLiquidity) * 100}%` }}
               />
               <div
-                className={cn("transition-all", isPredictionMarket ? "bg-rose-500" : "bg-purple-500")}
+                className="transition-all bg-purple-500"
                 style={{ width: `${(reserve1 / totalLiquidity) * 100}%` }}
               />
             </>

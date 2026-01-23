@@ -1,9 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/pm")({
   beforeLoad: () => {
-    throw redirect({
-      to: "/predict",
-    });
+    // Redirect to external ethPM site
+    window.location.href = "https://ethpm.eth.limo/";
   },
 });

@@ -14,7 +14,6 @@ import { Route as UserRouteImport } from './routes/user'
 import { Route as TradeRouteImport } from './routes/trade'
 import { Route as SwapRouteImport } from './routes/swap'
 import { Route as SendRouteImport } from './routes/send'
-import { Route as PredictRouteImport } from './routes/predict'
 import { Route as PositionsRouteImport } from './routes/positions'
 import { Route as PmRouteImport } from './routes/pm'
 import { Route as LimitRouteImport } from './routes/limit'
@@ -38,7 +37,6 @@ import { Route as ExplorePoolsRouteImport } from './routes/explore/pools'
 import { Route as ExploreOrdersRouteImport } from './routes/explore/orders'
 import { Route as ExploreDaicosRouteImport } from './routes/explore/daicos'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
-import { Route as PredictMarketTypeMarketIdRouteImport } from './routes/predict.$marketType.$marketId'
 import { Route as PChainIdPoolIdRouteImport } from './routes/p.$chainId.$poolId'
 import { Route as OrgsChainIdDaoAddressRouteImport } from './routes/orgs.$chainId.$daoAddress'
 import { Route as EmbedPoolChainIdPoolIdRouteImport } from './routes/embed/pool.$chainId.$poolId'
@@ -66,11 +64,6 @@ const SwapRoute = SwapRouteImport.update({
 const SendRoute = SendRouteImport.update({
   id: '/send',
   path: '/send',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PredictRoute = PredictRouteImport.update({
-  id: '/predict',
-  path: '/predict',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PositionsRoute = PositionsRouteImport.update({
@@ -188,12 +181,6 @@ const CCoinIdRoute = CCoinIdRouteImport.update({
   path: '/c/$coinId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PredictMarketTypeMarketIdRoute =
-  PredictMarketTypeMarketIdRouteImport.update({
-    id: '/$marketType/$marketId',
-    path: '/$marketType/$marketId',
-    getParentRoute: () => PredictRoute,
-  } as any)
 const PChainIdPoolIdRoute = PChainIdPoolIdRouteImport.update({
   id: '/p/$chainId/$poolId',
   path: '/p/$chainId/$poolId',
@@ -224,7 +211,6 @@ export interface FileRoutesByFullPath {
   '/limit': typeof LimitRoute
   '/pm': typeof PmRoute
   '/positions': typeof PositionsRouteWithChildren
-  '/predict': typeof PredictRouteWithChildren
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
   '/trade': typeof TradeRoute
@@ -242,7 +228,6 @@ export interface FileRoutesByFullPath {
   '/positions/': typeof PositionsIndexRoute
   '/orgs/$chainId/$daoAddress': typeof OrgsChainIdDaoAddressRoute
   '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
-  '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
   '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
 }
 export interface FileRoutesByTo {
@@ -257,7 +242,6 @@ export interface FileRoutesByTo {
   '/jpyc': typeof JpycRoute
   '/limit': typeof LimitRoute
   '/pm': typeof PmRoute
-  '/predict': typeof PredictRouteWithChildren
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
   '/trade': typeof TradeRoute
@@ -275,7 +259,6 @@ export interface FileRoutesByTo {
   '/positions': typeof PositionsIndexRoute
   '/orgs/$chainId/$daoAddress': typeof OrgsChainIdDaoAddressRoute
   '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
-  '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
   '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
 }
 export interface FileRoutesById {
@@ -293,7 +276,6 @@ export interface FileRoutesById {
   '/limit': typeof LimitRoute
   '/pm': typeof PmRoute
   '/positions': typeof PositionsRouteWithChildren
-  '/predict': typeof PredictRouteWithChildren
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
   '/trade': typeof TradeRoute
@@ -311,7 +293,6 @@ export interface FileRoutesById {
   '/positions/': typeof PositionsIndexRoute
   '/orgs/$chainId/$daoAddress': typeof OrgsChainIdDaoAddressRoute
   '/p/$chainId/$poolId': typeof PChainIdPoolIdRoute
-  '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
   '/embed/pool/$chainId/$poolId': typeof EmbedPoolChainIdPoolIdRoute
 }
 export interface FileRouteTypes {
@@ -330,7 +311,6 @@ export interface FileRouteTypes {
     | '/limit'
     | '/pm'
     | '/positions'
-    | '/predict'
     | '/send'
     | '/swap'
     | '/trade'
@@ -348,7 +328,6 @@ export interface FileRouteTypes {
     | '/positions/'
     | '/orgs/$chainId/$daoAddress'
     | '/p/$chainId/$poolId'
-    | '/predict/$marketType/$marketId'
     | '/embed/pool/$chainId/$poolId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -363,7 +342,6 @@ export interface FileRouteTypes {
     | '/jpyc'
     | '/limit'
     | '/pm'
-    | '/predict'
     | '/send'
     | '/swap'
     | '/trade'
@@ -381,7 +359,6 @@ export interface FileRouteTypes {
     | '/positions'
     | '/orgs/$chainId/$daoAddress'
     | '/p/$chainId/$poolId'
-    | '/predict/$marketType/$marketId'
     | '/embed/pool/$chainId/$poolId'
   id:
     | '__root__'
@@ -398,7 +375,6 @@ export interface FileRouteTypes {
     | '/limit'
     | '/pm'
     | '/positions'
-    | '/predict'
     | '/send'
     | '/swap'
     | '/trade'
@@ -416,7 +392,6 @@ export interface FileRouteTypes {
     | '/positions/'
     | '/orgs/$chainId/$daoAddress'
     | '/p/$chainId/$poolId'
-    | '/predict/$marketType/$marketId'
     | '/embed/pool/$chainId/$poolId'
   fileRoutesById: FileRoutesById
 }
@@ -434,7 +409,6 @@ export interface RootRouteChildren {
   LimitRoute: typeof LimitRoute
   PmRoute: typeof PmRoute
   PositionsRoute: typeof PositionsRouteWithChildren
-  PredictRoute: typeof PredictRouteWithChildren
   SendRoute: typeof SendRoute
   SwapRoute: typeof SwapRoute
   TradeRoute: typeof TradeRoute
@@ -481,13 +455,6 @@ declare module '@tanstack/react-router' {
       path: '/send'
       fullPath: '/send'
       preLoaderRoute: typeof SendRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/predict': {
-      id: '/predict'
-      path: '/predict'
-      fullPath: '/predict'
-      preLoaderRoute: typeof PredictRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/positions': {
@@ -651,13 +618,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CCoinIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/predict/$marketType/$marketId': {
-      id: '/predict/$marketType/$marketId'
-      path: '/$marketType/$marketId'
-      fullPath: '/predict/$marketType/$marketId'
-      preLoaderRoute: typeof PredictMarketTypeMarketIdRouteImport
-      parentRoute: typeof PredictRoute
-    }
     '/p/$chainId/$poolId': {
       id: '/p/$chainId/$poolId'
       path: '/p/$chainId/$poolId'
@@ -727,17 +687,6 @@ const PositionsRouteWithChildren = PositionsRoute._addFileChildren(
   PositionsRouteChildren,
 )
 
-interface PredictRouteChildren {
-  PredictMarketTypeMarketIdRoute: typeof PredictMarketTypeMarketIdRoute
-}
-
-const PredictRouteChildren: PredictRouteChildren = {
-  PredictMarketTypeMarketIdRoute: PredictMarketTypeMarketIdRoute,
-}
-
-const PredictRouteWithChildren =
-  PredictRoute._addFileChildren(PredictRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -752,7 +701,6 @@ const rootRouteChildren: RootRouteChildren = {
   LimitRoute: LimitRoute,
   PmRoute: PmRoute,
   PositionsRoute: PositionsRouteWithChildren,
-  PredictRoute: PredictRouteWithChildren,
   SendRoute: SendRoute,
   SwapRoute: SwapRoute,
   TradeRoute: TradeRoute,

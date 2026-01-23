@@ -17,7 +17,6 @@ import {
   Rocket,
   Coins as CoinsIcon,
   Logs,
-  TrendingUp,
   Sparkles,
 } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
@@ -120,12 +119,12 @@ export const Route = createRootRoute({
                         <span>{t("common.limit")}</span>
                       </Link>
                     </DropdownMenuItem>
-                    {/* NEW: Predict */}
+                    {/* NEW: Predict - External link to ethPM */}
                     <DropdownMenuItem asChild>
-                      <Link to="/predict" className={itemClasses}>
+                      <a href="https://ethpm.eth.limo/" target="_blank" rel="noopener noreferrer" className={itemClasses}>
                         <Sparkles className="h-4 w-4" />
                         <span>{t("common.predict", "Predict")}</span>
-                      </Link>
+                      </a>
                     </DropdownMenuItem>
                     {/* NEW: Send */}
                     <DropdownMenuItem asChild>
@@ -257,12 +256,6 @@ export const Route = createRootRoute({
                         <span>{t("navigation.create", "Create")}</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/farm" className={itemClasses}>
-                        <TrendingUp className="h-4 w-4" />
-                        <span>{t("common.stake", "Stake")}</span>
-                      </Link>
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -314,69 +307,71 @@ export const Route = createRootRoute({
                       label: `${t("common.trade")} — Limit`,
                     },
                     {
-                      to: "/predict",
+                      to: "https://ethpm.eth.limo/",
                       label: `${t("common.trade")} — ${t("common.predict", "Predict")}`,
+                      external: true,
                     },
                     {
                       to: "/send",
                       label: `${t("common.trade")} — Send`,
                     },
                     {
-                      to: "/explore",
-                      label: t("common.explore"),
-                    },
-                    {
-                      to: "/explore/launches",
-                      label: "Launches",
-                    },
-                    {
                       to: "/explore/tokens",
-                      label: "Tokens",
+                      label: `${t("common.explore")} — Tokens`,
                     },
                     {
                       to: "/explore/pools",
-                      label: "Pools",
+                      label: `${t("common.explore")} — Pools`,
                     },
                     {
-                      to: "/explore/curve_coins",
-                      label: "Curve Coins",
+                      to: "/explore/orders",
+                      label: `${t("common.explore")} — Orders`,
                     },
                     {
                       to: "/explore/daicos",
-                      label: "DAICOs",
+                      label: `${t("common.explore")} — DAICOs`,
                     },
                     {
                       to: "/positions",
-                      label: t("common.positions"),
+                      label: t("common.pool"),
                     },
                     {
-                      to: "/coins",
-                      label: t("common.coins"),
-                    },
-                    {
-                      to: "/farm",
-                      label: `📈 ${t("common.stake", "Stake")}`,
+                      to: "/positions/create",
+                      label: `${t("common.pool")} — ${t("navigation.create", "Create")}`,
                     },
                     {
                       to: "/farm",
-                      label: `🌾 ${t("common.farm")}`,
+                      label: t("common.farm"),
                     },
                     {
                       to: "/farm/create",
-                      label: `🌾 ${t("common.farm")} — ${t("navigation.create", "Create")}`,
-                    }, // NEW
+                      label: `${t("common.farm")} — ${t("navigation.create", "Create")}`,
+                    },
                   ].map((link) => (
-                    <Link
-                      key={link.to}
-                      to={link.to}
-                      onClick={handleNavClick}
-                      className={cn(
-                        "cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground text-center flex items-center justify-center uppercase tracking-widest text-lg hover:bg-accent hover:text-accent-foreground rounded-md py-3",
-                        location.pathname === link.to ? "active bg-accent text-accent-foreground" : "",
-                      )}
-                    >
-                      {link.label}
-                    </Link>
+                    'external' in link && link.external ? (
+                      <a
+                        key={link.to}
+                        href={link.to}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={handleNavClick}
+                        className="cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground text-center flex items-center justify-center uppercase tracking-widest text-lg hover:bg-accent hover:text-accent-foreground rounded-md py-3"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        key={link.to}
+                        to={link.to}
+                        onClick={handleNavClick}
+                        className={cn(
+                          "cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground text-center flex items-center justify-center uppercase tracking-widest text-lg hover:bg-accent hover:text-accent-foreground rounded-md py-3",
+                          location.pathname === link.to ? "active bg-accent text-accent-foreground" : "",
+                        )}
+                      >
+                        {link.label}
+                      </Link>
+                    )
                   ))}
                 </nav>
               </div>
