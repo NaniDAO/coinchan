@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { RainbowConnectButton } from "@/components/RainbowConnectButton";
 import { JoinDAO } from "./JoinDAO";
+import { RageQuit } from "./RageQuit";
 import { DAOChat } from "./DAOChat";
 import { useAccount, useReadContract } from "wagmi";
 import { ZORG_SHARES, ZORG_SHARES_ABI } from "@/constants/ZORG";
@@ -135,6 +136,11 @@ export const ZORG = ({ isFullscreenChat = false }: ZORGProps) => {
         {/* Join DAO Panel */}
         <div className="border rounded-lg bg-card">
           <JoinDAO />
+        </div>
+
+        {/* Rage Quit */}
+        <div className="mt-6">
+          <RageQuit />
         </div>
 
         {/* DAO Chat */}
