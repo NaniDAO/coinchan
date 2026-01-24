@@ -7,7 +7,11 @@ import { ZORG_SHARES, ZORG_SHARES_ABI } from "@/constants/ZORG";
 import { formatEther } from "viem";
 import { Loader2, ArrowLeft, ExternalLink } from "lucide-react";
 
-export const ZORG = () => {
+type ZORGProps = {
+  isFullscreenChat?: boolean;
+};
+
+export const ZORG = ({ isFullscreenChat = false }: ZORGProps) => {
   const navigate = useNavigate();
   const { address } = useAccount();
 
@@ -36,6 +40,41 @@ export const ZORG = () => {
   const formattedBalance = zorgSharesBalance ? Number(formatEther(zorgSharesBalance)).toFixed(2) : "0";
   const formattedTotalSupply = totalSupply ? Number(formatEther(totalSupply)).toLocaleString(undefined, { maximumFractionDigits: 0 }) : "—";
   const hasBalance = zorgSharesBalance && zorgSharesBalance > 0n;
+
+  const handleToggleFullscreen = (fullscreen: boolean) => {
+    navigate({
+      to: "/dao",
+      search: fullscreen ? { chat: "fullscreen" } : {},
+      replace: true,
+    });
+  };
+
+  // Fullscreen chat view
+  if (isFullscreenChat) {
+    return (
+      <div className="min-h-screen w-full bg-background flex flex-col">
+        {/* Header */}
+        <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
+          <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
+            <button
+              type="button"
+              onClick={() => handleToggleFullscreen(false)}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="font-mono text-sm font-semibold tracking-wide">zOrg Chat</span>
+            </button>
+            <RainbowConnectButton />
+          </div>
+        </header>
+
+        {/* Fullscreen Chat */}
+        <main className="flex-1 mx-auto w-full max-w-4xl px-4 py-4">
+          <DAOChat isFullscreen onToggleFullscreen={handleToggleFullscreen} />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -100,7 +139,7 @@ export const ZORG = () => {
 
         {/* DAO Chat */}
         <div className="mt-6">
-          <DAOChat />
+          <DAOChat onToggleFullscreen={handleToggleFullscreen} />
         </div>
 
         {/* Governance Link */}

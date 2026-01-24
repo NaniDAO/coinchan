@@ -11,8 +11,9 @@ import { ZORG_ADDRESS, ZORG_ABI, ZORG_SHARES, ZORG_SHARES_ABI } from "@/constant
 import { parseAbiItem } from "viem";
 import { Button } from "@/components/ui/button";
 import { CalldataDecoder } from "@/components/CalldataDecoder";
-import { Loader2, Send, ExternalLink } from "lucide-react";
+import { Loader2, Send, ExternalLink, Maximize2, Minimize2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAddressZorgNFT } from "@/hooks/useAddressZorgNFT";
 
 type Message = {
   from: `0x${string}`;
@@ -60,6 +61,36 @@ const AddressLink = ({ address, className }: { address: string; className?: stri
   );
 };
 
+// Component for address with NFT avatar, ENS resolution and etherscan link
+const AddressWithNFT = ({ address, className }: { address: string; className?: string }) => {
+  const { data: ensName } = useEnsName({
+    address: address as `0x${string}`,
+    chainId: 1,
+  });
+  const { nftImage, hasNFT } = useAddressZorgNFT(address);
+
+  return (
+    <a
+      href={etherscanUrl("address", address)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`font-mono hover:underline inline-flex items-center gap-1.5 ${className ?? ""}`}
+      title={address}
+    >
+      {hasNFT && nftImage && (
+        <img
+          src={nftImage}
+          alt="ZORG NFT"
+          className="h-4 w-4"
+          style={{ imageRendering: "pixelated" }}
+        />
+      )}
+      {ensName ?? shortenAddress(address)}
+      <ExternalLink className="h-3 w-3 opacity-50" />
+    </a>
+  );
+};
+
 const OP_NAMES: Record<number, string> = {
   0: "Call",
   1: "Delegate Call",
@@ -96,7 +127,7 @@ const ProposalCard = ({ proposal, from }: { proposal: ProposalData; from: string
           <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
           <span className="text-xs font-semibold uppercase tracking-wide">Proposal</span>
         </div>
-        <AddressLink address={from} className="text-xs text-muted-foreground" />
+        <AddressWithNFT address={from} className="text-xs text-muted-foreground" />
       </div>
 
       {/* Content */}
@@ -136,7 +167,12 @@ const ProposalCard = ({ proposal, from }: { proposal: ProposalData; from: string
   );
 };
 
-export const DAOChat = () => {
+type DAOChatProps = {
+  isFullscreen?: boolean;
+  onToggleFullscreen?: (fullscreen: boolean) => void;
+};
+
+export const DAOChat = ({ isFullscreen = false, onToggleFullscreen }: DAOChatProps) => {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -247,15 +283,31 @@ export const DAOChat = () => {
   const isLoading = isPending || isConfirming;
 
   return (
-    <div className="border rounded-lg bg-card overflow-hidden">
+    <div className={`border rounded-lg bg-card overflow-hidden ${isFullscreen ? "flex flex-col h-full" : ""}`}>
       {/* Header */}
-      <div className="px-4 py-3 border-b bg-muted/30">
-        <h3 className="font-semibold text-sm">DAO Chat</h3>
-        <p className="text-xs text-muted-foreground">Messages from badge holders (onchain)</p>
+      <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-sm">DAO Chat</h3>
+          <p className="text-xs text-muted-foreground">Messages from badge holders (onchain)</p>
+        </div>
+        {onToggleFullscreen && (
+          <button
+            type="button"
+            onClick={() => onToggleFullscreen(!isFullscreen)}
+            className="p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            title={isFullscreen ? "Minimize" : "Fullscreen"}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="h-4 w-4" />
+            ) : (
+              <Maximize2 className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Messages */}
-      <div className="h-64 overflow-y-auto p-4 space-y-3">
+      <div className={`overflow-y-auto p-4 space-y-3 ${isFullscreen ? "flex-1" : "h-64"}`}>
         {isLoadingMessages ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -283,7 +335,7 @@ export const DAOChat = () => {
                 {plainText && (
                   <>
                     {!proposal && (
-                      <AddressLink address={msg.from} className="text-xs text-muted-foreground" />
+                      <AddressWithNFT address={msg.from} className="text-xs text-muted-foreground" />
                     )}
                     <div
                       className={`px-3 py-2 rounded-lg max-w-[80%] text-sm ${
