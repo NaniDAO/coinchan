@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useTranslation } from "react-i18next";
-import { useUserZorgNFT } from "@/hooks/useUserZorgNFT";
+import { useAccount } from "wagmi";
+import { useAddressZorgNFT } from "@/hooks/useAddressZorgNFT";
 
 export const RainbowConnectButton = () => {
   const { t } = useTranslation();
-  const { nftImage, hasNFT } = useUserZorgNFT();
+  const { address } = useAccount();
+  const { nftImage, hasNFT } = useAddressZorgNFT(address);
 
   return (
     <ConnectButton.Custom>

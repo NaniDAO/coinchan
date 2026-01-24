@@ -3,7 +3,6 @@ import {
   useReadContract,
   useWriteContract,
   useWaitForTransactionReceipt,
-  useReadContracts,
 } from "wagmi";
 import { ZORG_NFT, ZORG_NFT_ABI } from "@/constants/ZORGNFT";
 import { ZORG_BADGES_ADDRESS, ZORG_BADGES_ABI } from "@/constants/ZORGBadges";
@@ -14,6 +13,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { formatEther, keccak256, encodePacked } from "viem";
 import { useQueryClient } from "@tanstack/react-query";
 import { Progress } from "@/components/ui/progress";
+import { useAddressZorgNFT } from "@/hooks/useAddressZorgNFT";
 
 const MAX_SUPPLY = 10000n;
 
@@ -199,9 +199,11 @@ const downloadNFTAsPNG = async (svgDataUri: string, tokenId: number) => {
 export const ZorgNFTBanner = () => {
   const { address } = useAccount();
   const queryClient = useQueryClient();
-  const [userNFT, setUserNFT] = useState<NFTMetadata | null>(null);
   const [mintedTokenId, setMintedTokenId] = useState<bigint | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Use Alchemy API to fetch user's ZORG NFT
+  const { nftImage: userNftImage, tokenId: userTokenId, hasNFT: userHasNFT } = useAddressZorgNFT(address);
 
   // Generate a random token ID for preview immediately (client-side, no RPC needed)
   const [randomTokenId] = useState<number>(() => Math.floor(Math.random() * 5000) + 1);
@@ -246,80 +248,9 @@ export const ZorgNFTBanner = () => {
     query: { staleTime: 5_000 },
   });
 
-  const { data: nftBalance, refetch: refetchNftBalance } = useReadContract({
-    address: ZORG_NFT,
-    abi: ZORG_NFT_ABI,
-    functionName: "balanceOf",
-    args: address ? [address] : undefined,
-    query: { enabled: !!address, staleTime: 5_000 },
-  });
-
-  const userHasNFT = nftBalance !== undefined && nftBalance > 0n;
   const supply = totalSupply ?? 0n;
 
-  const tokenIdsToCheckOwnership = useMemo(() => {
-    if (!userHasNFT || !address || Number(supply) === 0) return [];
-    const supplyNum = Number(supply);
-    const checkCount = Math.min(supplyNum, 200);
-    const ids: number[] = [];
-    for (let i = supplyNum; i > supplyNum - checkCount && i > 0; i--) {
-      ids.push(i);
-    }
-    return ids;
-  }, [userHasNFT, address, supply]);
-
-  const { data: ownershipResults } = useReadContracts({
-    contracts: tokenIdsToCheckOwnership.map((id) => ({
-      address: ZORG_NFT as `0x${string}`,
-      abi: ZORG_NFT_ABI,
-      functionName: "ownerOf" as const,
-      args: [BigInt(id)] as const,
-    })),
-    query: {
-      enabled: tokenIdsToCheckOwnership.length > 0 && userHasNFT,
-      staleTime: 10_000,
-    },
-  });
-
-  const userTokenId = useMemo(() => {
-    if (!ownershipResults || !address) return null;
-    for (let i = 0; i < ownershipResults.length; i++) {
-      const result = ownershipResults[i];
-      if (
-        result.status === "success" &&
-        typeof result.result === "string" &&
-        result.result.toLowerCase() === address.toLowerCase()
-      ) {
-        return tokenIdsToCheckOwnership[i];
-      }
-    }
-    return null;
-  }, [ownershipResults, address, tokenIdsToCheckOwnership]);
-
-  const { data: userTokenURI, refetch: refetchUserTokenURI } = useReadContract({
-    address: ZORG_NFT,
-    abi: ZORG_NFT_ABI,
-    functionName: "tokenURI",
-    args: userTokenId ? [BigInt(userTokenId)] : undefined,
-    query: {
-      enabled: !!userTokenId,
-      staleTime: 60_000,
-    },
-  });
-
-  useEffect(() => {
-    if (userTokenURI && userTokenId) {
-      const parsed = parseTokenURI(userTokenURI as string);
-      if (parsed) {
-        setUserNFT({
-          tokenId: userTokenId,
-          image: parsed.image,
-          name: parsed.name,
-        });
-      }
-    }
-  }, [userTokenURI, userTokenId]);
-
+  // Fetch newly minted token URI
   const { data: mintedTokenURI } = useReadContract({
     address: ZORG_NFT,
     abi: ZORG_NFT_ABI,
@@ -331,18 +262,29 @@ export const ZorgNFTBanner = () => {
     },
   });
 
-  useEffect(() => {
+  // Build userNFT from Alchemy data or newly minted token
+  const userNFT = useMemo(() => {
+    // If we just minted, use the minted token data
     if (mintedTokenURI && mintedTokenId) {
       const parsed = parseTokenURI(mintedTokenURI as string);
       if (parsed) {
-        setUserNFT({
+        return {
           tokenId: Number(mintedTokenId),
           image: parsed.image,
           name: parsed.name,
-        });
+        };
       }
     }
-  }, [mintedTokenURI, mintedTokenId]);
+    // Otherwise use Alchemy data
+    if (userHasNFT && userNftImage && userTokenId) {
+      return {
+        tokenId: Number(userTokenId),
+        image: userNftImage,
+        name: `ZORG #${userTokenId}`,
+      };
+    }
+    return null;
+  }, [userHasNFT, userNftImage, userTokenId, mintedTokenURI, mintedTokenId]);
 
   const { writeContract, data: txHash, isPending, reset } = useWriteContract();
 
@@ -353,10 +295,9 @@ export const ZorgNFTBanner = () => {
   const refreshAllData = useCallback(() => {
     refetchSupply();
     refetchCanMint();
-    refetchNftBalance();
-    refetchUserTokenURI();
     queryClient.invalidateQueries({ queryKey: ["readContract"] });
-  }, [refetchSupply, refetchCanMint, refetchNftBalance, refetchUserTokenURI, queryClient]);
+    queryClient.invalidateQueries({ queryKey: ["zorg-nft"] });
+  }, [refetchSupply, refetchCanMint, queryClient]);
 
   useEffect(() => {
     if (isSuccess && mintedTokenId) {
