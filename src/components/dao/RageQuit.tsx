@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { ZORG_ADDRESS, ZORG_ABI, ZORG_SHARES, ZORG_SHARES_ABI } from "@/constants/ZORG";
 import { ZAMM_ERC20_TOKEN } from "@/lib/pools";
 import { formatEther, parseEther, decodeEventLog } from "viem";
@@ -25,7 +25,6 @@ export const RageQuit = () => {
   const { address: owner } = useAccount();
   const [amount, setAmount] = useState("");
   const [zammReceived, setZammReceived] = useState<bigint | null>(null);
-  const publicClient = usePublicClient();
 
   const { data: zorgSharesBalance, isLoading: isBalanceLoading, refetch: refetchBalance } = useReadContract({
     address: ZORG_SHARES,
