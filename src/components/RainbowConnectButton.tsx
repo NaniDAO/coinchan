@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useTranslation } from "react-i18next";
+import { useUserZorgNFT } from "@/hooks/useUserZorgNFT";
 
 export const RainbowConnectButton = () => {
   const { t } = useTranslation();
+  const { nftImage, hasNFT } = useUserZorgNFT();
+
   return (
     <ConnectButton.Custom>
       {({ account, chain, openAccountModal, openChainModal, openConnectModal, authenticationStatus, mounted }) => {
@@ -41,7 +44,15 @@ export const RainbowConnectButton = () => {
 
               return (
                 <div className="flex gap-2 justify-center items-center">
-                  <Button onClick={openAccountModal} variant="outline" size="sm" type="button">
+                  <Button onClick={openAccountModal} variant="outline" size="sm" type="button" className="gap-2">
+                    {hasNFT && nftImage && (
+                      <img
+                        src={nftImage}
+                        alt="ZORG NFT"
+                        className="h-5 w-5"
+                        style={{ imageRendering: "pixelated" }}
+                      />
+                    )}
                     {account.displayName}
                     {account.displayBalance ? ` (${account.displayBalance})` : ""}
                   </Button>
