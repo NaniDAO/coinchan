@@ -136,11 +136,9 @@ export const ZORG = ({ isFullscreenChat = false }: ZORGProps) => {
         {/* Join DAO Panel */}
         <div className="border rounded-lg bg-card">
           <JoinDAO />
-        </div>
-
-        {/* Rage Quit */}
-        <div className="mt-6">
-          <RageQuit />
+          <div className="px-4 pb-4 sm:px-6 sm:pb-6">
+            <RageQuit />
+          </div>
         </div>
 
         {/* DAO Chat */}
