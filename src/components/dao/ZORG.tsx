@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { RainbowConnectButton } from "@/components/RainbowConnectButton";
 import { JoinDAO } from "./JoinDAO";
+import { DAOChat } from "./DAOChat";
 import { useAccount, useReadContract } from "wagmi";
 import { ZORG_SHARES, ZORG_SHARES_ABI } from "@/constants/ZORG";
 import { formatEther } from "viem";
@@ -95,6 +96,11 @@ export const ZORG = () => {
         {/* Join DAO Panel */}
         <div className="border rounded-lg bg-card">
           <JoinDAO />
+        </div>
+
+        {/* DAO Chat */}
+        <div className="mt-6">
+          <DAOChat />
         </div>
 
         {/* Governance Link */}
