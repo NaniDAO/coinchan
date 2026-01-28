@@ -64,6 +64,17 @@ export const useGetTokens = (owner?: Address) => {
         }
       });
 
+      // Hardcoded NANI token
+      tokens.push({
+        address: "0x00000000000007c8612ba63df8ddefd9e6077c97" as Address,
+        id: 0n,
+        standard: "ERC20",
+        name: "NANI",
+        symbol: "⌘",
+        decimals: 18,
+        imageUrl: "https://assets.coingecko.com/coins/images/53551/standard/logo.png?1736671853",
+      });
+
       // ✅ Uniq by address:id (first occurrence wins; stable order)
       const seen = new Set<string>();
       const uniqTokens = tokens.filter((t) => {
