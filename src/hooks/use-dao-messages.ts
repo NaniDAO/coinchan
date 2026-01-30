@@ -68,6 +68,7 @@ export const useProposalDescription = ({
         description: undefined,
         image: undefined,
         name: undefined,
+        parsedAction: undefined,
       };
     }
 
@@ -77,10 +78,59 @@ export const useProposalDescription = ({
       const jsonString = atob(base64Data);
       const metadata = JSON.parse(jsonString);
 
+      // Try to parse action details from description
+      // Format might be: "Send X ETH to 0x..." or "Call 0x... with data 0x..."
+      const description = metadata.description as string | undefined;
+      let parsedAction:
+        | {
+            type: "eth_transfer" | "contract_call" | "unknown";
+            to?: string;
+            value?: string;
+            calldata?: string;
+          }
+        | undefined;
+
+      if (description) {
+        // Check for ETH transfer pattern
+        const ethTransferMatch = description.match(/send\s+([\d.]+)\s*eth\s+to\s+(0x[a-fA-F0-9]{40})/i);
+        if (ethTransferMatch) {
+          parsedAction = {
+            type: "eth_transfer",
+            value: ethTransferMatch[1],
+            to: ethTransferMatch[2],
+          };
+        }
+
+        // Check for contract call with calldata
+        const calldataMatch = description.match(/calldata[:\s]*(0x[a-fA-F0-9]+)/i);
+        const targetMatch = description.match(/(?:to|target|call)\s*(0x[a-fA-F0-9]{40})/i);
+
+        if (calldataMatch) {
+          parsedAction = {
+            type: "contract_call",
+            to: targetMatch?.[1],
+            calldata: calldataMatch[1],
+          };
+        }
+
+        // Check for hex data in description that looks like calldata
+        if (!parsedAction) {
+          const hexMatch = description.match(/(0x[a-fA-F0-9]{8,})/);
+          if (hexMatch && hexMatch[1].length > 10) {
+            parsedAction = {
+              type: "contract_call",
+              to: targetMatch?.[1],
+              calldata: hexMatch[1],
+            };
+          }
+        }
+      }
+
       return {
         description: metadata.description as string | undefined,
         image: metadata.image as string | undefined,
         name: metadata.name as string | undefined,
+        parsedAction,
       };
     } catch (e) {
       console.error("Failed to decode proposal metadata:", e);
@@ -88,6 +138,7 @@ export const useProposalDescription = ({
         description: undefined,
         image: undefined,
         name: undefined,
+        parsedAction: undefined,
       };
     }
   }, [tokenURI]);

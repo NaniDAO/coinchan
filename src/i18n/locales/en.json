@@ -1726,6 +1726,12 @@
     "enter_target_address": "Enter target address",
     "proposal_computing": "Computing proposal ID...",
     "proposal_id_computed": "Proposal ID computed",
-    "proposal_created": "Proposal created successfully"
+    "proposal_created": "Proposal created successfully",
+    "verified": "Verified",
+    "unverified": "Unverified",
+    "eth_transfer": "ETH Transfer",
+    "contract_call": "Contract Call",
+    "verify_calldata": "Decode on Swiss Knife",
+    "decode_calldata": "Decode calldata on Swiss Knife"
   }
 }

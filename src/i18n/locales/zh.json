@@ -1798,6 +1798,12 @@
     "enter_target_address": "输入目标地址",
     "proposal_computing": "计算提案 ID...",
     "proposal_id_computed": "提案 ID 已计算",
-    "proposal_created": "提案创建成功"
+    "proposal_created": "提案创建成功",
+    "verified": "已验证",
+    "unverified": "未验证",
+    "eth_transfer": "ETH 转账",
+    "contract_call": "合约调用",
+    "verify_calldata": "在 Swiss Knife 上解码",
+    "decode_calldata": "在 Swiss Knife 上解码调用数据"
   }
 }

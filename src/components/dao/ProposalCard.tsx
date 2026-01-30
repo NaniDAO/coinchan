@@ -1,17 +1,19 @@
-import { useTranslation } from "react-i18next";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { ZORG_ADDRESS, ZORG_ABI } from "@/constants/ZORG";
+import { Button } from "@/components/ui/button";
+import { ZORG_ABI, ZORG_ADDRESS } from "@/constants/ZORG";
+import { useProposalDescription } from "@/hooks/use-dao-messages";
 import {
-  useDAOProposalState,
-  useDAOProposalTallies,
+  useDAOHasVoted,
   useDAOProposalCreatedAt,
   useDAOProposalProposer,
-  useDAOHasVoted,
+  useDAOProposalState,
+  useDAOProposalTallies,
 } from "@/hooks/use-dao-proposals";
-import { useProposalDescription } from "@/hooks/use-dao-messages";
-import { Button } from "@/components/ui/button";
+import { useProposalCalldata } from "@/hooks/use-proposal-calldata";
+import { AlertTriangle, CheckCircle, ExternalLink, FileCode, Send } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { formatEther } from "viem";
+import { useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 
 // Vote support values for castVote function
 const VOTE_FOR = 1;
@@ -34,6 +36,24 @@ const formatVoteAmount = (amount: bigint): string => {
     return value.toFixed(4);
   }
   return "0";
+};
+
+// Build Swiss Knife calldata decoder URL
+const buildSwissKnifeUrl = (calldata?: string, targetAddress?: string): string => {
+  const baseUrl = "https://calldata.swiss-knife.xyz/decoder";
+  const params = new URLSearchParams({
+    chainId: "1",
+    address: targetAddress || ZORG_ADDRESS,
+  });
+  if (calldata) {
+    params.set("calldata", calldata);
+  }
+  return `${baseUrl}?${params.toString()}`;
+};
+
+// Truncate address for display
+const truncateAddress = (address: string): string => {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
 const formatTimeAgo = (timestamp: number): string => {
@@ -67,6 +87,7 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
   const proposer = useDAOProposalProposer({ proposalId });
   const hasVoted = useDAOHasVoted({ proposalId, address });
   const { description, image } = useProposalDescription({ proposalId });
+  const { proposalData, isVerified, hasMessages } = useProposalCalldata({ proposalId });
 
   const { writeContract, data: hash } = useWriteContract();
   const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
@@ -165,6 +186,106 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
 
         <div className="w-full">
           {description && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{description}</p>}
+
+          {/* Verification Badge */}
+          {hasMessages && (
+            <div className="mt-2 flex items-center gap-1">
+              {isVerified ? (
+                <span className="flex items-center gap-1 text-xs text-green-400">
+                  <CheckCircle className="h-3 w-3" />
+                  {t("dao.verified") || "Verified"}
+                </span>
+              ) : (
+                <span
+                  className="flex items-center gap-1 text-xs text-amber-400"
+                  title="Proposal data not found in messages - cannot verify integrity"
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  {t("dao.unverified") || "Unverified"}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Proposal Action Details from verified chat data */}
+          {proposalData && (
+            <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-border">
+              {/* ETH Transfer: data is empty ("0x") and value > 0 */}
+              {proposalData.data.toLowerCase() === "0x" && BigInt(proposalData.value) > 0n ? (
+                <div className="flex items-center gap-2">
+                  <Send className="h-4 w-4 text-primary" />
+                  <div className="text-sm">
+                    <span className="font-medium text-primary">{t("dao.eth_transfer") || "ETH Transfer"}</span>
+                    <span className="ml-2 font-mono">{formatEther(BigInt(proposalData.value))} ETH</span>
+                    <span className="ml-2 text-muted-foreground">
+                      →{" "}
+                      <a
+                        href={`https://etherscan.io/address/${proposalData.to}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-primary hover:underline"
+                      >
+                        {truncateAddress(proposalData.to)}
+                      </a>
+                    </span>
+                  </div>
+                </div>
+              ) : proposalData.data && proposalData.data.length > 2 ? (
+                /* Contract Call: has calldata */
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <FileCode className="h-4 w-4 text-amber-500" />
+                    <span className="text-sm font-medium text-amber-500">
+                      {t("dao.contract_call") || "Contract Call"}
+                    </span>
+                    <a
+                      href={`https://etherscan.io/address/${proposalData.to}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-mono text-primary hover:underline"
+                    >
+                      {truncateAddress(proposalData.to)}
+                    </a>
+                  </div>
+                  {BigInt(proposalData.value) > 0n && (
+                    <div className="text-xs text-muted-foreground">+ {formatEther(BigInt(proposalData.value))} ETH</div>
+                  )}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <code className="text-xs font-mono bg-background p-1 rounded max-w-[200px] truncate">
+                      {proposalData.data.slice(0, 20)}...
+                    </code>
+                    <a
+                      href={buildSwissKnifeUrl(proposalData.data, proposalData.to)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      {t("dao.verify_calldata") || "Decode on Swiss Knife"}
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                /* Unknown action type */
+                <div className="text-xs text-muted-foreground">Target: {truncateAddress(proposalData.to)}</div>
+              )}
+            </div>
+          )}
+
+          {/* Fallback Swiss Knife Link when no verified data */}
+          {!proposalData && (
+            <div className="mt-3">
+              <a
+                href={buildSwissKnifeUrl(undefined, ZORG_ADDRESS)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                <ExternalLink className="h-3 w-3" />
+                {t("dao.decode_calldata") || "Decode calldata on Swiss Knife"}
+              </a>
+            </div>
+          )}
 
           {/* Vote Tally */}
           {tallies && (

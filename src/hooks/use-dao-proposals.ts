@@ -139,3 +139,24 @@ export const useDAOHasVoted = ({ proposalId, address }: { proposalId?: bigint; a
 
   return data ? Number(data) : 0; // 0=not voted, 1=for, 2=against, 3=abstain
 };
+
+/**
+ * Hook to fetch proposal name (may contain calldata info)
+ */
+export const useDAOProposalName = ({ proposalId }: { proposalId?: bigint }) => {
+  const { data, isLoading } = useReadContract({
+    address: ZORG_ADDRESS,
+    abi: ZORG_ABI,
+    functionName: "name",
+    args: proposalId ? [proposalId] : undefined,
+    query: {
+      enabled: !!proposalId,
+      staleTime: 60_000, // 1 minute (doesn't change)
+    },
+  });
+
+  return {
+    name: data as string | undefined,
+    isLoading,
+  };
+};
