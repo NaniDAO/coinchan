@@ -65,11 +65,7 @@ const CopyButton = ({ text, label }: { text: string; label?: string }) => {
   };
 
   return (
-    <button
-      onClick={handleCopy}
-      className="p-1 rounded hover:bg-muted transition-colors"
-      title="Copy"
-    >
+    <button onClick={handleCopy} className="p-1 rounded hover:bg-muted transition-colors" title="Copy">
       {copied ? (
         <Check className="h-3 w-3 text-green-500" />
       ) : (
@@ -91,14 +87,12 @@ const useDecodeCalldata = (calldata: string | null) => {
     }
 
     const selector = calldata.slice(0, 10);
-    const encodedParams = calldata.length > 10 ? `0x${calldata.slice(10)}` as `0x${string}` : null;
+    const encodedParams = calldata.length > 10 ? (`0x${calldata.slice(10)}` as `0x${string}`) : null;
 
     const fetchAndDecode = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(
-          `https://api.openchain.xyz/signature-database/v1/lookup?function=${selector}`
-        );
+        const response = await fetch(`https://api.openchain.xyz/signature-database/v1/lookup?function=${selector}`);
         if (!response.ok) throw new Error("Failed to fetch");
 
         const data = await response.json();
@@ -215,9 +209,7 @@ const formatParamValue = (value: unknown, type: string): string => {
   }
 
   if (Array.isArray(value)) {
-    return JSON.stringify(value, (_, v) =>
-      typeof v === "bigint" ? v.toString() : v
-    );
+    return JSON.stringify(value, (_, v) => (typeof v === "bigint" ? v.toString() : v));
   }
 
   return String(value);
@@ -237,11 +229,7 @@ const DecodedCall = ({ calldata, depth = 0 }: { calldata: string; depth?: number
   }
 
   if (!decoded) {
-    return (
-      <div className="text-[10px] font-mono text-muted-foreground truncate">
-        {calldata.slice(0, 20)}...
-      </div>
-    );
+    return <div className="text-[10px] font-mono text-muted-foreground truncate">{calldata.slice(0, 20)}...</div>;
   }
 
   const isMulticall = MULTICALL_SELECTORS.includes(calldata.slice(0, 10).toLowerCase());
@@ -297,19 +285,17 @@ const MulticallChildren = ({ bytesArray, depth }: { bytesArray: string; depth: n
 
   return (
     <div className="ml-2 border-l-2 border-primary/20 pl-2 space-y-2">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="text-[9px] text-muted-foreground hover:text-foreground"
-      >
+      <button onClick={() => setExpanded(!expanded)} className="text-[9px] text-muted-foreground hover:text-foreground">
         {expanded ? "▼" : "▶"} {calls.length} nested call{calls.length !== 1 ? "s" : ""}
       </button>
 
-      {expanded && calls.map((call, i) => (
-        <div key={i} className="space-y-1">
-          <div className="text-[9px] text-muted-foreground">Call {i + 1}:</div>
-          <DecodedCall calldata={call} depth={depth} />
-        </div>
-      ))}
+      {expanded &&
+        calls.map((call, i) => (
+          <div key={i} className="space-y-1">
+            <div className="text-[9px] text-muted-foreground">Call {i + 1}:</div>
+            <DecodedCall calldata={call} depth={depth} />
+          </div>
+        ))}
     </div>
   );
 };

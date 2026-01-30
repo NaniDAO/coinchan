@@ -48,12 +48,7 @@ export const RainbowConnectButton = () => {
                 <div className="flex gap-2 justify-center items-center">
                   <Button onClick={openAccountModal} variant="outline" size="sm" type="button" className="gap-2">
                     {hasNFT && nftImage && (
-                      <img
-                        src={nftImage}
-                        alt="ZORG NFT"
-                        className="h-5 w-5"
-                        style={{ imageRendering: "pixelated" }}
-                      />
+                      <img src={nftImage} alt="ZORG NFT" className="h-5 w-5" style={{ imageRendering: "pixelated" }} />
                     )}
                     {account.displayName}
                     {account.displayBalance ? ` (${account.displayBalance})` : ""}

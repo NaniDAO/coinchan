@@ -1,16 +1,40 @@
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { erc20Abi, formatEther, formatUnits, parseEther, parseUnits } from "viem";
+import { erc20Abi, formatUnits, parseUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { useAccount, usePublicClient, useSendTransaction, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { TokenSelector } from "./components/TokenSelector";
 import { LoadingLogo } from "./components/ui/loading-logo";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useENSResolution } from "./hooks/use-ens-resolution";
-import { ETH_TOKEN, type TokenMeta, USDT_ADDRESS } from "./lib/coins";
+import { ETH_TOKEN, type TokenMeta } from "./lib/coins";
+
+// Helper to determine if a token is an ERC20 (not ETH, not ERC6909)
+const isERC20Token = (token: TokenMeta): boolean => {
+  // ETH is not ERC20
+  if (token.id === null) return false;
+  // Explicit ERC20 source
+  if (token.source === "ERC20") return true;
+  // Custom pool tokens with token1 address are ERC20s
+  if (token.isCustomPool && token.token1) return true;
+  return false;
+};
+
+// Get the contract address for an ERC20 token
+const getERC20Address = (token: TokenMeta): `0x${string}` | null => {
+  if (token.source === "ERC20" && token.token1) return token.token1;
+  if (token.isCustomPool && token.token1) return token.token1;
+  return null;
+};
+
+// Get decimals for a token (default to 18)
+const getTokenDecimals = (token: TokenMeta): number => {
+  return token.decimals ?? 18;
+};
 
 // Helper function to format token balance with appropriate precision
 export const formatTokenBalance = (token: TokenMeta): string => {
@@ -21,47 +45,35 @@ export const formatTokenBalance = (token: TokenMeta): string => {
   if (token.balance === 0n) return "0";
 
   try {
-    if (token.id === null) {
-      const ethBalanceStr = formatEther(token.balance);
-      const ethValue = Number(ethBalanceStr);
-
-      if (ethValue === 0) return "0";
-
-      if (ethValue >= 1000) {
-        return `${Math.floor(ethValue).toLocaleString()}`;
-      } else if (ethValue >= 1) {
-        return ethValue.toFixed(4);
-      } else if (ethValue >= 0.001) {
-        return ethValue.toFixed(6);
-      } else if (ethValue >= 0.0000001) {
-        return ethValue.toFixed(8);
-      } else {
-        return ethValue.toExponential(4);
-      }
-    }
-
-    const decimals = token.decimals || 18;
+    const decimals = getTokenDecimals(token);
     const tokenValue = Number(formatUnits(token.balance, decimals));
 
+    if (tokenValue === 0) return "0";
+
+    // Adjust display precision based on token decimals
     if (tokenValue >= 1000) {
       return `${Math.floor(tokenValue).toLocaleString()}`;
-    } else if (tokenValue >= 1) {
-      return tokenValue.toFixed(3);
-    } else if (tokenValue >= 0.001) {
-      return tokenValue.toFixed(4);
-    } else if (tokenValue >= 0.0001) {
-      return tokenValue.toFixed(6);
-    } else if (tokenValue > 0) {
+    }
+    if (tokenValue >= 1) {
+      return tokenValue.toFixed(decimals <= 6 ? 2 : 4);
+    }
+    if (tokenValue >= 0.001) {
+      return tokenValue.toFixed(decimals <= 6 ? 4 : 6);
+    }
+    if (tokenValue >= 0.0000001) {
+      return tokenValue.toFixed(8);
+    }
+    if (tokenValue > 0) {
       return tokenValue.toExponential(2);
     }
 
     return "0";
-  } catch (error) {
+  } catch {
     return token.id === null ? "0" : "";
   }
 };
 
-const safeStr = (val: any): string => {
+const safeStr = (val: string | number | bigint | undefined | null): string => {
   if (val === undefined || val === null) return "";
   if (typeof val === "string") return val;
   if (typeof val === "number") return String(val);
@@ -85,31 +97,43 @@ const SendTileComponent = () => {
   const [unlockTime, setUnlockTime] = useState("");
 
   const { address, isConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
   const publicClient = usePublicClient({ chainId: mainnet.id });
   const { writeContractAsync, isPending } = useWriteContract();
   const { sendTransactionAsync } = useSendTransaction();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
+  // Check if sending to own address (warning)
+  const isSelfSend = useMemo(() => {
+    if (!address || !ensResolution.address) return false;
+    return ensResolution.address.toLowerCase() === address.toLowerCase();
+  }, [address, ensResolution.address]);
+
   const handleTokenSelect = useCallback(
     (token: TokenMeta) => {
+      // Clear transaction state when changing tokens
       if (txError) setTxError(null);
+      if (txHash) setTxHash(undefined);
       setAmount("");
+      setParsedAmount(0n);
       setSelectedToken(token);
     },
-    [txError],
+    [txError, txHash],
   );
 
   const handleAmountChange = (value: string) => {
-    if (value === "" || /^(?:\d+(?:\.\d{0,18})?|\.\d{0,18})$/.test(value)) {
+    const decimals = getTokenDecimals(selectedToken);
+    // Allow input up to the token's decimal places
+    const decimalPattern = new RegExp(`^(?:\\d+(?:\\.\\d{0,${decimals}})?|\\.\\d{0,${decimals}})$`);
+
+    if (value === "" || decimalPattern.test(value)) {
       setAmount(value);
 
       try {
-        if (selectedToken.id === null) {
-          setParsedAmount(value ? parseEther(value) : 0n);
-        } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
-          setParsedAmount(value ? parseUnits(value, 6) : 0n);
+        if (value) {
+          setParsedAmount(parseUnits(value, decimals));
         } else {
-          setParsedAmount(value ? parseEther(value) : 0n);
+          setParsedAmount(0n);
         }
       } catch (error) {
         console.error("Error parsing amount:", error);
@@ -123,26 +147,21 @@ const SendTileComponent = () => {
       return;
     }
 
-    let maxValue: string;
+    const decimals = getTokenDecimals(selectedToken);
     let maxParsedAmount: bigint;
 
+    // For ETH, reserve 1% for gas
     if (selectedToken.id === null) {
-      const ethAmount = (selectedToken.balance * 99n) / 100n;
-      const formattedValue = formatEther(ethAmount);
-      const parsedValue = Number.parseFloat(formattedValue).toFixed(6);
-      maxValue = parsedValue.replace(/\.?0+$/, "");
-      maxParsedAmount = ethAmount;
-    } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
-      const formattedValue = formatUnits(selectedToken.balance, 6);
-      const parsedValue = Number.parseFloat(formattedValue).toFixed(2);
-      maxValue = parsedValue.replace(/\.?0+$/, "");
-      maxParsedAmount = selectedToken.balance;
+      maxParsedAmount = (selectedToken.balance * 99n) / 100n;
     } else {
-      const formattedValue = formatEther(selectedToken.balance);
-      const parsedValue = Number.parseFloat(formattedValue).toFixed(4);
-      maxValue = parsedValue.replace(/\.?0+$/, "");
       maxParsedAmount = selectedToken.balance;
     }
+
+    // Format with appropriate precision based on decimals
+    const formattedValue = formatUnits(maxParsedAmount, decimals);
+    const displayPrecision = decimals <= 6 ? 2 : decimals <= 8 ? 4 : 6;
+    const parsedValue = Number.parseFloat(formattedValue).toFixed(displayPrecision);
+    const maxValue = parsedValue.replace(/\.?0+$/, "");
 
     setAmount(maxValue);
     setParsedAmount(maxParsedAmount);
@@ -177,19 +196,27 @@ const SendTileComponent = () => {
   ]);
 
   const handleSend = async () => {
-    if (!address || !isConnected || !publicClient || !canSend) return;
+    // Handle wallet not connected
+    if (!isConnected) {
+      openConnectModal?.();
+      return;
+    }
+
+    if (!address || !publicClient || !canSend) return;
 
     setTxHash(undefined);
     setTxError(null);
 
     try {
+      const erc20Address = getERC20Address(selectedToken);
+      const isERC20 = isERC20Token(selectedToken);
+
       // Handle lockup mode
       if (isLockupMode) {
         const unlockTimestamp = Math.floor(new Date(unlockTime).getTime() / 1000);
 
         if (selectedToken.id === null) {
           // ETH lockup: use address(0) as token, id as 0, and send ETH as msg.value
-
           const hash = await writeContractAsync({
             account: address,
             chainId: mainnet.id,
@@ -207,18 +234,21 @@ const SendTileComponent = () => {
           });
 
           setTxHash(hash);
-        } else {
-          // Token lockup: use token address, specific id, no msg.value
-          let tokenAddress: `0x${string}`;
+        } else if (isERC20 && erc20Address) {
+          // ERC20 lockup: use the token's contract address
+          const hash = await writeContractAsync({
+            account: address,
+            chainId: mainnet.id,
+            address: CookbookAddress,
+            abi: CookbookAbi,
+            functionName: "lockup",
+            args: [erc20Address, ensResolution.address!, 0n, parsedAmount, BigInt(unlockTimestamp)],
+          });
 
-          if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
-            // USDT special handling
-            tokenAddress = USDT_ADDRESS;
-          } else if (selectedToken?.source === "COOKBOOK") {
-            tokenAddress = CookbookAddress;
-          } else {
-            tokenAddress = CoinsAddress;
-          }
+          setTxHash(hash);
+        } else {
+          // ERC6909 lockup: use token's source contract
+          const tokenAddress = selectedToken?.source === "COOKBOOK" ? CookbookAddress : CoinsAddress;
 
           const hash = await writeContractAsync({
             account: address,
@@ -236,17 +266,19 @@ const SendTileComponent = () => {
 
       // Regular send logic
       if (selectedToken.id === null) {
+        // Native ETH transfer
         const hash = await sendTransactionAsync({
           to: ensResolution.address!,
           value: parsedAmount,
         });
 
         setTxHash(hash);
-      } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
+      } else if (isERC20 && erc20Address) {
+        // ERC20 transfer (USDT, CULT, ENS, WLFI, JPYC, and any tokenlist ERC20)
         const hash = await writeContractAsync({
           account: address,
           chainId: mainnet.id,
-          address: USDT_ADDRESS,
+          address: erc20Address,
           abi: erc20Abi,
           functionName: "transfer",
           args: [ensResolution.address!, parsedAmount],
@@ -254,6 +286,7 @@ const SendTileComponent = () => {
 
         setTxHash(hash);
       } else {
+        // ERC6909 transfer (Cookbook or Coins contract)
         const hash = await writeContractAsync({
           account: address,
           chainId: mainnet.id,
@@ -337,6 +370,11 @@ const SendTileComponent = () => {
                   )}
                 </p>
               )}
+              {isSelfSend && (
+                <p className="text-sm text-amber-500 font-bold">
+                  ⚠ {t("send.self_send_warning") || "Warning: You are sending to your own address"}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -389,6 +427,7 @@ const SendTileComponent = () => {
           <div className="flex justify-between items-center mb-2">
             <label className="block text-sm font-bold font-body">{t("create.amount").toUpperCase()}:</label>
             <button
+              type="button"
               onClick={handleMaxClick}
               className="px-2 py-1 text-xs uppercase bg-secondary hover:bg-secondary/80 rounded disabled:opacity-50"
               disabled={!selectedToken.balance || selectedToken.balance === 0n}
@@ -414,29 +453,38 @@ const SendTileComponent = () => {
             </div>
           </div>
 
-          {amount && typeof selectedToken.balance === "bigint" && (
-            <div className="mt-2 text-xs font-bold font-body flex justify-between">
-              <span>
-                {percentOfBalance > 100 ? (
-                  <span className="text-destructive">⚠ {t("create.insufficient_balance").toUpperCase()}</span>
-                ) : (
-                  `${percentOfBalance.toFixed(0)}${t("create.percent_of_balance")}`
-                )}
-              </span>
-              <span>
-                {t("create.balance").toUpperCase()}: {formatTokenBalance(selectedToken)}{" "}
-                {selectedToken.symbol !== undefined ? safeStr(selectedToken.symbol) : ""}
-              </span>
-            </div>
-          )}
+          <div className="mt-2 text-xs font-bold font-body flex justify-between">
+            <span>
+              {amount && percentOfBalance > 100 ? (
+                <span className="text-destructive">⚠ {t("create.insufficient_balance").toUpperCase()}</span>
+              ) : amount ? (
+                `${percentOfBalance.toFixed(0)}${t("create.percent_of_balance")}`
+              ) : (
+                <span className="text-muted-foreground">{t("send.enter_amount") || "Enter amount"}</span>
+              )}
+            </span>
+            <span className={selectedToken.isFetching ? "animate-pulse" : ""}>
+              {t("create.balance").toUpperCase()}:{" "}
+              {selectedToken.isFetching ? (
+                <span className="text-muted-foreground">...</span>
+              ) : (
+                <>
+                  {formatTokenBalance(selectedToken)} {safeStr(selectedToken.symbol)}
+                </>
+              )}
+            </span>
+          </div>
         </div>
 
         <button
+          type="button"
           onClick={handleSend}
-          disabled={!canSend || isPending}
+          disabled={isConnected && (!canSend || isPending)}
           className="w-full py-4 text-base font-bold uppercase bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted rounded flex items-center justify-center gap-2"
         >
-          {isPending ? (
+          {!isConnected ? (
+            <span>{t("common.connect_wallet") || "CONNECT WALLET"}</span>
+          ) : isPending ? (
             <>
               <LoadingLogo size="sm" />
               <span>{isLockupMode ? t("lockup.locking_up").toUpperCase() : t("create.sending").toUpperCase()}</span>

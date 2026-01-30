@@ -78,12 +78,7 @@ const AddressWithNFT = ({ address, className }: { address: string; className?: s
       title={address}
     >
       {hasNFT && nftImage && (
-        <img
-          src={nftImage}
-          alt="ZORG NFT"
-          className="h-4 w-4"
-          style={{ imageRendering: "pixelated" }}
-        />
+        <img src={nftImage} alt="ZORG NFT" className="h-4 w-4" style={{ imageRendering: "pixelated" }} />
       )}
       {ensName ?? shortenAddress(address)}
       <ExternalLink className="h-3 w-3 opacity-50" />
@@ -200,9 +195,7 @@ export const DAOChat = ({ isFullscreen = false, onToggleFullscreen }: DAOChatPro
         setIsLoadingMessages(true);
         const logs = await publicClient.getLogs({
           address: ZORG_ADDRESS as `0x${string}`,
-          event: parseAbiItem(
-            "event Message(address indexed from, uint256 indexed index, string text)"
-          ),
+          event: parseAbiItem("event Message(address indexed from, uint256 indexed index, string text)"),
           fromBlock: 21540000n, // Block when contract was deployed (approximate)
           toBlock: "latest",
         });
@@ -249,9 +242,7 @@ export const DAOChat = ({ isFullscreen = false, onToggleFullscreen }: DAOChatPro
         try {
           const logs = await publicClient.getLogs({
             address: ZORG_ADDRESS as `0x${string}`,
-            event: parseAbiItem(
-              "event Message(address indexed from, uint256 indexed index, string text)"
-            ),
+            event: parseAbiItem("event Message(address indexed from, uint256 indexed index, string text)"),
             fromBlock: 21540000n,
             toBlock: "latest",
           });
@@ -297,11 +288,7 @@ export const DAOChat = ({ isFullscreen = false, onToggleFullscreen }: DAOChatPro
             className="p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
             title={isFullscreen ? "Minimize" : "Fullscreen"}
           >
-            {isFullscreen ? (
-              <Minimize2 className="h-4 w-4" />
-            ) : (
-              <Maximize2 className="h-4 w-4" />
-            )}
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
         )}
       </div>
@@ -327,21 +314,15 @@ export const DAOChat = ({ isFullscreen = false, onToggleFullscreen }: DAOChatPro
                 className={`flex flex-col gap-1 ${isOwnMessage ? "items-end" : "items-start"}`}
               >
                 {/* Show proposal card if present */}
-                {proposal && (
-                  <ProposalCard proposal={proposal} from={msg.from} />
-                )}
+                {proposal && <ProposalCard proposal={proposal} from={msg.from} />}
 
                 {/* Show plain text if present (either standalone or alongside proposal) */}
                 {plainText && (
                   <>
-                    {!proposal && (
-                      <AddressWithNFT address={msg.from} className="text-xs text-muted-foreground" />
-                    )}
+                    {!proposal && <AddressWithNFT address={msg.from} className="text-xs text-muted-foreground" />}
                     <div
                       className={`px-3 py-2 rounded-lg max-w-[80%] text-sm ${
-                        isOwnMessage
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
+                        isOwnMessage ? "bg-primary text-primary-foreground" : "bg-muted"
                       }`}
                     >
                       {plainText}
@@ -358,13 +339,9 @@ export const DAOChat = ({ isFullscreen = false, onToggleFullscreen }: DAOChatPro
       {/* Input */}
       <div className="p-3 border-t bg-muted/20">
         {!address ? (
-          <p className="text-xs text-muted-foreground text-center">
-            Connect wallet to chat
-          </p>
+          <p className="text-xs text-muted-foreground text-center">Connect wallet to chat</p>
         ) : !isBadgeHolder ? (
-          <p className="text-xs text-muted-foreground text-center">
-            Only badge holders can send messages
-          </p>
+          <p className="text-xs text-muted-foreground text-center">Only badge holders can send messages</p>
         ) : (
           <div className="flex gap-2">
             <input
@@ -381,16 +358,8 @@ export const DAOChat = ({ isFullscreen = false, onToggleFullscreen }: DAOChatPro
               className="flex-1 px-3 py-2 text-sm bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
               disabled={isLoading}
             />
-            <Button
-              size="sm"
-              onClick={handleSendMessage}
-              disabled={isLoading || !newMessage.trim()}
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
+            <Button size="sm" onClick={handleSendMessage} disabled={isLoading || !newMessage.trim()}>
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
         )}

@@ -1695,6 +1695,8 @@
     "queue_proposal": "Queue Proposal",
     "vote_cast": "Vote cast successfully",
     "proposal_queued": "Proposal queued successfully",
+    "governance": "Governance",
+    "view_and_vote": "View and vote on proposals",
     "shares": "Shares",
     "voting_power_label": "Voting Power",
     "delegated_to": "Delegated to",

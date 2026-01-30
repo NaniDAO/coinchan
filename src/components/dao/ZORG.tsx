@@ -3,18 +3,23 @@ import { RainbowConnectButton } from "@/components/RainbowConnectButton";
 import { JoinDAO } from "./JoinDAO";
 import { RageQuit } from "./RageQuit";
 import { DAOChat } from "./DAOChat";
+import { ProposalList } from "./ProposalList";
 import { useAccount, useReadContract } from "wagmi";
 import { ZORG_SHARES, ZORG_SHARES_ABI } from "@/constants/ZORG";
 import { formatEther } from "viem";
-import { Loader2, ArrowLeft, ExternalLink } from "lucide-react";
+import { Loader2, ArrowLeft, Vote } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useState } from "react";
 
 type ZORGProps = {
   isFullscreenChat?: boolean;
 };
 
 export const ZORG = ({ isFullscreenChat = false }: ZORGProps) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { address } = useAccount();
+  const [showProposals, setShowProposals] = useState(false);
 
   // Fetch ZORG shares balance for status display
   const { data: zorgSharesBalance, isLoading: isSharesLoading } = useReadContract({
@@ -39,7 +44,9 @@ export const ZORG = ({ isFullscreenChat = false }: ZORGProps) => {
   });
 
   const formattedBalance = zorgSharesBalance ? Number(formatEther(zorgSharesBalance)).toFixed(2) : "0";
-  const formattedTotalSupply = totalSupply ? Number(formatEther(totalSupply)).toLocaleString(undefined, { maximumFractionDigits: 0 }) : "—";
+  const formattedTotalSupply = totalSupply
+    ? Number(formatEther(totalSupply)).toLocaleString(undefined, { maximumFractionDigits: 0 })
+    : "—";
   const hasBalance = zorgSharesBalance && zorgSharesBalance > 0n;
 
   const handleToggleFullscreen = (fullscreen: boolean) => {
@@ -124,11 +131,7 @@ export const ZORG = ({ isFullscreenChat = false }: ZORGProps) => {
           <div className="border rounded-lg p-4 bg-card">
             <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total Supply (ZAMM staked)</div>
             <div className="font-mono text-lg font-semibold">
-              {isTotalSupplyLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                formattedTotalSupply
-              )}
+              {isTotalSupplyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : formattedTotalSupply}
             </div>
           </div>
         </div>
@@ -146,20 +149,30 @@ export const ZORG = ({ isFullscreenChat = false }: ZORGProps) => {
           <DAOChat onToggleFullscreen={handleToggleFullscreen} />
         </div>
 
-        {/* Governance Link */}
+        {/* Governance Section */}
         <div className="mt-6">
-          <a
-            href="https://majeurdao.eth.limo/#/dao/1/0x5E58BA0e06ED0F5558f83bE732a4b899a674053E"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent transition-colors"
+          <button
+            type="button"
+            onClick={() => setShowProposals(!showProposals)}
+            className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent transition-colors w-full text-left"
           >
-            <div>
-              <div className="font-medium">Governance</div>
-              <div className="text-sm text-muted-foreground">View and vote on proposals</div>
+            <div className="flex items-center gap-3">
+              <Vote className="h-5 w-5 text-primary" />
+              <div>
+                <div className="font-medium">{t("dao.governance") || "Governance"}</div>
+                <div className="text-sm text-muted-foreground">
+                  {t("dao.view_and_vote") || "View and vote on proposals"}
+                </div>
+              </div>
             </div>
-            <ExternalLink className="h-4 w-4 text-muted-foreground" />
-          </a>
+            <span className={`transition-transform ${showProposals ? "rotate-180" : ""}`}>▼</span>
+          </button>
+
+          {showProposals && (
+            <div className="mt-4 space-y-4">
+              <ProposalList />
+            </div>
+          )}
         </div>
 
         {/* Network Info */}

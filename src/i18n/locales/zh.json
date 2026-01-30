@@ -1767,6 +1767,8 @@
     "queue_proposal": "排队提案",
     "vote_cast": "投票成功",
     "proposal_queued": "提案已排队",
+    "governance": "治理",
+    "view_and_vote": "查看并投票提案",
     "shares": "份额",
     "voting_power_label": "投票权",
     "delegated_to": "委托给",

@@ -18,7 +18,14 @@ interface DAICOOrgHeaderProps {
   chainId: number; // Chain ID for Majeur DAO link
 }
 
-export function DAICOOrgHeader({ org, chainName, explorerUrl, shortenAddress, tokenAddress, chainId }: DAICOOrgHeaderProps) {
+export function DAICOOrgHeader({
+  org,
+  chainName,
+  explorerUrl,
+  shortenAddress,
+  tokenAddress,
+  chainId,
+}: DAICOOrgHeaderProps) {
   return (
     <Card className="p-8 bg-gradient-to-br from-primary/5 via-purple-500/5 to-background border-primary/20">
       <div className="flex items-start gap-6">

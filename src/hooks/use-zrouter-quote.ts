@@ -53,10 +53,7 @@ function isValidNumberLike(v?: string) {
  * Fetches decimals for an ERC20 token. Returns undefined if unable to fetch.
  * This is critical for correct amount parsing - USDC has 6 decimals, not 18!
  */
-async function fetchERC20Decimals(
-  publicClient: PublicClient,
-  tokenAddress: string
-): Promise<number | undefined> {
+async function fetchERC20Decimals(publicClient: PublicClient, tokenAddress: string): Promise<number | undefined> {
   try {
     // Native ETH always has 18 decimals (can't call decimals() on zero address)
     if (tokenAddress.toLowerCase() === zeroAddress.toLowerCase()) {
@@ -122,24 +119,24 @@ export function useZRouterQuote({
   const sellTokenAddress = useMemo((): string | undefined => {
     if (!sellToken) return undefined;
     // TokenMetadata has address property
-    if ('address' in sellToken) return sellToken.address;
+    if ("address" in sellToken) return sellToken.address;
     // TokenMeta - derive from token1 for ERC20, or use special addresses
-    if ('source' in sellToken && sellToken.source === 'ERC20') return sellToken.token1;
+    if ("source" in sellToken && sellToken.source === "ERC20") return sellToken.token1;
     return undefined;
   }, [sellToken]);
 
   const buyTokenAddress = useMemo((): string | undefined => {
     if (!buyToken) return undefined;
     // TokenMetadata has address property
-    if ('address' in buyToken) return buyToken.address;
+    if ("address" in buyToken) return buyToken.address;
     // TokenMeta - derive from token1 for ERC20, or use special addresses
-    if ('source' in buyToken && buyToken.source === 'ERC20') return buyToken.token1;
+    if ("source" in buyToken && buyToken.source === "ERC20") return buyToken.token1;
     return undefined;
   }, [buyToken]);
 
   // Check if token is ERC6909 (those always have 18 decimals)
-  const isSellTokenERC6909 = sellToken && 'standard' in sellToken && sellToken.standard === "ERC6909";
-  const isBuyTokenERC6909 = buyToken && 'standard' in buyToken && buyToken.standard === "ERC6909";
+  const isSellTokenERC6909 = sellToken && "standard" in sellToken && sellToken.standard === "ERC6909";
+  const isBuyTokenERC6909 = buyToken && "standard" in buyToken && buyToken.standard === "ERC6909";
 
   // Fetch missing decimals on-chain for ERC20 tokens to prevent using wrong decimals (e.g., USDC has 6, not 18!)
   // NOTE: We fetch for any token without decimals that's not explicitly ERC6909, since tokens loaded from

@@ -121,7 +121,12 @@ export const Route = createRootRoute({
                     </DropdownMenuItem>
                     {/* NEW: Predict - External link to ethPM */}
                     <DropdownMenuItem asChild>
-                      <a href="https://ethpm.eth.limo/" target="_blank" rel="noopener noreferrer" className={itemClasses}>
+                      <a
+                        href="https://ethpm.eth.limo/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={itemClasses}
+                      >
                         <Sparkles className="h-4 w-4" />
                         <span>{t("common.predict", "Predict")}</span>
                       </a>
@@ -347,8 +352,8 @@ export const Route = createRootRoute({
                       to: "/farm/create",
                       label: `${t("common.farm")} — ${t("navigation.create", "Create")}`,
                     },
-                  ].map((link) => (
-                    'external' in link && link.external ? (
+                  ].map((link) =>
+                    "external" in link && link.external ? (
                       <a
                         key={link.to}
                         href={link.to}
@@ -371,8 +376,8 @@ export const Route = createRootRoute({
                       >
                         {link.label}
                       </Link>
-                    )
-                  ))}
+                    ),
+                  )}
                 </nav>
               </div>
             </div>

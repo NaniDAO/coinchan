@@ -11,6 +11,30 @@ import {
 import { useProposalDescription } from "@/hooks/use-dao-messages";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { formatEther } from "viem";
+
+// Vote support values for castVote function
+const VOTE_FOR = 1;
+const VOTE_AGAINST = 0;
+const VOTE_ABSTAIN = 2;
+
+// Format vote amount from 18 decimals to human readable
+const formatVoteAmount = (amount: bigint): string => {
+  const value = Number(formatEther(amount));
+  if (value >= 1000000) {
+    return `${(value / 1000000).toFixed(2)}M`;
+  }
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(2)}K`;
+  }
+  if (value >= 1) {
+    return value.toFixed(2);
+  }
+  if (value > 0) {
+    return value.toFixed(4);
+  }
+  return "0";
+};
 
 const formatTimeAgo = (timestamp: number): string => {
   const seconds = Math.floor((Date.now() - timestamp * 1000) / 1000);
@@ -147,10 +171,13 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
             <div className="mt-2 space-y-2 mb-4">
               <div className="flex justify-between text-xs">
                 <span className="text-green-400">
-                  {t("dao.for")}: {tallies.forVotes.toString()}
+                  {t("dao.for")}: {formatVoteAmount(tallies.forVotes)}
+                </span>
+                <span className="text-muted-foreground">
+                  {t("dao.abstain")}: {formatVoteAmount(tallies.abstainVotes)}
                 </span>
                 <span className="text-red-400">
-                  {t("dao.against")}: {tallies.againstVotes.toString()}
+                  {t("dao.against")}: {formatVoteAmount(tallies.againstVotes)}
                 </span>
               </div>
 
@@ -162,7 +189,7 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{forPercentage.toFixed(1)}%</span>
                 <span>
-                  {t("dao.total_votes")}: {totalVotes.toString()}
+                  {t("dao.total_votes")}: {formatVoteAmount(totalVotes)}
                 </span>
                 <span>{againstPercentage.toFixed(1)}%</span>
               </div>
@@ -181,7 +208,7 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
             <Button
               size="sm"
               variant="default"
-              onClick={() => handleVote(1)}
+              onClick={() => handleVote(VOTE_FOR)}
               disabled={isConfirming}
               className="flex-1"
             >
@@ -190,7 +217,7 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
             <Button
               size="sm"
               variant="destructive"
-              onClick={() => handleVote(0)}
+              onClick={() => handleVote(VOTE_AGAINST)}
               disabled={isConfirming}
               className="flex-1"
             >
@@ -199,7 +226,7 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => handleVote(2)}
+              onClick={() => handleVote(VOTE_ABSTAIN)}
               disabled={isConfirming}
               className="flex-1"
             >

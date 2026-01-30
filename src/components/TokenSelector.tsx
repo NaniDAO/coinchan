@@ -85,7 +85,7 @@ export const TokenSelector = memo(
     selectedToken,
     tokens,
     onSelect,
-    isEthBalanceFetching = false,
+    isEthBalanceFetching: _isEthBalanceFetching = false,
     className,
   }: {
     selectedToken: TokenMeta;
@@ -94,6 +94,8 @@ export const TokenSelector = memo(
     isEthBalanceFetching?: boolean;
     className?: string;
   }) => {
+    // Note: _isEthBalanceFetching is used in memo comparison, not in component body
+    void _isEthBalanceFetching;
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
@@ -151,6 +153,12 @@ export const TokenSelector = memo(
       }
     };
 
+    // Create a stable key for balance changes to trigger re-computation
+    const tokensBalanceKey = useMemo(() => {
+      // Include balance values in the key so memo updates when balances change
+      return tokens.map((t) => `${t.id ?? "eth"}-${t.balance?.toString() ?? "0"}`).join("|");
+    }, [tokens]);
+
     const items = useMemo(
       () =>
         tokens.map((t) => ({
@@ -160,7 +168,7 @@ export const TokenSelector = memo(
           isSelected:
             t.id === selectedToken?.id && t.poolId === selectedToken?.poolId && t?.token1 === selectedToken?.token1,
         })),
-      [tokens, selectedToken?.id, selectedToken?.poolId, selectedToken?.token1, isEthBalanceFetching],
+      [tokens, selectedToken?.id, selectedToken?.poolId, selectedToken?.token1, tokensBalanceKey],
     );
 
     const filtered = useMemo(() => {
@@ -332,10 +340,26 @@ export const TokenSelector = memo(
       </div>
     );
   },
-  (prev, next) =>
-    prev.selectedToken.id === next.selectedToken.id &&
-    prev.selectedToken.balance === next.selectedToken.balance &&
-    prev.selectedToken.token1 === next.selectedToken.token1 &&
-    prev.tokens.length === next.tokens.length &&
-    prev.isEthBalanceFetching === next.isEthBalanceFetching,
+  (prev, next) => {
+    // Check selected token
+    if (prev.selectedToken.id !== next.selectedToken.id) return false;
+    if (prev.selectedToken.balance !== next.selectedToken.balance) return false;
+    if (prev.selectedToken.token1 !== next.selectedToken.token1) return false;
+
+    // Check tokens array length
+    if (prev.tokens.length !== next.tokens.length) return false;
+
+    // Check if ETH balance is still fetching
+    if (prev.isEthBalanceFetching !== next.isEthBalanceFetching) return false;
+
+    // Check if any token balances changed (important for displaying in dropdown)
+    // Only check first 20 tokens for performance (most important ones are at top)
+    const checkCount = Math.min(prev.tokens.length, 20);
+    for (let i = 0; i < checkCount; i++) {
+      if (prev.tokens[i]?.balance !== next.tokens[i]?.balance) return false;
+      if (prev.tokens[i]?.id !== next.tokens[i]?.id) return false;
+    }
+
+    return true;
+  },
 );

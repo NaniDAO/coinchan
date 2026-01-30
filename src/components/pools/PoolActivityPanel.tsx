@@ -323,10 +323,7 @@ function LiquidityTab({ pool }: { pool: Pool }) {
         <div className="flex h-2 rounded-full overflow-hidden bg-muted/30">
           {totalLiquidity > 0 && (
             <>
-              <div
-                className="transition-all bg-blue-500"
-                style={{ width: `${(reserve0 / totalLiquidity) * 100}%` }}
-              />
+              <div className="transition-all bg-blue-500" style={{ width: `${(reserve0 / totalLiquidity) * 100}%` }} />
               <div
                 className="transition-all bg-purple-500"
                 style={{ width: `${(reserve1 / totalLiquidity) * 100}%` }}

@@ -28,7 +28,11 @@ export const RageQuit = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const { data: zorgSharesBalance, isLoading: isBalanceLoading, refetch: refetchBalance } = useReadContract({
+  const {
+    data: zorgSharesBalance,
+    isLoading: isBalanceLoading,
+    refetch: refetchBalance,
+  } = useReadContract({
     address: ZORG_SHARES,
     abi: ZORG_SHARES_ABI,
     functionName: "balanceOf",
@@ -142,9 +146,7 @@ export const RageQuit = () => {
             onClick={() => setIsExpanded(!isExpanded)}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
           >
-            <ChevronDown
-              className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-            />
+            <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
             <span>Rage Quit</span>
           </button>
 
@@ -205,19 +207,10 @@ export const RageQuit = () => {
                     Are you sure? This will permanently burn your ZORG shares.
                   </p>
                   <div className="flex gap-2">
-                    <Button
-                      onClick={() => setShowConfirm(false)}
-                      variant="outline"
-                      className="flex-1"
-                    >
+                    <Button onClick={() => setShowConfirm(false)} variant="outline" className="flex-1">
                       Cancel
                     </Button>
-                    <Button
-                      onClick={handleRageQuit}
-                      disabled={isLoading}
-                      variant="destructive"
-                      className="flex-1"
-                    >
+                    <Button onClick={handleRageQuit} disabled={isLoading} variant="destructive" className="flex-1">
                       {isLoading ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -235,9 +228,7 @@ export const RageQuit = () => {
                 <div className="mt-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-xs text-green-600 dark:text-green-400 block">
-                        Ragequit successful!
-                      </span>
+                      <span className="text-xs text-green-600 dark:text-green-400 block">Ragequit successful!</span>
                       {zammReceived !== null && (
                         <span className="text-sm font-mono font-semibold text-green-600 dark:text-green-400">
                           +{formatEther(zammReceived)} ZAMM

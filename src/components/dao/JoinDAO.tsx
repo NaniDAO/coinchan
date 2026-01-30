@@ -325,7 +325,9 @@ export const JoinDAO = () => {
               <div className="p-3 rounded-lg border bg-muted/30">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs text-muted-foreground">{t("dao.price_per_share")}</span>
-                  <span className="font-mono text-sm font-medium">{pricePerShare.toString()} {payTokenSymbol}</span>
+                  <span className="font-mono text-sm font-medium">
+                    {pricePerShare.toString()} {payTokenSymbol}
+                  </span>
                 </div>
                 {cap > 0n && (
                   <div className="flex justify-between items-center">
@@ -394,7 +396,15 @@ export const JoinDAO = () => {
               {/* CTA Button */}
               <Button
                 onClick={!owner ? openConnectModal : handleJoinDAO}
-                disabled={owner && (isLoading || isConnectorLoading || !isWalletReady || !inputAmount || Number(inputAmount) <= 0 || !quote?.ok)}
+                disabled={
+                  owner &&
+                  (isLoading ||
+                    isConnectorLoading ||
+                    !isWalletReady ||
+                    !inputAmount ||
+                    Number(inputAmount) <= 0 ||
+                    !quote?.ok)
+                }
                 className="w-full"
                 size="lg"
               >
@@ -438,9 +448,7 @@ export const JoinDAO = () => {
           )}
 
           {/* Footer Note */}
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            {t("dao.buy_shares_note")}
-          </p>
+          <p className="mt-4 text-center text-xs text-muted-foreground">{t("dao.buy_shares_note")}</p>
         </div>
       )}
     </ConnectButton.Custom>
