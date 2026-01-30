@@ -9,7 +9,6 @@ import {
   useDAOProposalTallies,
 } from "@/hooks/use-dao-proposals";
 import { useProposalCalldata } from "@/hooks/use-proposal-calldata";
-import { useDAOStats } from "@/hooks/use-dao-stats";
 import { AlertTriangle, CheckCircle, ExternalLink, FileCode, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
