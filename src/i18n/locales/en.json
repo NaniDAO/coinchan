@@ -1686,6 +1686,7 @@
     "for": "For",
     "against": "Against",
     "total_votes": "Total Votes",
+    "quorum": "Quorum",
     "vote_for": "Vote For",
     "vote_against": "Vote Against",
     "abstain": "Abstain",

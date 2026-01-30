@@ -1758,6 +1758,7 @@
     "for": "赞成",
     "against": "反对",
     "total_votes": "总票数",
+    "quorum": "法定人数",
     "vote_for": "投赞成票",
     "vote_against": "投反对票",
     "abstain": "弃权",
