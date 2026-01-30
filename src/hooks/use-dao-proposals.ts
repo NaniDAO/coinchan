@@ -137,7 +137,7 @@ export const useDAOHasVoted = ({ proposalId, address }: { proposalId?: bigint; a
     },
   });
 
-  return data ? Number(data) : 0; // 0=not voted, 1=for, 2=against, 3=abstain
+  return data ? Number(data) : 0; // 0=not voted, 1=against, 2=for, 3=abstain (support + 1)
 };
 
 /**

@@ -9,6 +9,7 @@ import {
   useDAOProposalTallies,
 } from "@/hooks/use-dao-proposals";
 import { useProposalCalldata } from "@/hooks/use-proposal-calldata";
+import { useDAOStats } from "@/hooks/use-dao-stats";
 import { AlertTriangle, CheckCircle, ExternalLink, FileCode, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -138,7 +139,8 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
   const isActive = state === 1; // Active state
   const canQueue = state === 3; // Succeeded state
   const userHasVoted = hasVoted > 0;
-  const voteTypeLabels = ["", t("dao.voted_for"), t("dao.voted_against"), t("dao.voted_abstain")];
+  // hasVoted returns (support + 1): 0=not voted, 1=against, 2=for, 3=abstain
+  const voteTypeLabels = ["", t("dao.voted_against"), t("dao.voted_for"), t("dao.voted_abstain")];
 
   return (
     <div className="p-4 border border-border rounded-lg hover:border-accent transition-colors bg-card">
