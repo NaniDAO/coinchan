@@ -38,6 +38,16 @@ export const useDAOStats = () => {
         abi: ZORG_ABI,
         functionName: "proposalThreshold",
       },
+      {
+        address: ZORG_ADDRESS,
+        abi: ZORG_ABI,
+        functionName: "minYesVotesAbsolute",
+      },
+      {
+        address: ZORG_ADDRESS,
+        abi: ZORG_ABI,
+        functionName: "quorumAbsolute",
+      },
     ],
     query: {
       enabled: !!sharesAddress,
@@ -51,6 +61,8 @@ export const useDAOStats = () => {
       totalSupply: 0n,
       quorumBps: 0,
       proposalThreshold: 0n,
+      minYesVotesAbsolute: 0n,
+      quorumAbsolute: 0n,
       isLoading,
     };
   }
@@ -60,6 +72,8 @@ export const useDAOStats = () => {
     totalSupply: (data[1]?.result as bigint) || 0n,
     quorumBps: data[2]?.result ? Number(data[2].result) : 0,
     proposalThreshold: (data[3]?.result as bigint) || 0n,
+    minYesVotesAbsolute: (data[4]?.result as bigint) || 0n,
+    quorumAbsolute: (data[5]?.result as bigint) || 0n,
     isLoading: false,
   };
 };
