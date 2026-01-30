@@ -9,6 +9,7 @@ import {
   useDAOProposalTallies,
 } from "@/hooks/use-dao-proposals";
 import { useProposalCalldata } from "@/hooks/use-proposal-calldata";
+import { useDAOStats } from "@/hooks/use-dao-stats";
 import { AlertTriangle, CheckCircle, ExternalLink, FileCode, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -88,6 +89,7 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
   const hasVoted = useDAOHasVoted({ proposalId, address });
   const { description, image } = useProposalDescription({ proposalId });
   const { proposalData, isVerified, hasMessages } = useProposalCalldata({ proposalId });
+  const { quorumAbsolute, quorumBps, totalSupply } = useDAOStats();
 
   const { writeContract, data: hash } = useWriteContract();
   const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
@@ -140,6 +142,13 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
   const userHasVoted = hasVoted > 0;
   // hasVoted returns (support + 1): 0=not voted, 1=against, 2=for, 3=abstain
   const voteTypeLabels = ["", t("dao.voted_against"), t("dao.voted_for"), t("dao.voted_abstain")];
+
+  // Calculate quorum requirement - contract checks both absolute and BPS-based
+  // quorumBps is in basis points (e.g., 5000 = 50%)
+  const quorumFromBps = quorumBps > 0 && totalSupply > 0n ? (totalSupply * BigInt(quorumBps)) / 10000n : 0n;
+  const effectiveQuorum = quorumAbsolute > 0n ? quorumAbsolute : quorumFromBps;
+  const quorumPercentage = effectiveQuorum > 0n ? Math.min(Number((totalVotes * 10000n) / effectiveQuorum) / 100, 100) : 0;
+  const quorumMet = totalVotes >= effectiveQuorum && effectiveQuorum > 0n;
 
   return (
     <div className="p-4 border border-border rounded-lg hover:border-accent transition-colors bg-card">
@@ -315,6 +324,28 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
                 </span>
                 <span>{againstPercentage.toFixed(1)}%</span>
               </div>
+
+              {/* Quorum Progress */}
+              {effectiveQuorum > 0n && (
+                <div className="mt-3 pt-3 border-t border-border">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-muted-foreground">{t("dao.quorum") || "Quorum"}</span>
+                    <span className={quorumMet ? "text-green-400" : "text-muted-foreground"}>
+                      {formatVoteAmount(totalVotes)} / {formatVoteAmount(effectiveQuorum)}
+                      {quorumMet && " ✓"}
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all ${quorumMet ? "bg-green-500" : "bg-amber-500"}`}
+                      style={{ width: `${quorumPercentage}%` }}
+                    />
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1 text-right">
+                    {quorumPercentage.toFixed(1)}%
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
