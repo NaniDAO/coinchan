@@ -11,6 +11,7 @@ import { RecommendationCommandButton } from "@/components/swap/RecommendationCom
 import type { Recommendation } from "@/types/recommendations";
 import { useState, useRef, useEffect } from "react";
 import { useRecommendations } from "@/hooks/use-recommendations";
+import { useProtocolStats } from "@/hooks/use-protocol-stats";
 
 export const Route = createFileRoute("/swap")({
   component: RouteComponent,
@@ -21,6 +22,7 @@ function RouteComponent() {
   const { t } = useTranslation();
   const { tokenCount, loading, error: loadError } = useAllCoins();
   const { recommendations, loading: recsLoading } = useRecommendations();
+  const { data: protocolStats } = useProtocolStats();
   const [selectedRecommendationIndex, setSelectedRecommendationIndex] = useState<number | undefined>(undefined);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const swapActionRef = useRef<{ setTokensFromRecommendation: (rec: Recommendation) => void }>(null);
@@ -82,6 +84,24 @@ function RouteComponent() {
             <div className="text-xs mt-5 text-center font-mono">
               {t("common.available_tokens")} {tokenCount} {t("common.eth_plus_coins", { count: tokenCount - 1 })}
             </div>
+
+            {/* Protocol stats */}
+            {protocolStats && (
+              <div className="flex justify-center gap-6 mt-4 text-xs font-mono text-muted-foreground">
+                <div className="text-center">
+                  <div className="font-semibold text-foreground">{protocolStats.totalCoins}</div>
+                  <div>{t("landing.coins")}</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-foreground">{protocolStats.totalSwaps}</div>
+                  <div>{t("landing.swaps")}</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-foreground">{protocolStats.totalEthSwapped}</div>
+                  <div>{t("coin.volume")}</div>
+                </div>
+              </div>
+            )}
 
             {/* Floating Command Button - positioned at top-right of swap card */}
             <div className="absolute top-5 right-5">
