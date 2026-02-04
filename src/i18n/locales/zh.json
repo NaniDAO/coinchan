@@ -1805,6 +1805,11 @@
     "eth_transfer": "ETH 转账",
     "contract_call": "合约调用",
     "verify_calldata": "在 Swiss Knife 上解码",
-    "decode_calldata": "在 Swiss Knife 上解码调用数据"
+    "decode_calldata": "在 Swiss Knife 上解码调用数据",
+    "execute_proposal": "执行提案",
+    "proposal_executed": "提案执行成功",
+    "execute_no_data": "无法执行：在聊天消息中未找到提案数据",
+    "execute_missing_data": "无法执行：在聊天消息中未找到提案数据",
+    "timelock_remaining": "时间锁剩余"
   }
 }

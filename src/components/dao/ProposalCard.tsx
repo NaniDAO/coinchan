@@ -5,8 +5,10 @@ import {
   useDAOHasVoted,
   useDAOProposalCreatedAt,
   useDAOProposalProposer,
+  useDAOProposalQueuedAt,
   useDAOProposalState,
   useDAOProposalTallies,
+  useDAOTimelockDelay,
 } from "@/hooks/use-dao-proposals";
 import { useProposalCalldata } from "@/hooks/use-proposal-calldata";
 import { useDAOStats } from "@/hooks/use-dao-stats";
@@ -73,6 +75,16 @@ const formatTimeAgo = (timestamp: number): string => {
   return `${years}y ago`;
 };
 
+const formatTimeRemaining = (seconds: number): string => {
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ${minutes % 60}m`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ${hours % 24}h`;
+};
+
 interface ProposalCardProps {
   proposalId: bigint;
 }
@@ -87,6 +99,8 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
   const createdAt = useDAOProposalCreatedAt({ proposalId });
   const proposer = useDAOProposalProposer({ proposalId });
   const hasVoted = useDAOHasVoted({ proposalId, address });
+  const { queuedAt } = useDAOProposalQueuedAt({ proposalId });
+  const { timelockDelay } = useDAOTimelockDelay();
   const { description, image } = useProposalDescription({ proposalId });
   const { proposalData, isVerified, hasMessages } = useProposalCalldata({ proposalId });
   const { quorumAbsolute, quorumBps, totalSupply } = useDAOStats();
@@ -132,14 +146,55 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
     );
   };
 
+  const handleExecute = () => {
+    if (!proposalData) {
+      toast.error(t("dao.execute_no_data"));
+      return;
+    }
+
+    writeContract(
+      {
+        address: ZORG_ADDRESS,
+        abi: ZORG_ABI,
+        functionName: "executeByVotes",
+        args: [
+          proposalData.op,
+          proposalData.to,
+          BigInt(proposalData.value),
+          proposalData.data,
+          proposalData.nonce as `0x${string}`,
+        ],
+        value: BigInt(proposalData.value),
+      },
+      {
+        onSuccess: () => {
+          toast.success(t("dao.proposal_executed"));
+        },
+        onError: (error) => {
+          toast.error(error.message);
+        },
+      },
+    );
+  };
+
   const stateName = state !== undefined ? PROPOSAL_STATES[state] : "Unknown";
   const totalVotes = tallies ? tallies.forVotes + tallies.againstVotes + tallies.abstainVotes : 0n;
   const forPercentage = totalVotes > 0n ? Number((tallies!.forVotes * 10000n) / totalVotes) / 100 : 0;
   const againstPercentage = totalVotes > 0n ? Number((tallies!.againstVotes * 10000n) / totalVotes) / 100 : 0;
 
   const isActive = state === 1; // Active state
-  const canQueue = state === 3; // Succeeded state
+  const isQueued = state === 2; // Queued state (waiting for timelock)
+  const isSucceeded = state === 3; // Succeeded state
+  // Can queue if succeeded and not yet queued
+  const canQueue = isSucceeded && (!queuedAt || queuedAt === 0n);
+  // Can execute if succeeded and already queued (timelock passed), or if queued (will show countdown)
+  const canExecute = (isSucceeded && queuedAt && queuedAt > 0n) || isQueued;
   const userHasVoted = hasVoted > 0;
+
+  // Calculate timelock countdown if queued
+  const timelockEnd = queuedAt && timelockDelay ? queuedAt + timelockDelay : undefined;
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  const timelockRemaining = timelockEnd && timelockEnd > now ? timelockEnd - now : 0n;
   // hasVoted returns (support + 1): 0=not voted, 1=against, 2=for, 3=abstain
   const voteTypeLabels = ["", t("dao.voted_against"), t("dao.voted_for"), t("dao.voted_abstain")];
 
@@ -392,6 +447,24 @@ export const ProposalCard = ({ proposalId }: ProposalCardProps) => {
           <Button size="sm" onClick={handleQueue} disabled={isConfirming} className="w-full">
             {t("dao.queue_proposal")}
           </Button>
+        )}
+
+        {canExecute && address && timelockRemaining > 0n && (
+          <div className="w-full text-center text-xs text-muted-foreground p-2 bg-muted rounded">
+            {t("dao.timelock_remaining")}: {formatTimeRemaining(Number(timelockRemaining))}
+          </div>
+        )}
+
+        {canExecute && address && timelockRemaining === 0n && proposalData && (
+          <Button size="sm" onClick={handleExecute} disabled={isConfirming} className="w-full">
+            {t("dao.execute_proposal")}
+          </Button>
+        )}
+
+        {canExecute && address && timelockRemaining === 0n && !proposalData && (
+          <div className="w-full text-center text-xs text-muted-foreground p-2 bg-muted rounded">
+            {t("dao.execute_missing_data")}
+          </div>
         )}
       </div>
     </div>

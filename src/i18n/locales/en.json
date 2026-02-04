@@ -1733,6 +1733,11 @@
     "eth_transfer": "ETH Transfer",
     "contract_call": "Contract Call",
     "verify_calldata": "Decode on Swiss Knife",
-    "decode_calldata": "Decode calldata on Swiss Knife"
+    "decode_calldata": "Decode calldata on Swiss Knife",
+    "execute_proposal": "Execute Proposal",
+    "proposal_executed": "Proposal executed successfully",
+    "execute_no_data": "Cannot execute: proposal data not found in chat messages",
+    "execute_missing_data": "Cannot execute: proposal data not found in chat messages",
+    "timelock_remaining": "Timelock remaining"
   }
 }

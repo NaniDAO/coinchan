@@ -160,3 +160,43 @@ export const useDAOProposalName = ({ proposalId }: { proposalId?: bigint }) => {
     isLoading,
   };
 };
+
+/**
+ * Hook to fetch when proposal was queued (0 = not queued)
+ */
+export const useDAOProposalQueuedAt = ({ proposalId }: { proposalId?: bigint }) => {
+  const { data, isLoading } = useReadContract({
+    address: ZORG_ADDRESS,
+    abi: ZORG_ABI,
+    functionName: "queuedAt",
+    args: proposalId ? [proposalId] : undefined,
+    query: {
+      enabled: !!proposalId,
+      staleTime: 10_000, // 10 seconds
+    },
+  });
+
+  return {
+    queuedAt: data as bigint | undefined,
+    isLoading,
+  };
+};
+
+/**
+ * Hook to fetch the timelock delay
+ */
+export const useDAOTimelockDelay = () => {
+  const { data, isLoading } = useReadContract({
+    address: ZORG_ADDRESS,
+    abi: ZORG_ABI,
+    functionName: "timelockDelay",
+    query: {
+      staleTime: 60_000, // 1 minute (rarely changes)
+    },
+  });
+
+  return {
+    timelockDelay: data as bigint | undefined,
+    isLoading,
+  };
+};
