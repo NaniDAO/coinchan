@@ -64,7 +64,8 @@ export function useWeiName(address: string | undefined): WeiNameResult {
       }
 
       try {
-        const resolvedName = await window.wei.reverseResolve(normalizedAddress);
+        // Pass original address (checksummed) to SDK, use lowercase for cache key
+        const resolvedName = await window.wei.reverseResolve(address);
 
         // Cache the result
         weiNameCache.set(normalizedAddress, resolvedName);
@@ -75,7 +76,8 @@ export function useWeiName(address: string | undefined): WeiNameResult {
           setIsLoading(false);
           setIsFetched(true);
         }
-      } catch {
+      } catch (err) {
+        console.warn("[useWeiName] Failed to resolve:", err);
         weiNameCache.set(normalizedAddress, null);
         if (addressRef.current?.toLowerCase() === normalizedAddress) {
           setName(null);
