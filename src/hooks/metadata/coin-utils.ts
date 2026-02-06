@@ -49,7 +49,7 @@ const IPFS_GATEWAYS = [
   "https://content.wrappr.wtf/ipfs/", // Primary gateway
   "https://cloudflare-ipfs.com/ipfs/", // Cloudflare gateway is very reliable
   "https://gateway.pinata.cloud/ipfs/", // Pinata gateway (often fast)
-  "https://ipfs.io/ipfs/", // Standard gateway
+  "https://ipfs.io/ipfs/", // Standard gateway (fallback only)
   "https://dweb.link/ipfs/", // Protocol Labs gateway
   "https://ipfs.fleek.co/ipfs/", // Fleek gateway
 ];

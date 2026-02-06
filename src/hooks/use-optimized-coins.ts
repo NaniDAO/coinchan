@@ -66,7 +66,7 @@ const processTokenImage = async (tokenUri: string): Promise<string | null> => {
     // Fallback gateways
     const fallbackUrls = [
       `https://cloudflare-ipfs.com/ipfs/${hash}`,
-      `https://ipfs.io/ipfs/${hash}`,
+      `https://content.wrappr.wtf/ipfs/${hash}`,
       `https://gateway.pinata.cloud/ipfs/${hash}`,
     ];
 

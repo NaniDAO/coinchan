@@ -86,7 +86,7 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
   // Helper to resolve IPFS URLs
   const resolveImageUrl = (url: string): string => {
     if (url.startsWith("ipfs://")) {
-      return url.replace("ipfs://", "https://ipfs.io/ipfs/");
+      return url.replace("ipfs://", "https://content.wrappr.wtf/ipfs/");
     }
     return url;
   };

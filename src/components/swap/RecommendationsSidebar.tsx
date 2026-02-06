@@ -105,7 +105,7 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
       return "/placeholder.jpeg";
     }
     if (url.startsWith("ipfs://")) {
-      return url.replace("ipfs://", "https://ipfs.io/ipfs/");
+      return url.replace("ipfs://", "https://content.wrappr.wtf/ipfs/");
     }
     return url;
   };
