@@ -5,7 +5,6 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useReadContract,
-  useEnsName,
 } from "wagmi";
 import { ZORG_ADDRESS, ZORG_ABI, ZORG_SHARES, ZORG_SHARES_ABI } from "@/constants/ZORG";
 import { parseAbiItem } from "viem";
@@ -14,6 +13,7 @@ import { CalldataDecoder } from "@/components/CalldataDecoder";
 import { Loader2, Send, ExternalLink, Maximize2, Minimize2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAddressZorgNFT } from "@/hooks/useAddressZorgNFT";
+import { useDisplayName } from "@/hooks/use-display-name";
 
 type Message = {
   from: `0x${string}`;
@@ -40,12 +40,9 @@ const etherscanUrl = (type: "address" | "tx", value: string) => {
   return `https://etherscan.io/${type}/${value}`;
 };
 
-// Component for address with ENS resolution and etherscan link
+// Component for address with ENS/Wei resolution and etherscan link
 const AddressLink = ({ address, className }: { address: string; className?: string }) => {
-  const { data: ensName } = useEnsName({
-    address: address as `0x${string}`,
-    chainId: 1,
-  });
+  const { displayName } = useDisplayName(address);
 
   return (
     <a
@@ -55,18 +52,15 @@ const AddressLink = ({ address, className }: { address: string; className?: stri
       className={`font-mono hover:underline inline-flex items-center gap-1 ${className ?? ""}`}
       title={address}
     >
-      {ensName ?? shortenAddress(address)}
+      {displayName ?? shortenAddress(address)}
       <ExternalLink className="h-3 w-3 opacity-50" />
     </a>
   );
 };
 
-// Component for address with NFT avatar, ENS resolution and etherscan link
+// Component for address with NFT avatar, ENS/Wei resolution and etherscan link
 const AddressWithNFT = ({ address, className }: { address: string; className?: string }) => {
-  const { data: ensName } = useEnsName({
-    address: address as `0x${string}`,
-    chainId: 1,
-  });
+  const { displayName } = useDisplayName(address);
   const { nftImage, hasNFT } = useAddressZorgNFT(address);
 
   return (
@@ -80,7 +74,7 @@ const AddressWithNFT = ({ address, className }: { address: string; className?: s
       {hasNFT && nftImage && (
         <img src={nftImage} alt="ZORG NFT" className="h-4 w-4" style={{ imageRendering: "pixelated" }} />
       )}
-      {ensName ?? shortenAddress(address)}
+      {displayName ?? shortenAddress(address)}
       <ExternalLink className="h-3 w-3 opacity-50" />
     </a>
   );

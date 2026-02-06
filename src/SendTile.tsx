@@ -343,7 +343,7 @@ const SendTileComponent = () => {
             type="text"
             value={recipientAddress}
             onChange={(e) => setRecipientAddress(e.target.value)}
-            placeholder="0x... or ENS name (张三.eth)"
+            placeholder="0x... or name (vitalik.eth, name.wei)"
             className="w-full px-3 py-2 bg-input border border-border rounded focus:outline-none focus:border-accent"
           />
           {recipientAddress && (
@@ -351,16 +351,17 @@ const SendTileComponent = () => {
               {ensResolution.isLoading && (
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                   <LoadingLogo size="sm" className="scale-50" />
-                  {t("swap.resolving_ens") || "Resolving ENS name..."}
+                  {t("swap.resolving_name") || "Resolving name..."}
                 </p>
               )}
               {ensResolution.error && <p className="text-sm text-destructive font-bold">⚠ {ensResolution.error}</p>}
               {ensResolution.address && (
                 <p className="text-sm text-muted-foreground">
-                  {ensResolution.isENS ? (
+                  {ensResolution.isENS || ensResolution.isWei ? (
                     <>
-                      <span className="text-chart-2 font-bold">ENS:</span> {recipientAddress}{" "}
-                      <span className="text-muted-foreground">→</span> {ensResolution.address?.slice(0, 6)}...
+                      <span className="text-chart-2 font-bold">{ensResolution.isWei ? ".wei:" : "ENS:"}</span>{" "}
+                      {recipientAddress} <span className="text-muted-foreground">→</span>{" "}
+                      {ensResolution.address?.slice(0, 6)}...
                       {ensResolution.address?.slice(-4)}
                     </>
                   ) : (

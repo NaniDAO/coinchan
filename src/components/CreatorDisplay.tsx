@@ -2,9 +2,8 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ExternalLink, User } from "lucide-react";
 import type { Address } from "viem";
-import { useEnsName } from "wagmi";
-import { mainnet } from "viem/chains";
 import { cn } from "@/lib/utils";
+import { useDisplayName } from "@/hooks/use-display-name";
 
 interface CreatorDisplayProps {
   address: Address;
@@ -23,19 +22,16 @@ export function CreatorDisplay({
 }: CreatorDisplayProps) {
   const { t } = useTranslation();
 
-  // ENS resolution with error handling
-  const { data: ensName, isError } = useEnsName({
-    address,
-    chainId: mainnet.id,
-  });
+  // ENS/Wei resolution
+  const { displayName: resolvedName } = useDisplayName(address);
 
   // Format address for display
   const displayName = useMemo(() => {
     if (!address) return "Unknown";
-    if (ensName && !isError) return ensName;
+    if (resolvedName) return resolvedName;
     // Show first 6 and last 4 characters
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  }, [address, ensName, isError]);
+  }, [address, resolvedName]);
 
   const sizeClasses = {
     sm: "text-xs",
@@ -57,7 +53,7 @@ export function CreatorDisplay({
           <span className="text-muted-foreground">{t("creator.label", "Creator")}:</span>
         </>
       )}
-      <span className={cn("font-mono", ensName ? "font-medium" : "")}>{displayName}</span>
+      <span className={cn("font-mono", resolvedName ? "font-medium" : "")}>{displayName}</span>
       {linkToEtherscan && <ExternalLink className="text-muted-foreground" size={iconSize[size]} />}
     </div>
   );

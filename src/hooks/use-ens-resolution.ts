@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { usePublicClient } from "wagmi";
 import { isAddress } from "viem";
 import { mainnet } from "viem/chains";
+import { usePublicClient } from "wagmi";
+import { isWeiName } from "./use-wei-name";
 
 // Import normalization function for international domain names
 const normalizeEnsName = (name: string): string => {
@@ -19,6 +20,7 @@ export interface ENSResolutionResult {
   isLoading: boolean;
   error: string | null;
   isENS: boolean;
+  isWei: boolean;
 }
 
 /**
@@ -32,6 +34,7 @@ export function useENSResolution(input: string): ENSResolutionResult {
     isLoading: false,
     error: null,
     isENS: false,
+    isWei: false,
   });
 
   const publicClient = usePublicClient({ chainId: mainnet.id });
@@ -43,6 +46,7 @@ export function useENSResolution(input: string): ENSResolutionResult {
         isLoading: false,
         error: null,
         isENS: false,
+        isWei: false,
       });
       return;
     }
@@ -56,56 +60,96 @@ export function useENSResolution(input: string): ENSResolutionResult {
         isLoading: false,
         error: null,
         isENS: false,
+        isWei: false,
       });
       return;
     }
 
+    // Check if it's a .wei name
+    const isWei = isWeiName(trimmedInput);
+
     // Check if it looks like an ENS name (including international characters)
     const isENSName =
+      !isWei &&
       trimmedInput.includes(".") &&
       (trimmedInput.endsWith(".eth") ||
         trimmedInput.endsWith(".xyz") ||
         trimmedInput.endsWith(".com") ||
-        trimmedInput.match(/\.[a-zA-Z\u00a1-\uffff]{2,}$/));
+        !!trimmedInput.match(/\.[a-zA-Z\u00a1-\uffff]{2,}$/));
 
-    // Check if input could potentially be a valid ENS name being typed
-    const couldBeENS = trimmedInput.match(/^[a-zA-Z0-9\u00a1-\uffff-]+(\.[a-zA-Z\u00a1-\uffff]*)?$/);
+    // Check if input could potentially be a valid ENS/.wei name being typed
+    const couldBeName = trimmedInput.match(/^[a-zA-Z0-9\u00a1-\uffff-]+(\.[a-zA-Z\u00a1-\uffff]*)?$/);
 
-    // Only show error for inputs that clearly can't be valid addresses or ENS names
+    // Only show error for inputs that clearly can't be valid addresses or names
     // and are longer than 2 characters (to avoid showing errors too early)
-    if (!isENSName && !couldBeENS && trimmedInput.length > 2) {
+    if (!isENSName && !isWei && !couldBeName && trimmedInput.length > 2) {
       setResult({
         address: null,
         isLoading: false,
         error: "Invalid address format",
         isENS: false,
+        isWei: false,
       });
       return;
     }
 
-    // If it's not a complete ENS name yet, don't show error or try to resolve
-    if (!isENSName) {
+    // If it's not a complete name yet, don't show error or try to resolve
+    if (!isENSName && !isWei) {
       setResult({
         address: null,
         isLoading: false,
         error: null,
         isENS: false,
+        isWei: false,
       });
       return;
     }
 
-    // Start ENS resolution
+    // Start name resolution
     setResult((prev) => ({
       ...prev,
       isLoading: true,
       error: null,
-      isENS: true,
+      isENS: isENSName,
+      isWei: isWei,
     }));
 
     let cancelled = false;
 
-    const resolveENS = async () => {
+    const resolveName = async () => {
       try {
+        // Handle .wei name resolution
+        if (isWei) {
+          if (!window.wei) {
+            throw new Error("Wei Name Service not available");
+          }
+
+          const resolvedAddress = await window.wei.resolve(trimmedInput);
+
+          if (cancelled) return;
+
+          if (!resolvedAddress) {
+            setResult({
+              address: null,
+              isLoading: false,
+              error: ".wei name not found",
+              isENS: false,
+              isWei: true,
+            });
+            return;
+          }
+
+          setResult({
+            address: resolvedAddress,
+            isLoading: false,
+            error: null,
+            isENS: false,
+            isWei: true,
+          });
+          return;
+        }
+
+        // Handle ENS resolution
         if (!publicClient) {
           throw new Error("Unable to connect to Ethereum network");
         }
@@ -127,6 +171,7 @@ export function useENSResolution(input: string): ENSResolutionResult {
             isLoading: false,
             error: "ENS name not found",
             isENS: true,
+            isWei: false,
           });
           return;
         }
@@ -136,22 +181,24 @@ export function useENSResolution(input: string): ENSResolutionResult {
           isLoading: false,
           error: null,
           isENS: true,
+          isWei: false,
         });
       } catch (error) {
         // Check if this request was cancelled
         if (cancelled) return;
 
-        console.error("ENS resolution error:", error);
+        console.error("Name resolution error:", error);
         setResult({
           address: null,
           isLoading: false,
-          error: error instanceof Error ? error.message : "Failed to resolve ENS name",
-          isENS: true,
+          error: error instanceof Error ? error.message : "Failed to resolve name",
+          isENS: isENSName,
+          isWei: isWei,
         });
       }
     };
 
-    const timeoutId = setTimeout(resolveENS, 300); // Debounce for 300ms
+    const timeoutId = setTimeout(resolveName, 300); // Debounce for 300ms
 
     return () => {
       cancelled = true;

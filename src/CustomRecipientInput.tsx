@@ -31,7 +31,7 @@ export const CustomRecipientInput = ({
         <div className="mt-2 space-y-2">
           <input
             type="text"
-            placeholder={`${t("swap.recipient_address") || "Recipient address or ENS name"} (${t("common.optional") || "optional"})`}
+            placeholder={`${t("swap.recipient_address") || "Address or name (.eth, .wei)"} (${t("common.optional") || "optional"})`}
             value={customRecipient}
             onChange={(e) => setCustomRecipient(e.target.value)}
             className="w-full px-3 py-2 text-sm bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -41,15 +41,15 @@ export const CustomRecipientInput = ({
               {ensResolution.isLoading && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <LoadingLogo size="sm" className="scale-50" />
-                  {t("swap.resolving_ens") || "Resolving ENS name..."}
+                  {t("swap.resolving_name") || "Resolving name..."}
                 </p>
               )}
               {ensResolution.error && <p className="text-xs text-destructive">{ensResolution.error}</p>}
               {ensResolution.address && (
                 <p className="text-xs text-muted-foreground">
-                  {ensResolution.isENS ? (
+                  {ensResolution.isENS || ensResolution.isWei ? (
                     <>
-                      <span className="text-chart-2">ENS:</span> {customRecipient}{" "}
+                      <span className="text-chart-2">{ensResolution.isWei ? ".wei:" : "ENS:"}</span> {customRecipient}{" "}
                       <span className="text-muted-foreground">→</span> {ensResolution.address?.slice(0, 6)}...
                       {ensResolution.address?.slice(-4)}
                     </>
