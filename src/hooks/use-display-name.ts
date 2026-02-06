@@ -16,7 +16,7 @@ interface DisplayNameResult {
  */
 export function useDisplayName(address: string | undefined): DisplayNameResult {
   // Try Wei Name Service (prioritized)
-  const { data: weiName, isLoading: weiLoading } = useWeiName(address);
+  const { data: weiName, isLoading: weiLoading, isFetched: weiFetched } = useWeiName(address);
 
   // Try ENS as fallback
   const { data: ensName, isLoading: ensLoading } = useEnsName({
@@ -27,8 +27,18 @@ export function useDisplayName(address: string | undefined): DisplayNameResult {
     },
   });
 
+  console.log("[DisplayName]", {
+    address: address?.slice(0, 10),
+    weiName,
+    weiLoading,
+    weiFetched,
+    ensName,
+    ensLoading,
+  });
+
   // Return Wei name if available (prioritized)
   if (weiName) {
+    console.log("[DisplayName] Returning wei name:", weiName);
     return {
       displayName: weiName,
       isLoading: false,
@@ -36,8 +46,20 @@ export function useDisplayName(address: string | undefined): DisplayNameResult {
     };
   }
 
-  // Return ENS name if available
+  // Wait for Wei to finish before falling back to ENS
+  // This ensures .wei names are always prioritized
+  if (weiLoading || !weiFetched) {
+    console.log("[DisplayName] Waiting for wei to finish...");
+    return {
+      displayName: null,
+      isLoading: true,
+      source: null,
+    };
+  }
+
+  // Return ENS name if available (Wei has finished and found nothing)
   if (ensName) {
+    console.log("[DisplayName] Returning ENS name:", ensName);
     return {
       displayName: ensName,
       isLoading: false,
@@ -45,8 +67,8 @@ export function useDisplayName(address: string | undefined): DisplayNameResult {
     };
   }
 
-  // Still loading
-  if (weiLoading || ensLoading) {
+  // Still loading ENS
+  if (ensLoading) {
     return {
       displayName: null,
       isLoading: true,
