@@ -3,11 +3,13 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useTranslation } from "react-i18next";
 import { useAccount } from "wagmi";
 import { useAddressZorgNFT } from "@/hooks/useAddressZorgNFT";
+import { useDisplayName } from "@/hooks/use-display-name";
 
 export const RainbowConnectButton = () => {
   const { t } = useTranslation();
   const { address } = useAccount();
   const { nftImage, hasNFT } = useAddressZorgNFT(address);
+  const { displayName } = useDisplayName(address);
 
   return (
     <ConnectButton.Custom>
@@ -50,7 +52,7 @@ export const RainbowConnectButton = () => {
                     {hasNFT && nftImage && (
                       <img src={nftImage} alt="ZORG NFT" className="h-5 w-5" style={{ imageRendering: "pixelated" }} />
                     )}
-                    {account.displayName}
+                    {displayName || account.displayName}
                     {account.displayBalance ? ` (${account.displayBalance})` : ""}
                   </Button>
                 </div>
