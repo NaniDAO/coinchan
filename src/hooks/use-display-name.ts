@@ -10,12 +10,15 @@ interface DisplayNameResult {
 
 /**
  * Hook to get the display name for an address
- * Tries ENS first, then falls back to Wei Name Service
+ * Prioritizes .wei names, falls back to ENS
  * @param address - The Ethereum address to look up
  * @returns Object with display name, loading state, and source
  */
 export function useDisplayName(address: string | undefined): DisplayNameResult {
-  // Try ENS first
+  // Try Wei Name Service (prioritized)
+  const { data: weiName, isLoading: weiLoading } = useWeiName(address);
+
+  // Try ENS as fallback
   const { data: ensName, isLoading: ensLoading } = useEnsName({
     address: address as `0x${string}` | undefined,
     chainId: mainnet.id,
@@ -24,8 +27,14 @@ export function useDisplayName(address: string | undefined): DisplayNameResult {
     },
   });
 
-  // Try Wei Name Service
-  const { data: weiName, isLoading: weiLoading } = useWeiName(address);
+  // Return Wei name if available (prioritized)
+  if (weiName) {
+    return {
+      displayName: weiName,
+      isLoading: false,
+      source: "wei",
+    };
+  }
 
   // Return ENS name if available
   if (ensName) {
@@ -36,17 +45,8 @@ export function useDisplayName(address: string | undefined): DisplayNameResult {
     };
   }
 
-  // Return Wei name if available
-  if (weiName) {
-    return {
-      displayName: weiName,
-      isLoading: false,
-      source: "wei",
-    };
-  }
-
   // Still loading
-  if (ensLoading || weiLoading) {
+  if (weiLoading || ensLoading) {
     return {
       displayName: null,
       isLoading: true,
