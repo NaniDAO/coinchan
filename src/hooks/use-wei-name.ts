@@ -35,7 +35,6 @@ export function useWeiName(address: string | undefined): WeiNameResult {
 
     // Check cache first
     if (weiNameCache.has(normalizedAddress)) {
-      console.log("[Wei] Cache hit for", normalizedAddress, "=", weiNameCache.get(normalizedAddress));
       setName(weiNameCache.get(normalizedAddress) ?? null);
       setIsLoading(false);
       setIsFetched(true);
@@ -54,7 +53,6 @@ export function useWeiName(address: string | undefined): WeiNameResult {
       }
 
       if (!window.wei) {
-        console.log("[Wei] SDK never loaded after 5s");
         setIsLoading(false);
         setIsFetched(true);
         return;
@@ -66,9 +64,7 @@ export function useWeiName(address: string | undefined): WeiNameResult {
       }
 
       try {
-        console.log("[Wei] Resolving address:", normalizedAddress);
         const resolvedName = await window.wei.reverseResolve(normalizedAddress);
-        console.log("[Wei] Resolved name:", resolvedName);
 
         // Cache the result
         weiNameCache.set(normalizedAddress, resolvedName);
@@ -79,8 +75,7 @@ export function useWeiName(address: string | undefined): WeiNameResult {
           setIsLoading(false);
           setIsFetched(true);
         }
-      } catch (error) {
-        console.error("[Wei] Reverse resolve error:", error);
+      } catch {
         weiNameCache.set(normalizedAddress, null);
         if (addressRef.current?.toLowerCase() === normalizedAddress) {
           setName(null);
