@@ -181,12 +181,6 @@ export const Route = createRootRoute({
                         <span>{t("common.orders")}</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/explore/daicos" className={itemClasses}>
-                        <Rocket className="h-4 w-4" />
-                        <span>{t("common.daicos")}</span>
-                      </Link>
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -268,7 +262,7 @@ export const Route = createRootRoute({
 
             {/* Desktop Right Side */}
             <div className="hidden md:flex items-center gap-2.5 flex-shrink-0">
-              <Link to="/daico">
+              <Link to="/create">
                 <Button variant="outline" size="sm">
                   {t("common.launch", "Launch")}
                 </Button>
@@ -279,7 +273,7 @@ export const Route = createRootRoute({
 
             {/* Mobile Right Side */}
             <div className="flex md:hidden items-center gap-2 flex-shrink-0">
-              <Link to="/daico">
+              <Link to="/create">
                 <Button variant="outline" size="sm" className="text-xs px-2">
                   {t("navigation.create", "Create")}
                 </Button>
@@ -331,10 +325,6 @@ export const Route = createRootRoute({
                     {
                       to: "/explore/orders",
                       label: `${t("common.explore")} — Orders`,
-                    },
-                    {
-                      to: "/explore/daicos",
-                      label: `${t("common.explore")} — DAICOs`,
                     },
                     {
                       to: "/positions",
