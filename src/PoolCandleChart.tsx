@@ -21,7 +21,18 @@ import { cn } from "./lib/utils";
 import { formatWithSubscriptZeros } from "./lib/chart";
 
 const ONE_MONTH = 30 * 24 * 60 * 60;
-const RANGE = 7 * 24 * 60 * 60;
+
+/** Return how many seconds to look back per page based on candle interval */
+const pageRangeForInterval = (interval: "1m" | "1h" | "1d") => {
+  switch (interval) {
+    case "1m":
+      return 24 * 60 * 60; // 1 day of 1-minute candles
+    case "1h":
+      return 7 * 24 * 60 * 60; // 7 days of hourly candles
+    case "1d":
+      return 90 * 24 * 60 * 60; // 90 days of daily candles
+  }
+};
 
 interface CandleChartProps {
   poolId: string;
@@ -43,8 +54,11 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h", 
     },
     queryFn: ({ pageParam }) => fetchPoolCandles(poolId, selectedInterval, pageParam.from, pageParam.to),
     getNextPageParam: (lastPage) => {
+      if (lastPage.length === 0) return undefined; // no more data
       const oldest = lastPage[0]?.date ?? 0;
-      return oldest ? { from: oldest - RANGE, to: oldest } : undefined;
+      if (!oldest) return undefined;
+      const range = pageRangeForInterval(selectedInterval);
+      return { from: oldest - range, to: oldest };
     },
   });
 
@@ -249,7 +263,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({
       borderUpColor: chartTheme.upColor || "#10b981",
       borderDownColor: chartTheme.downColor || "#ef4444",
       wickVisible: true,
-      title: showUsd && ethUsdPrice ? `${ticker} / USD` : `ETH / ${ticker}`,
+      title: showUsd && ethUsdPrice ? `${ticker}/USD` : `${ticker}/ETH`,
       priceFormat: {
         type: "custom",
         formatter: formatWithSubscriptZeros,
@@ -288,7 +302,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({
     if (!seriesRef.current) return;
 
     seriesRef.current.applyOptions({
-      title: showUsd && ethUsdPrice ? `${ticker} / USD` : `ETH / ${ticker}`,
+      title: showUsd && ethUsdPrice ? `${ticker}/USD` : `${ticker}/ETH`,
       priceFormat: {
         type: "custom",
         formatter: formatWithSubscriptZeros,
@@ -300,13 +314,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({
   useEffect(() => {
     if (!seriesRef.current) return;
 
-    let filtered = rawData.filter((d) => !(d.open === d.high && d.high === d.low && d.low === d.close));
-
-    const highs = filtered.map((d) => d.high).sort((a, b) => a - b);
-    const cutoff = highs[Math.floor(highs.length * 0.99)] ?? Number.POSITIVE_INFINITY;
-    filtered = filtered.filter((d) => d.high <= cutoff);
-
-    const tvData: TVCandlestickData[] = filtered
+    const tvData: TVCandlestickData[] = rawData
       .map((d) => {
         // Apply USD conversion if enabled
         const multiplier = showUsd && ethUsdPrice ? ethUsdPrice : 1;

@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther } from "viem";
-import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useTheme } from "@/lib/theme";
+import { formatWithSubscriptZeros } from "@/lib/chart";
 
 interface PriceChartProps {
   poolId: string;
@@ -43,14 +43,14 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
         return {
           startTs: now - 7 * 24 * 60 * 60,
           endTs: now,
-          desiredPoints: 168,
+          desiredPoints: 336,
           activeButton: "1w",
         };
       case "1m":
         return {
           startTs: now - 30 * 24 * 60 * 60,
           endTs: now,
-          desiredPoints: 300,
+          desiredPoints: 720,
           activeButton: "1m",
         };
       case "all":
@@ -65,7 +65,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
         return {
           startTs: now - 24 * 60 * 60,
           endTs: now,
-          desiredPoints: 24,
+          desiredPoints: 288,
           activeButton: "24h",
         };
     }
@@ -95,7 +95,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
     setTimeRange({
       startTs: now - 24 * 60 * 60,
       endTs: now,
-      desiredPoints: 24,
+      desiredPoints: 288,
       activeButton: "24h",
     });
   };
@@ -105,7 +105,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
     setTimeRange({
       startTs: now - 7 * 24 * 60 * 60,
       endTs: now,
-      desiredPoints: 168,
+      desiredPoints: 336,
       activeButton: "1w",
     });
   };
@@ -115,7 +115,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
     setTimeRange({
       startTs: now - 30 * 24 * 60 * 60,
       endTs: now,
-      desiredPoints: 300,
+      desiredPoints: 720,
       activeButton: "1m",
     });
   };
@@ -296,7 +296,7 @@ const CustomTooltip = ({ active, payload, showUsd }: any) => {
           {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </p>
         <p className="text-sm font-semibold">
-          {formatPriceValue(data.price)} {showUsd ? "USD" : "ETH"}
+          {formatWithSubscriptZeros(data.price)} {showUsd ? "USD" : "ETH"}
         </p>
       </div>
     );
@@ -304,27 +304,6 @@ const CustomTooltip = ({ active, payload, showUsd }: any) => {
   return null;
 };
 
-// Format price with proper decimal handling
-const formatPriceValue = (value: number): string => {
-  if (value === 0) return "0";
-
-  // For very small numbers, use scientific notation
-  if (value < 0.000001) {
-    return value.toExponential(2);
-  }
-
-  // For small numbers, show more decimals
-  if (value < 0.01) {
-    return value.toFixed(8);
-  }
-
-  // For regular numbers
-  if (value < 1) {
-    return value.toFixed(6);
-  }
-
-  return value.toFixed(4);
-};
 
 const TVPriceChart: React.FC<{
   priceData: PricePointData[];
@@ -346,39 +325,25 @@ const TVPriceChart: React.FC<{
     if (!priceData || priceData.length === 0) return [];
 
     // Deduplicate and sort data
-    const uniqueData = new Map<string, PricePointData>();
-    priceData.forEach((point) => {
+    const uniqueData = new Map<number, PricePointData>();
+    for (const point of priceData) {
       uniqueData.set(point.timestamp, point);
-    });
+    }
 
     const sorted = Array.from(uniqueData.values()).sort(
-      (a, b) => Number.parseInt(a.timestamp) - Number.parseInt(b.timestamp),
+      (a, b) => a.timestamp - b.timestamp,
     );
 
     // Convert to chart format
     const processed = sorted
+      .filter((d) => d.price > 0 && isFinite(d.price))
       .map((d) => {
-        try {
-          const timestamp = Number.parseInt(d.timestamp);
-          if (isNaN(timestamp)) return null;
-
-          let value = Number(formatEther(BigInt(d.price1)));
-          if (value === 0 || !isFinite(value)) return null;
-
-          if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
-            value = value * ethUsdPrice;
-          }
-
-          return {
-            timestamp,
-            price: value,
-          };
-        } catch (err) {
-          console.error("Error processing price point:", err);
-          return null;
-        }
-      })
-      .filter((d): d is { timestamp: number; price: number } => d !== null);
+        const multiplier = showUsd && ethUsdPrice && ethUsdPrice > 0 ? ethUsdPrice : 1;
+        return {
+          timestamp: d.timestamp,
+          price: d.price * multiplier,
+        };
+      });
 
     // Add projected price impact point if available
     if (priceImpact && priceImpact.projectedPrice > 0 && processed.length > 0) {
@@ -399,13 +364,6 @@ const TVPriceChart: React.FC<{
 
     return processed;
   }, [priceData, showUsd, ethUsdPrice, priceImpact]);
-
-  // Calculate average price for reference line
-  const averagePrice = useMemo(() => {
-    if (chartData.length === 0) return 0;
-    const sum = chartData.reduce((acc, d) => acc + d.price, 0);
-    return sum / chartData.length;
-  }, [chartData]);
 
   // Determine if price is going up or down
   const priceChange = useMemo(() => {
@@ -465,21 +423,13 @@ const TVPriceChart: React.FC<{
             dataKey="price"
             type="number"
             domain={["auto", "auto"]}
-            tickFormatter={formatPriceValue}
+            tickFormatter={(v) => formatWithSubscriptZeros(v)}
             stroke={textColor}
             tickLine={false}
             axisLine={false}
             dx={-10}
             style={{ fontSize: "11px" }}
             width={80}
-          />
-
-          <ReferenceLine
-            y={averagePrice}
-            stroke={gridColor}
-            strokeDasharray="14 10"
-            strokeWidth={3}
-            strokeOpacity={0.5}
           />
 
           <Tooltip

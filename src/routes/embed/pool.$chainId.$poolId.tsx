@@ -2,8 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import PoolPriceChart from "@/components/PoolPriceChart";
 import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
 import { useGetPool } from "@/hooks/use-get-pool";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useMemo } from "react";
 import { LoadingLogo } from "@/components/ui/loading-logo";
+import { PAMMSingletonAddress, identifyYesNoIds } from "@/constants/PAMMSingleton";
+import { isAddressEqual } from "viem";
+import PredictionOddsChart from "@/components/PredictionOddsChart";
 
 const PoolCandleChart = lazy(() => import("@/PoolCandleChart"));
 
@@ -47,6 +50,21 @@ function EmbedPoolChart() {
     }
   }, [theme]);
 
+  // Detect PAMM prediction market pool
+  const marketId = useMemo(() => {
+    if (!pool?.token0 || !pool?.token1 || !pool?.coin0Id || !pool?.coin1Id) return null;
+    try {
+      const isPAMM =
+        isAddressEqual(pool.token0 as `0x${string}`, PAMMSingletonAddress) &&
+        isAddressEqual(pool.token1 as `0x${string}`, PAMMSingletonAddress);
+      if (!isPAMM) return null;
+      const ids = identifyYesNoIds(BigInt(pool.coin0Id), BigInt(pool.coin1Id));
+      return ids ? ids.marketId.toString() : null;
+    } catch {
+      return null;
+    }
+  }, [pool]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
@@ -59,6 +77,15 @@ function EmbedPoolChart() {
     return (
       <div className="flex items-center justify-center h-screen bg-background text-muted-foreground">
         Pool not found
+      </div>
+    );
+  }
+
+  // PAMM prediction market pool — render odds chart
+  if (marketId) {
+    return (
+      <div className="h-screen w-full bg-background p-4">
+        <PredictionOddsChart marketId={marketId} />
       </div>
     );
   }

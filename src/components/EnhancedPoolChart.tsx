@@ -29,7 +29,6 @@ export const EnhancedPoolChart = ({
   priceImpact,
   onTransactionSuccess,
 }: EnhancedPoolChartProps) => {
-  console.log("EnhancedPoolChart", poolId, coinSymbol, ethPrice, priceImpact);
   const [chartType, setChartType] = useState<"line" | "candle">("line");
   const [chartKey, setChartKey] = useState(0);
   const queryClient = useQueryClient();

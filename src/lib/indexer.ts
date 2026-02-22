@@ -3,7 +3,7 @@ import { formatUnits } from "viem";
 export const INDEXER_URL = import.meta.env.VITE_INDEXER_URL + "/graphql";
 
 export interface CandleData {
-  /** Timestamp in milliseconds */
+  /** Timestamp in seconds (UTC) */
   date: number;
   open: number;
   high: number;
@@ -12,9 +12,8 @@ export interface CandleData {
 }
 
 export interface PricePointData {
-  bucket: number;
-  price1: string;
-  timestamp: string;
+  timestamp: number;
+  price: number;
 }
 
 export interface PredictionChartPoint {
@@ -130,10 +129,10 @@ export async function fetchPoolCandles(
 /**
  * Fetches price points for a given pool from the API.
  * @param poolId - the pool identifier (as a string representing BigInt)
- * @param startTs - optional start timestamp in milliseconds
- * @param endTs - optional end timestamp in milliseconds
+ * @param startTs - optional start timestamp in seconds
+ * @param endTs - optional end timestamp in seconds
  * @param desiredPoints - optional number of data points to return
- * @returns array of PricePointData sorted by timestamp
+ * @returns array of PricePointData with price already converted from wei to ETH
  */
 export async function fetchPoolPricePoints(
   poolId: string,
@@ -170,11 +169,10 @@ export async function fetchPoolPricePoints(
 
   const data = await response.json();
 
-  // Map and convert the data
+  // Map and convert the data – keep price1 as string for safe BigInt conversion
   return data.data.map((p: any) => ({
     timestamp: Number(p.timestamp),
-    price0: Number(p.price0),
-    price1: Number(p.price1),
+    price: Number(formatUnits(BigInt(p.price1), 18)),
   }));
 }
 
