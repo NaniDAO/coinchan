@@ -12,7 +12,7 @@ const PoolCandleChart = lazy(() => import("@/PoolCandleChart"));
 
 type TimeRange = "24h" | "1w" | "1m" | "all";
 type ChartType = "line" | "candle";
-type CandleInterval = "1h" | "1d";
+type CandleInterval = "1m" | "1h" | "1d";
 
 interface EmbedSearchParams {
   theme?: "light" | "dark";
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/embed/pool/$chainId/$poolId" as any)({
     theme: search.theme === "light" || search.theme === "dark" ? search.theme : undefined,
     range: ["24h", "1w", "1m", "all"].includes(search.range as string) ? (search.range as TimeRange) : undefined,
     type: search.type === "candle" ? "candle" : "line",
-    interval: search.interval === "1h" || search.interval === "1d" ? search.interval : undefined,
+    interval: search.interval === "1m" || search.interval === "1h" || search.interval === "1d" ? search.interval : undefined,
   }),
 });
 
