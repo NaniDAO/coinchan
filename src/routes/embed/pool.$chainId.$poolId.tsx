@@ -51,7 +51,7 @@ function EmbedPoolChart() {
   }, [theme]);
 
   // Detect PAMM prediction market pool
-  const marketId = useMemo(() => {
+  const pammInfo = useMemo(() => {
     if (!pool?.token0 || !pool?.token1 || !pool?.coin0Id || !pool?.coin1Id) return null;
     try {
       const isPAMM =
@@ -59,7 +59,8 @@ function EmbedPoolChart() {
         isAddressEqual(pool.token1 as `0x${string}`, PAMMSingletonAddress);
       if (!isPAMM) return null;
       const ids = identifyYesNoIds(BigInt(pool.coin0Id), BigInt(pool.coin1Id));
-      return ids ? ids.marketId.toString() : null;
+      if (!ids) return null;
+      return { marketId: ids.marketId.toString(), yesIsId0: ids.yesIsId0 };
     } catch {
       return null;
     }
@@ -82,10 +83,10 @@ function EmbedPoolChart() {
   }
 
   // PAMM prediction market pool — render odds chart
-  if (marketId) {
+  if (pammInfo) {
     return (
       <div className="h-screen w-full bg-background p-4">
-        <PredictionOddsChart marketId={marketId} />
+        <PredictionOddsChart marketId={pammInfo.marketId} yesIsId0={pammInfo.yesIsId0} />
       </div>
     );
   }

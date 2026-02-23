@@ -10,10 +10,11 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 
 interface PredictionOddsChartProps {
   marketId: string;
+  yesIsId0: boolean;
   description?: string;
 }
 
-const PredictionOddsChart: React.FC<PredictionOddsChartProps> = ({ marketId, description }) => {
+const PredictionOddsChart: React.FC<PredictionOddsChartProps> = ({ marketId, yesIsId0, description }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -33,9 +34,11 @@ const PredictionOddsChart: React.FC<PredictionOddsChartProps> = ({ marketId, des
       .slice()
       .sort((a, b) => a.timestamp - b.timestamp)
       .map((p) => {
-        // Compute odds client-side from raw reserves to ensure correct AMM pricing
-        // YES% = rNo / (rYes + rNo) — inverse relationship in constant-product AMM
-        const { yesPercent, noPercent } = calculateYesProbability(BigInt(p.rYes), BigInt(p.rNo));
+        // API rYes/rNo might follow pool id0/id1 ordering, not YES/NO semantics.
+        // Use yesIsId0 from PAMM derivation to correctly assign reserves.
+        const rYes = BigInt(yesIsId0 ? p.rYes : p.rNo);
+        const rNo = BigInt(yesIsId0 ? p.rNo : p.rYes);
+        const { yesPercent, noPercent } = calculateYesProbability(rYes, rNo);
         return {
           timestamp: p.timestamp,
           yes: Math.round(yesPercent * 100) / 100,
@@ -43,16 +46,18 @@ const PredictionOddsChart: React.FC<PredictionOddsChartProps> = ({ marketId, des
           eventType: p.eventType,
         };
       });
-  }, [data]);
+  }, [data, yesIsId0]);
 
   const market = data?.market;
   const marketDescription = description || market?.description;
 
-  // Compute current odds from raw reserves for consistency
+  // Compute current odds from raw reserves, mapping id0/id1 to YES/NO via PAMM derivation
   const currentOdds = useMemo(() => {
     if (!market?.currentRYes || !market?.currentRNo) return null;
-    return calculateYesProbability(BigInt(market.currentRYes), BigInt(market.currentRNo));
-  }, [market]);
+    const rYes = BigInt(yesIsId0 ? market.currentRYes : market.currentRNo);
+    const rNo = BigInt(yesIsId0 ? market.currentRNo : market.currentRYes);
+    return calculateYesProbability(rYes, rNo);
+  }, [market, yesIsId0]);
 
   const yesColor = isDark ? "#33ff99" : "#10b981";
   const noColor = isDark ? "#ff3358" : "#ef4444";
