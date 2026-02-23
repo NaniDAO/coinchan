@@ -1,6 +1,7 @@
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchPredictionChart } from "@/lib/indexer";
+import { calculateYesProbability } from "@/constants/PAMMSingleton";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -31,16 +32,27 @@ const PredictionOddsChart: React.FC<PredictionOddsChartProps> = ({ marketId, des
     return data.data
       .slice()
       .sort((a, b) => a.timestamp - b.timestamp)
-      .map((p) => ({
-        timestamp: p.timestamp,
-        yes: Math.round(p.yesChance * 100) / 100,
-        no: Math.round(p.noChance * 100) / 100,
-        eventType: p.eventType,
-      }));
+      .map((p) => {
+        // Compute odds client-side from raw reserves to ensure correct AMM pricing
+        // YES% = rNo / (rYes + rNo) — inverse relationship in constant-product AMM
+        const { yesPercent, noPercent } = calculateYesProbability(BigInt(p.rYes), BigInt(p.rNo));
+        return {
+          timestamp: p.timestamp,
+          yes: Math.round(yesPercent * 100) / 100,
+          no: Math.round(noPercent * 100) / 100,
+          eventType: p.eventType,
+        };
+      });
   }, [data]);
 
   const market = data?.market;
   const marketDescription = description || market?.description;
+
+  // Compute current odds from raw reserves for consistency
+  const currentOdds = useMemo(() => {
+    if (!market?.currentRYes || !market?.currentRNo) return null;
+    return calculateYesProbability(BigInt(market.currentRYes), BigInt(market.currentRNo));
+  }, [market]);
 
   const yesColor = isDark ? "#33ff99" : "#10b981";
   const noColor = isDark ? "#ff3358" : "#ef4444";
@@ -98,17 +110,17 @@ const PredictionOddsChart: React.FC<PredictionOddsChartProps> = ({ marketId, des
               >
                 Resolved: {market.outcome ? "YES" : "NO"}
               </span>
-            ) : (
+            ) : currentOdds ? (
               <>
                 <span className="font-semibold" style={{ color: yesColor }}>
-                  YES {market.currentYesChance.toFixed(1)}%
+                  YES {currentOdds.yesPercent.toFixed(1)}%
                 </span>
                 <span className="text-muted-foreground">/</span>
                 <span className="font-semibold" style={{ color: noColor }}>
-                  NO {market.currentNoChance.toFixed(1)}%
+                  NO {currentOdds.noPercent.toFixed(1)}%
                 </span>
               </>
-            )}
+            ) : null}
           </div>
         )}
       </div>
