@@ -160,6 +160,9 @@ importers:
       wagmi:
         specifier: 2.16.5
         version: 2.16.5(@tanstack/query-core@5.85.9)(@tanstack/react-query@5.85.9(react@18.3.1))(@types/react@18.3.1)(bufferutil@4.0.9)(react@18.3.1)(typescript@5.4.5)(utf-8-validate@5.0.10)(viem@2.29.0(bufferutil@4.0.9)(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.25.63))(zod@3.25.63)
+      wns-utils:
+        specifier: ^0.1.0
+        version: 0.1.0
       zod:
         specifier: 3.25.63
         version: 3.25.63
@@ -3902,6 +3905,9 @@ packages:
   which-typed-array@1.1.19:
     resolution: {integrity: sha512-rEvr90Bck4WZt9HHFC4DJMsjvu7x+r6bImz0/BrbWb7A2djJ8hnZMrWnHo9F8ssv0OMErasDhftrfROTyqSDrw==}
     engines: {node: '>= 0.4'}
+
+  wns-utils@0.1.0:
+    resolution: {integrity: sha512-fw56jPPSYQypeKwcDA2P2xNT++Gphh5jEPhwk1m9Ou7I61XyB1AaTp4wu87KnADq1z09sB50mqNUo/xbd8vfgg==}
 
   wrap-ansi@6.2.0:
     resolution: {integrity: sha512-r6lPcBGxZXlIcymEu7InxDMhdW0KDxpLgoFLcguasxCaJ/SOIZwINatK9KY/tf+ZrlywOKU0UDj3ATXUBfxJXA==}
@@ -8731,6 +8737,8 @@ snapshots:
       get-proto: 1.0.1
       gopd: 1.2.0
       has-tostringtag: 1.0.2
+
+  wns-utils@0.1.0: {}
 
   wrap-ansi@6.2.0:
     dependencies:
