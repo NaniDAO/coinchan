@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { isAddress } from "viem";
 import { mainnet } from "viem/chains";
 import { usePublicClient } from "wagmi";
+import { createWnsClient } from "wns-utils";
 import { isWeiName } from "./use-wei-name";
 
 // Import normalization function for international domain names
@@ -14,6 +15,8 @@ const normalizeEnsName = (name: string): string => {
     return name.toLowerCase();
   }
 };
+
+const wns = createWnsClient();
 
 export interface ENSResolutionResult {
   address: `0x${string}` | null;
@@ -120,11 +123,7 @@ export function useENSResolution(input: string): ENSResolutionResult {
       try {
         // Handle .wei name resolution
         if (isWei) {
-          if (!window.wei) {
-            throw new Error("Wei Name Service not available");
-          }
-
-          const resolvedAddress = await window.wei.resolve(trimmedInput);
+          const resolvedAddress = await wns.resolve(trimmedInput);
 
           if (cancelled) return;
 

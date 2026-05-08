@@ -18,46 +18,52 @@ export const config = getDefaultConfig({
   projectId: import.meta.env.VITE_WC_PROJECT_ID,
   chains: [mainnet, sepolia],
   transports: {
-    [mainnet.id]: fallback([
-      // Primary RPC with batching enabled
-      http(import.meta.env.VITE_DRPC_1, {
-        batch: batchConfig,
-        retryCount: 2,
-        retryDelay: 200,
-        timeout: 15_000, // 15 second timeout
-      }),
-      // Alchemy fallback with batching
-      http(import.meta.env.VITE_ALCHEMY_1, {
-        batch: batchConfig,
-        retryCount: 2,
-        retryDelay: 200,
-        timeout: 15_000,
-      }),
-      // Cloudflare as last resort fallback (no batching)
-      http("https://cloudflare-eth.com", {
-        timeout: 15_000,
-      }),
-    ]),
-    [sepolia.id]: fallback([
-      // Primary RPC with batching enabled
-      http(import.meta.env.VITE_DRPC_SEPOLIA, {
-        batch: batchConfig,
-        retryCount: 2,
-        retryDelay: 200,
-        timeout: 15_000,
-      }),
-      // Alchemy fallback with batching
-      http(import.meta.env.VITE_ALCHEMY_SEPOLIA, {
-        batch: batchConfig,
-        retryCount: 2,
-        retryDelay: 200,
-        timeout: 15_000,
-      }),
-      // Public Sepolia RPC as last resort fallback (no batching)
-      http("https://rpc.sepolia.org", {
-        timeout: 15_000,
-      }),
-    ]),
+    [mainnet.id]: fallback(
+      [
+        http(import.meta.env.VITE_DRPC_1, {
+          batch: batchConfig,
+          retryCount: 1,
+          retryDelay: 150,
+          timeout: 6_000,
+        }),
+        http(import.meta.env.VITE_ALCHEMY_1, {
+          batch: batchConfig,
+          retryCount: 1,
+          retryDelay: 150,
+          timeout: 6_000,
+        }),
+        http("https://gateway.tenderly.co/public/mainnet", {
+          timeout: 10_000,
+        }),
+        http("https://ethereum-rpc.publicnode.com", {
+          timeout: 10_000,
+        }),
+      ],
+      { rank: { interval: 60_000, sampleCount: 5, timeout: 2_000 } },
+    ),
+    [sepolia.id]: fallback(
+      [
+        http(import.meta.env.VITE_DRPC_SEPOLIA, {
+          batch: batchConfig,
+          retryCount: 1,
+          retryDelay: 150,
+          timeout: 6_000,
+        }),
+        http(import.meta.env.VITE_ALCHEMY_SEPOLIA, {
+          batch: batchConfig,
+          retryCount: 1,
+          retryDelay: 150,
+          timeout: 6_000,
+        }),
+        http("https://ethereum-sepolia-rpc.publicnode.com", {
+          timeout: 10_000,
+        }),
+        http("https://sepolia.gateway.tenderly.co", {
+          timeout: 10_000,
+        }),
+      ],
+      { rank: { interval: 60_000, sampleCount: 5, timeout: 2_000 } },
+    ),
   },
   // @TODO farcaster
   ssr: false,

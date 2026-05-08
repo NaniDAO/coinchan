@@ -79,6 +79,7 @@
         "tailwindcss": "4.1.4",
         "viem": "2.29.0",
         "wagmi": "2.16.5",
+        "wns-utils": "^0.1.0",
         "zod": "3.25.63",
         "zrouter-sdk": "0.0.30"
     },
