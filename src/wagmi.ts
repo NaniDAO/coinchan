@@ -32,10 +32,10 @@ export const config = getDefaultConfig({
           retryDelay: 150,
           timeout: 6_000,
         }),
-        http("https://cloudflare-eth.com", {
+        http("https://gateway.tenderly.co/public/mainnet", {
           timeout: 10_000,
         }),
-        http("https://eth.llamarpc.com", {
+        http("https://ethereum-rpc.publicnode.com", {
           timeout: 10_000,
         }),
       ],
@@ -55,7 +55,10 @@ export const config = getDefaultConfig({
           retryDelay: 150,
           timeout: 6_000,
         }),
-        http("https://rpc.sepolia.org", {
+        http("https://ethereum-sepolia-rpc.publicnode.com", {
+          timeout: 10_000,
+        }),
+        http("https://sepolia.gateway.tenderly.co", {
           timeout: 10_000,
         }),
       ],
